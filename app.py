@@ -202,6 +202,14 @@ def _pill(text: str, tone: str = "blue", sm: bool = True) -> str:
             f'{text}</span>')
 
 
+def _deg_to_swell_dir(deg) -> str:
+    try:
+        d = float(deg) % 360
+    except (TypeError, ValueError):
+        return "—"
+    dirs = ["北浪", "东北浪", "东浪", "东南浪", "南浪", "西南浪", "西浪", "西北浪"]
+    return dirs[int((d + 22.5) / 45) % 8]
+
 def _parse_tag(tag: str) -> tuple:
     m = re.match(r'^(.+?)\s*[(\（](.+?)[)\）]$', tag.strip())
     if m:
@@ -271,7 +279,6 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
     temp         = day_weather.get("temp") or 0
     temp_min     = day_weather.get("temp_min") or 0
     wind         = day_weather.get("wind") or 0
-    wave         = day_weather.get("wave") or 0
     swell        = day_weather.get("swell_height") or 0
     rain_prob    = day_weather.get("rain_prob") or 0
     precipitation= day_weather.get("precipitation") or 0
@@ -283,48 +290,54 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
         if v >= warn:   return "metric-amber"
         return "metric-sage"
 
-    r1c1, r1c2, r1c3 = st.columns(3)
-    with r1c1:
-        st.markdown('<div class="metric-sage">', unsafe_allow_html=True)
-        st.metric("最高气温 · High temp", f"{temp} °C")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with r1c2:
-        st.markdown('<div class="metric-blue">', unsafe_allow_html=True)
-        st.metric("最低气温 · Low temp", f"{temp_min} °C")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with r1c3:
-        tone = "metric-coral" if rain_prob >= 60 else ("metric-amber" if rain_prob >= 25 else "metric-sage")
-        st.markdown(f'<div class="{tone}">', unsafe_allow_html=True)
-        st.metric("降雨概率 · Rain prob", f"{int(rain_prob)} %")
-        st.markdown('</div>', unsafe_allow_html=True)
+    rain_tone = "metric-coral" if rain_prob >= 60 else ("metric-amber" if rain_prob >= 25 else "metric-sage")
+    prec_tone = "metric-coral" if precipitation > 10 else ("metric-amber" if precipitation > 3 else "metric-sage")
+    dir_text  = _deg_to_swell_dir(swell_dir)
+    rain_str  = f"{precipitation:.1f} mm" if precipitation > 0 else "无降水"
 
-    r2c1, r2c2, r2c3 = st.columns(3)
-    with r2c1:
-        st.markdown(f'<div class="{_tone(wind, SHELTERED_WIND_WARN, OCEAN_WIND_DANGER)}">', unsafe_allow_html=True)
-        st.metric("最大风速 · Wind", f"{wind} km/h")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with r2c2:
-        st.markdown(f'<div class="{_tone(wave, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)}">', unsafe_allow_html=True)
-        st.metric("综合浪高 · Wave", f"{wave} m")
-        st.markdown('</div>', unsafe_allow_html=True)
-    with r2c3:
-        st.markdown(f'<div class="{_tone(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)}">', unsafe_allow_html=True)
-        st.metric("浪涌高度 · Swell", f"{swell} m")
-        st.markdown('</div>', unsafe_allow_html=True)
+    col1, col2, col3 = st.columns(3)
 
-    rain_str = f"{precipitation:.1f} mm" if precipitation > 0 else "无降水"
-    st.markdown(
-        f'<div style="margin-top:10px;padding:10px 16px;background:var(--surface);'
-        f'border-radius:10px;border:1px solid var(--line);display:flex;gap:20px;'
-        f'flex-wrap:wrap;font-size:12.5px;color:var(--muted)">'
-        f'<span><span style="color:var(--text);font-weight:500">预计降水</span> {rain_str}</span>'
-        f'<span style="opacity:0.3">|</span>'
-        f'<span><span style="color:var(--text);font-weight:500">涌向</span> {swell_dir}°</span>'
-        f'<span style="opacity:0.3">|</span>'
-        f'<span><span style="color:var(--text);font-weight:500">浪涌周期</span> {swell_period}s</span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+    with col1:  # 气温
+        ca, cb = st.columns(2)
+        with ca:
+            st.markdown('<div class="metric-sage">', unsafe_allow_html=True)
+            st.metric("最高气温", f"{temp}°C")
+            st.markdown('</div>', unsafe_allow_html=True)
+        with cb:
+            st.markdown('<div class="metric-blue">', unsafe_allow_html=True)
+            st.metric("最低气温", f"{temp_min}°C")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:  # 降水
+        ca, cb = st.columns(2)
+        with ca:
+            st.markdown(f'<div class="{rain_tone}">', unsafe_allow_html=True)
+            st.metric("降雨概率", f"{int(rain_prob)}%")
+            st.markdown('</div>', unsafe_allow_html=True)
+        with cb:
+            st.markdown(f'<div class="{prec_tone}">', unsafe_allow_html=True)
+            st.metric("预计降水", rain_str)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+    with col3:  # 风 & 浪涌
+        ca, cb = st.columns(2)
+        with ca:
+            st.markdown(f'<div class="{_tone(wind, SHELTERED_WIND_WARN, OCEAN_WIND_DANGER)}">', unsafe_allow_html=True)
+            st.metric("最大风速", f"{wind} km/h")
+            st.markdown('</div>', unsafe_allow_html=True)
+        with cb:
+            st.markdown(f'<div class="{_tone(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)}">', unsafe_allow_html=True)
+            st.metric("浪涌高度", f"{swell} m")
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="margin-top:8px;padding:7px 12px;background:var(--surface);'
+            f'border-radius:8px;border:1px solid var(--line);font-size:12.5px;color:var(--muted)">'
+            f'<span style="color:var(--text);font-weight:500">{dir_text}</span>'
+            f'<span style="opacity:0.35;margin:0 8px">·</span>'
+            f'周期 <span style="color:var(--text);font-weight:500">{swell_period}s</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── 最佳时段推算 ──────────────────────────────────────────────────────────
