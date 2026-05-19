@@ -854,5 +854,100 @@
     "route": "沿 Pittwater Road 向北开，过 Narrabeen 桥立刻左转切入 Lake Park Road。",
     "parking": "湖口配 Council 大型专属停车场。位置极度充裕，推车非常惬意。",
     "nearby_gas": "⛽ BP Narrabeen（Pittwater Rd，约 1km，24h，最近首选）；备选：Caltex Warriewood（Mona Vale Rd，约 3km）"
+  },
+  {
+    "name": "Bottle and Glass Point (Vaucluse)",
+    "region": "Vaucluse (东区外港峡角)",
+    "type": "港内外交界深水礁石岬角",
+    "lat": -33.8583,
+    "lon": 151.2678,
+    "sheltered": true,
+    "tide_delay": 2,
+    "active_fish": "Bream (鳊鱼)、Leatherjacket (剥皮鱼)、Calamari (大鱿鱼)",
+    "fish_tags": [
+      "Bream (鳊鱼)",
+      "Leatherjacket (剥皮鱼)",
+      "Squid (鱿鱼)"
+    ],
+    "best_window": "🕒 满潮前后 1.5 小时。深水礁石区大鳊鱼和大剥皮鱼贴近岸壁觅食。",
+    "family_friendly": "⭐⭐⭐ (悬崖风景绝佳) Bottle and Glass Point 俯瞰悉尼港入口，风景壮阔。礁石作钓需穿防滑鞋，有少量草坪可野餐。无 BBQ 炉和游乐场，不适合低龄娃。",
+    "supported_methods": [
+      "Running Sinker (活铅沉底)",
+      "无铅漂钓",
+      "木虾抽鱿鱼",
+      "半游动"
+    ],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "👍 推荐！Vaucluse 礁石边缘水深流急，用中型活铅沉底挂鲜虾守钓深水层，大 Bream 频繁出没。",
+      "无铅漂钓": "🎯 顶级推荐！Bottle and Glass 的经典打法：无铅漂挂整只大活虾，贴着礁壁自然下沉，专攻守在岩缝里的老鳊鱼，渔获惊人。",
+      "木虾抽鱿鱼": "👍 推荐！Vaucluse 水质清澈，深水藻礁丰富，黄昏用 2.5 号木虾慢抽，大 Calamari 出没率高。",
+      "半游动": "👍 推荐！用立式浮漂半游动线组定层 2-3 米，顺流漂入礁石区，疯狂拉大剥皮鱼。"
+    },
+    "route": "从 City 沿 New South Head Road 向东开，经 Edgecliff、Double Bay 继续向东，过 Rose Bay 后抵达 Vaucluse Road，沿指示牌前往 Nielsen Park 停车场，步行约 5 分钟即可到达 Bottle and Glass Point 礁石区。",
+    "parking": "Nielsen Park 专属停车场（免费，位置充足）。周末白天节假日较拥挤，建议早上 8 点前到达。夜钓车位通常空旷。",
+    "nearby_gas": "⛽ Shell Edgecliff（New South Head Rd，约 5km，24h）；备选：BP Rose Bay（New South Head Rd，约 4km，最近）"
+  },
+  {
+    "name": "Pier 2/3 Walsh Bay (岩石区历史码头)",
+    "region": "Walsh Bay (悉尼内港核心区)",
+    "type": "百年历史木桩港口码头 (Heritage Timber Wharf)",
+    "lat": -33.8585,
+    "lon": 151.2013,
+    "sheltered": true,
+    "tide_delay": 0,
+    "active_fish": "Bream (鳊鱼)、Flathead (牛鳅)、Calamari (大鱿鱼)",
+    "fish_tags": [
+      "Bream (鳊鱼)",
+      "Flathead (牛鳅)",
+      "Squid (鱿鱼)"
+    ],
+    "best_window": "🌃 夜晚轮渡停航后（晚 9 点至午夜）。历史木桩下方有大量贝壳礁，暗流带来丰富饵料。",
+    "family_friendly": "⭐⭐⭐ (CBD 历史人文体验) 临近悉尼歌剧院和海港大桥，适合白天家庭观光顺带放竿。无专属 BBQ，步行便利。",
+    "supported_methods": [
+      "Running Sinker (活铅沉底)",
+      "无铅漂钓",
+      "木虾抽鱿鱼"
+    ],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "👍 推荐！在码头外侧深水区抛入 Running Sinker 钓组，守钓底层大 Flathead 牛鳅。",
+      "无铅漂钓": "🎯 顶级推荐！百年木桩桩基附近的鳊鱼密度极高。夜钓挂新鲜虾肉无铅漂顺流入桩基阴影，大 Bream 狂咬！",
+      "木虾抽鱿鱼": "🎯 顶级推荐！码头路灯与清澈深水相结合，是 CBD 最佳鱿鱼摸鱼位！用粉色 2.5 号木虾夜钓出货极佳。"
+    },
+    "route": "从 City 步行或驾车，经 Argyle St 下切至 Hickson Road 沿港口方向即可到达 Pier 2/3。",
+    "parking": "Walsh Bay 周边有收费停车场（贵）。夜钓建议停在 The Rocks 周边街道（9 点后免费）。",
+    "nearby_gas": "⛽ BP North Sydney（Miller St，约 2km）；备选：Shell Waverton（Bay Rd，约 2.5km，24h）"
+  },
+  {
+    "name": "Wattamolla Beach (皇家国家公园)",
+    "region": "Royal National Park (皇家国家公园)",
+    "type": "⚠️ 外海泻湖礁石结合部 (Coastal Lagoon & Rock Platform)",
+    "lat": -34.1357,
+    "lon": 151.063,
+    "sheltered": false,
+    "tide_delay": -8,
+    "active_fish": "Australian Salmon (三文鱼)、Black Drummer (黑毛)、Tailor (蓝鱼)、Jewfish (皇冠鲊)",
+    "fish_tags": [
+      "Salmon (三文鱼)",
+      "Drummer (黑毛)",
+      "Tailor (蓝鱼)",
+      "Jewfish (皇冠鲊)"
+    ],
+    "best_window": "🌅 清晨第一缕光至上午 9 点。回游大鱼冲洗礁石平台的最佳捕食时机。",
+    "family_friendly": "⭐⭐ (壮丽景区，不适合低龄娃) 徒步栈道优美，有洗手间和野餐区。但礁石作钓区域危险，浪大时严禁踏上。适合大孩子观光，低龄不宜靠礁。",
+    "supported_methods": [
+      "半游动",
+      "全游动",
+      "路亚大物",
+      "Running Sinker (活铅沉底)"
+    ],
+    "method_tips": {
+      "半游动": "🎯 顶级推荐！在泻湖礁石出海口，用阿波半游动线组顺流钓大 Drummer 黑毛，效果一流。",
+      "全游动": "👍 推荐！让诱饵随南太平洋的涌流穿越礁盘，是截击洄游三文鱼和 Tailor 的王牌招式。",
+      "路亚大物": "👍 推荐！清晨远投重型铁板，南段礁盘对面常年有大群 Salmon 和 Kingfish 咬钩。",
+      "Running Sinker (活铅沉底)": "👍 推荐！泻湖内侧可用轻铅沉底，挂沙蚕钓 Whiting 和 Bream，适合海况好的平静日。"
+    },
+    "route": "从悉尼南下沿 Princes Hwy 走，在 Sutherland 切入 Farnell Ave，进入皇家国家公园后按指示牌行驶约 20km 至 Wattamolla 停车场。",
+    "parking": "皇家国家公园专属收费停车场（需购买国家公园通行证 $12/天）。节假日车位极度紧张，建议早上 7 点前到达。",
+    "nearby_gas": "⛽ 7-Eleven Sutherland（Princes Hwy，约 18km，进入公园前必经加油站）；备选：Ampol Kirrawee（Princes Hwy，约 20km）"
   }
 ]

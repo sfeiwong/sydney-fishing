@@ -19,7 +19,8 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
             f"https://api.open-meteo.com/v1/forecast"
             f"?latitude={lat}&longitude={lon}"
             f"&daily=temperature_2m_max,temperature_2m_min,"
-            f"wind_speed_10m_max,precipitation_sum,precipitation_probability_max"
+            f"wind_speed_10m_max,wind_direction_10m_dominant,"
+            f"precipitation_sum,precipitation_probability_max"
             f"&timezone=Australia%2FSydney"
         )
         marine_url = (
@@ -52,6 +53,7 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
                 "temp":           wd["temperature_2m_max"][i],
                 "temp_min":       wd["temperature_2m_min"][i],
                 "wind":           wd["wind_speed_10m_max"][i],
+                "wind_direction": (wd.get("wind_direction_10m_dominant") or [None]*3)[i],
                 "rain_prob":      (wd.get("precipitation_probability_max") or [0]*3)[i] or 0,
                 "precipitation":  (wd.get("precipitation_sum") or [0]*3)[i] or 0,
                 "wave":           (marine_daily.get("wave_height_max") or [None]*3)[i],
@@ -69,6 +71,7 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
                 "temp":           21.0,
                 "temp_min":       15.0,
                 "wind":           12.0,
+                "wind_direction":  180,
                 "rain_prob":       10,
                 "precipitation":    0.0,
                 "wave":            1.1,

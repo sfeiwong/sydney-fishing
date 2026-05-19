@@ -95,16 +95,25 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:var(--surface); bor
 /* Info/alert */
 [data-testid="stAlert"] { border-radius:12px!important; border:none!important; }
 
-/* 展开详情 toggle — hide checkbox box, keep only the label text */
-.main [data-testid="stCheckbox"] input[type="checkbox"] { display:none!important; }
-.main [data-testid="stCheckbox"] label > div:not([data-testid]) { display:none!important; }
-.main [data-testid="stCheckbox"] label > span { display:none!important; }
-.main [data-testid="stCheckbox"] label {
-    font-size:0.75em!important; color:#9ab0c2!important; cursor:pointer!important;
-    padding:2px 8px!important; border-radius:6px!important;
-    user-select:none!important; gap:0!important; padding-left:2px!important;
+/* 展开详情 toggle button — pill chip */
+.main .stButton button[kind="secondary"] {
+    background:var(--surface2)!important;
+    border:1px solid var(--line)!important;
+    border-radius:999px!important;
+    box-shadow:none!important;
+    color:var(--muted)!important;
+    font-size:11.5px!important;
+    padding:3px 14px!important;
+    min-height:auto!important;
+    height:auto!important;
+    line-height:1.5!important;
+    transition:all 100ms ease!important;
 }
-.main [data-testid="stCheckbox"] label:hover { color:#4a7090!important; background:#f0f5fa!important; }
+.main .stButton button[kind="secondary"]:hover {
+    background:var(--line)!important;
+    border-color:var(--muted)!important;
+    color:var(--text)!important;
+}
 
 /* hr */
 hr { border:none; border-top:1px solid var(--line); margin:1.2rem 0; }
@@ -210,6 +219,28 @@ def _deg_to_swell_dir(deg) -> str:
     dirs = ["北浪", "东北浪", "东浪", "东南浪", "南浪", "西南浪", "西浪", "西北浪"]
     return dirs[int((d + 22.5) / 45) % 8]
 
+
+def _deg_to_wind_dir(deg) -> str:
+    try:
+        d = float(deg) % 360
+    except (TypeError, ValueError):
+        return "—"
+    dirs = ["北风", "东北风", "东风", "东南风", "南风", "西南风", "西风", "西北风"]
+    return dirs[int((d + 22.5) / 45) % 8]
+
+
+def _beaufort(kmh: float) -> str:
+    if kmh < 1:   return "0级·无风"
+    if kmh < 6:   return "1级·软风"
+    if kmh < 12:  return "2级·轻风"
+    if kmh < 20:  return "3级·微风"
+    if kmh < 29:  return "4级·和风"
+    if kmh < 39:  return "5级·劲风"
+    if kmh < 50:  return "6级·强风"
+    if kmh < 62:  return "7级·疾风"
+    if kmh < 75:  return "8级·大风"
+    return "9+级·烈风"
+
 def _parse_tag(tag: str) -> tuple:
     m = re.match(r'^(.+?)\s*[(\（](.+?)[)\）]$', tag.strip())
     if m:
@@ -284,60 +315,87 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
     precipitation= day_weather.get("precipitation") or 0
     swell_dir    = day_weather.get("swell_direction", "—")
     swell_period = day_weather.get("swell_period", "—")
+    wind_dir     = day_weather.get("wind_direction", "—")
 
-    def _tone(v, warn, danger):
-        if v >= danger: return "metric-coral"
-        if v >= warn:   return "metric-amber"
-        return "metric-sage"
-
-    rain_tone = "metric-coral" if rain_prob >= 60 else ("metric-amber" if rain_prob >= 25 else "metric-sage")
-    prec_tone = "metric-coral" if precipitation > 10 else ("metric-amber" if precipitation > 3 else "metric-sage")
-    dir_text  = _deg_to_swell_dir(swell_dir)
+    swell_dir_text = _deg_to_swell_dir(swell_dir)
+    wind_dir_text  = _deg_to_wind_dir(wind_dir)
+    beaufort_text  = _beaufort(float(wind) if wind else 0)
     rain_str  = f"{precipitation:.1f} mm" if precipitation > 0 else "无降水"
 
-    col1, col2, col3 = st.columns(3)
+    t_hi  = "#4f9b76"
+    t_lo  = "#2a5fb0"
+    r_col = "#cc5e54" if rain_prob >= 60 else ("#d99540" if rain_prob >= 25 else "#4f9b76")
+    w_col = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
+    s_col = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
 
-    with col1:  # 气温
-        ca, cb = st.columns(2)
-        with ca:
-            st.markdown('<div class="metric-sage">', unsafe_allow_html=True)
-            st.metric("最高气温", f"{temp}°C")
-            st.markdown('</div>', unsafe_allow_html=True)
-        with cb:
-            st.markdown('<div class="metric-blue">', unsafe_allow_html=True)
-            st.metric("最低气温", f"{temp_min}°C")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    with col2:  # 降水
-        ca, cb = st.columns(2)
-        with ca:
-            st.markdown(f'<div class="{rain_tone}">', unsafe_allow_html=True)
-            st.metric("降雨概率", f"{int(rain_prob)}%")
-            st.markdown('</div>', unsafe_allow_html=True)
-        with cb:
-            st.markdown(f'<div class="{prec_tone}">', unsafe_allow_html=True)
-            st.metric("预计降水", rain_str)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-    with col3:  # 风 & 浪涌
-        ca, cb = st.columns(2)
-        with ca:
-            st.markdown(f'<div class="{_tone(wind, SHELTERED_WIND_WARN, OCEAN_WIND_DANGER)}">', unsafe_allow_html=True)
-            st.metric("最大风速", f"{wind} km/h")
-            st.markdown('</div>', unsafe_allow_html=True)
-        with cb:
-            st.markdown(f'<div class="{_tone(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)}">', unsafe_allow_html=True)
-            st.metric("浪涌高度", f"{swell} m")
-            st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown(
-            f'<div style="margin-top:8px;padding:7px 12px;background:var(--surface);'
-            f'border-radius:8px;border:1px solid var(--line);font-size:12.5px;color:var(--muted)">'
-            f'<span style="color:var(--text);font-weight:500">{dir_text}</span>'
-            f'<span style="opacity:0.35;margin:0 8px">·</span>'
-            f'周期 <span style="color:var(--text);font-weight:500">{swell_period}s</span>'
-            f'</div>',
-            unsafe_allow_html=True,
+    def _card(label, body_html):
+        return (
+            f'<div style="background:var(--surface);border:1px solid var(--line);'
+            f'border-radius:14px;padding:18px 20px;box-shadow:0 2px 6px rgba(15,30,50,0.025);height:100%">'
+            f'<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
+            f'letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">{label}</div>'
+            f'{body_html}'
+            f'</div>'
         )
+
+    row1_c1, row1_c2 = st.columns(2)
+    row2_c1, row2_c2 = st.columns(2)
+
+    row1_c1.markdown(_card("气温 · TEMPERATURE", f"""
+        <div style="display:flex;gap:28px;align-items:baseline">
+            <div>
+                <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                            color:{t_hi};line-height:1">{temp}°</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:4px">最高</div>
+            </div>
+            <div>
+                <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                            color:{t_lo};line-height:1">{temp_min}°</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:4px">最低</div>
+            </div>
+        </div>
+    """), unsafe_allow_html=True)
+
+    row1_c2.markdown(_card("降水 · PRECIPITATION", f"""
+        <div style="display:flex;gap:28px;align-items:baseline">
+            <div>
+                <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                            color:{r_col};line-height:1">{int(rain_prob)}%</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:4px">降雨概率</div>
+            </div>
+            <div>
+                <div style="font-family:var(--serif-en);font-size:28px;font-weight:400;
+                            color:var(--text);line-height:1">{rain_str}</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:4px">预计降水</div>
+            </div>
+        </div>
+    """), unsafe_allow_html=True)
+
+    row2_c1.markdown(_card("风 · WIND", f"""
+        <div style="margin-bottom:10px">
+            <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                        color:{w_col};line-height:1">{wind}</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">风速 km/h</div>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.8">
+            <span style="color:var(--text);font-weight:500">{wind_dir_text}</span>
+            <span style="opacity:0.35;margin:0 6px">·</span>
+            <span style="color:var(--text);font-weight:500">{beaufort_text}</span>
+        </div>
+    """), unsafe_allow_html=True)
+
+    row2_c2.markdown(_card("浪涌 · SWELL", f"""
+        <div style="margin-bottom:10px">
+            <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                        color:{s_col};line-height:1">{swell}</div>
+            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">浪高 m</div>
+        </div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.8">
+            <span style="color:var(--text);font-weight:500">{swell_dir_text}</span>
+            <span style="opacity:0.35;margin:0 6px">·</span>
+            周期 <span style="color:var(--text);font-weight:500">{swell_period}s</span>
+        </div>
+    """), unsafe_allow_html=True)
 
 
 # ── 最佳时段推算 ──────────────────────────────────────────────────────────
@@ -383,28 +441,36 @@ def _best_window_times(best_window: str, tides: list) -> str:
 
 # ── 潮汐面板（Plotly） ────────────────────────────────────────────────────
 
-def render_tide_panel(base_tides: list) -> None:
+def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: datetime = None) -> None:
     now          = datetime.now()
     sorted_tides = sorted(base_tides, key=lambda x: x["time"])
+    is_today     = target_date is None or target_date.date() == now.date()
     HIGH_M, LOW_M = 1.85, 0.15
 
-    midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    ref_day  = target_date if target_date is not None else now
+    midnight = ref_day.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Extend with adjacent days so interpolation works across the full 24h window
+    prev_tides = get_tides_for_date(ref_day - timedelta(days=1))
+    next_tides = get_tides_for_date(ref_day + timedelta(days=1))
+    all_tides  = sorted(prev_tides + base_tides + next_tides, key=lambda x: x["time"])
+
     x_hours  = np.linspace(0, 24, 300)
     y_m      = []
 
     for xh in x_hours:
         t = midnight + timedelta(hours=float(xh))
         prev_td = next_td = None
-        for td in sorted_tides:
+        for td in all_tides:
             if td["time"] <= t:
                 prev_td = td
             elif next_td is None:
                 next_td = td
                 break
         if prev_td is None:
-            h = HIGH_M if sorted_tides[0]["is_high"] else LOW_M
+            h = HIGH_M if all_tides[0]["is_high"] else LOW_M
         elif next_td is None:
-            h = HIGH_M if sorted_tides[-1]["is_high"] else LOW_M
+            h = HIGH_M if all_tides[-1]["is_high"] else LOW_M
         else:
             ph = HIGH_M if prev_td["is_high"] else LOW_M
             nh = HIGH_M if next_td["is_high"] else LOW_M
@@ -423,7 +489,7 @@ def render_tide_panel(base_tides: list) -> None:
         fill="tozeroy", fillcolor="rgba(42,95,176,0.18)",
         hovertemplate="%{x:.1f}h · %{y:.2f}m<extra></extra>",
     ))
-    if 0 <= now_h <= 24:
+    if is_today and 0 <= now_h <= 24:
         idx = int(now_h / 24 * (len(y_m) - 1))
         fig.add_vline(x=now_h, line=dict(color="#c69230", width=1.2, dash="dash"))
         fig.add_trace(go.Scatter(
@@ -446,7 +512,7 @@ def render_tide_panel(base_tides: list) -> None:
             gridcolor="rgba(15,30,50,0.06)",
         ),
     )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key=chart_key)
 
     cols = st.columns(len(sorted_tides))
     for col, td in zip(cols, sorted_tides):
@@ -454,7 +520,7 @@ def render_tide_panel(base_tides: list) -> None:
         dot_color = "#c69230" if is_high else "#8a9cb2"
         label     = "满潮" if is_high else "干潮"
         time_str  = td["time"].strftime("%H:%M")
-        opacity   = "1" if td["time"] > now else "0.4"
+        opacity   = "1" if (not is_today or td["time"] > now) else "0.4"
         col.markdown(
             f'<div style="text-align:center;opacity:{opacity}">'
             f'<div style="width:8px;height:8px;border-radius:50%;background:{dot_color};'
@@ -549,77 +615,146 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
     fish_chips   = "".join(_pill(f, "blue") for f in spot["fish_tags"])
     method_chips = "".join(_pill(m, "violet") for m in spot["supported_methods"][:5])
 
-    st.markdown(f"""
-    <div style="position:relative;background:white;border-radius:16px;
-                box-shadow:0 2px 14px rgba(24,66,112,0.07),0 1px 3px rgba(0,0,0,0.04);
-                border:1px solid rgba(219,231,242,0.85);
-                margin-bottom:4px;padding:16px 18px 14px 24px;overflow:hidden">
-        <div style="position:absolute;left:0;top:0;bottom:0;width:5px;
-                    background:{bar_grad};border-radius:16px 0 0 16px"></div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-            <div style="font-size:1.02em;font-weight:800;color:#102338">{spot['name']}</div>
-            <span style="background:{badge_bg};color:{badge_txt};border:1px solid {border};
-                         padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">
-                {safety['status']}
-            </span>
-            <span style="color:#9ab0c0;font-size:0.78em">{spot['region']} · {spot['type']}</span>
-        </div>
-        <div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-            <div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">
-                <div style="font-size:0.66em;color:#bbb;margin-bottom:2px">🌊 浪涌</div>
-                <div style="font-size:1.08em;font-weight:800;color:{sw_color}">{swell}m</div>
-            </div>
-            <div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">
-                <div style="font-size:0.66em;color:#bbb;margin-bottom:2px">💨 风速</div>
-                <div style="font-size:1.08em;font-weight:800;color:{wi_color}">{wind}km/h</div>
-            </div>
-            <div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:110px">
-                <div style="font-size:0.66em;color:#bbb;margin-bottom:2px">⏱️ 黄金时段</div>
-                <div style="font-size:0.98em;font-weight:800;color:#1565C0">{time_window}</div>
-            </div>
-            <div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:72px">
-                <div style="font-size:0.66em;color:#bbb;margin-bottom:2px">👨‍👩‍👧 家庭</div>
-                <div style="font-size:0.9em;font-weight:700;color:#555">{spot['family_friendly'][:2]}</div>
-            </div>
-        </div>
-        <div style="margin-bottom:4px">{fish_chips}</div>
-        <div>{method_chips}</div>
-    </div>
-    """, unsafe_allow_html=True)
+    # Safety advice — only shown inline for amber/coral; sage is self-explanatory
+    advice_html = ""
+    if safety["color"] != "sage":
+        advice_html = (
+            f'<div style="background:{badge_bg};border-left:3px solid {border};'
+            f'border-radius:0 8px 8px 0;padding:7px 12px;margin:10px 0 4px;'
+            f'font-size:11.5px;color:{badge_txt};line-height:1.5">'
+            f'{safety["advice"]}'
+            f'</div>'
+        )
 
-    safe_key = (
+    st.markdown(
+        f'<div style="position:relative;background:white;border-radius:16px;'
+        f'box-shadow:0 2px 14px rgba(24,66,112,0.07),0 1px 3px rgba(0,0,0,0.04);'
+        f'border:1px solid rgba(219,231,242,0.85);'
+        f'margin-bottom:4px;padding:16px 18px 14px 24px;overflow:hidden">'
+
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:5px;'
+        f'background:{bar_grad};border-radius:16px 0 0 16px"></div>'
+
+        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+        f'<div style="font-size:1.02em;font-weight:800;color:#102338">{spot["name"]}</div>'
+        f'<span style="background:{badge_bg};color:{badge_txt};border:1px solid {border};'
+        f'padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">'
+        f'{safety["status"]}</span>'
+        f'<span style="color:#9ab0c0;font-size:0.78em">{spot["region"]} · {spot["type"]}</span>'
+        f'</div>'
+
+        f'<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">'
+        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">🌊 浪涌</div>'
+        f'<div style="font-size:1.08em;font-weight:800;color:{sw_color}">{swell}m</div>'
+        f'</div>'
+        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">'
+        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">💨 风速</div>'
+        f'<div style="font-size:1.08em;font-weight:800;color:{wi_color}">{wind}km/h</div>'
+        f'</div>'
+        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:110px">'
+        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">⏱️ 黄金时段</div>'
+        f'<div style="font-size:0.98em;font-weight:800;color:#1565C0">{time_window}</div>'
+        f'</div>'
+        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:72px">'
+        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">👨‍👩‍👧 家庭</div>'
+        f'<div style="font-size:0.9em;font-weight:700;color:#555">{spot["family_friendly"][:2]}</div>'
+        f'</div>'
+        f'</div>'
+
+        f'{advice_html}'
+
+        f'<div style="margin-bottom:4px">{fish_chips}</div>'
+        f'<div>{method_chips}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    toggle_key = (
         f"det_{day_offset}_"
         + spot["name"].replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
     )
-    show_detail = st.checkbox("▾ 展开详情", key=safe_key, value=False)
-    if show_detail:
-        st.markdown(f"""
-        <div style="background:{badge_bg};border-left:4px solid {border};
-                    padding:10px 16px;border-radius:8px;margin:8px 0 12px;
-                    color:{badge_txt};font-size:0.92em">
-            <b>{safety['status']}</b> &nbsp;—&nbsp; {safety['advice']}
-        </div>
-        """, unsafe_allow_html=True)
+    if toggle_key not in st.session_state:
+        st.session_state[toggle_key] = False
+    is_open = st.session_state[toggle_key]
 
-        tides_str = " &nbsp;|&nbsp; ".join(
-            f"{t['label']} `{t['time'].strftime('%H:%M')}`" for t in spot_tides
-        )
-        st.markdown(f"**⏰ 专属潮汐** &nbsp;{tides_str}")
-        st.markdown("---")
+    if st.button("▴ 收起详情" if is_open else "▾ 展开详情", key=toggle_key + "_btn"):
+        st.session_state[toggle_key] = not is_open
+        st.rerun()
 
+    if is_open:
         show_methods = (
             [m for m in selected_methods if m in spot["supported_methods"]]
             if selected_methods else spot["supported_methods"]
         )
-        for method in show_methods:
-            tip = spot["method_tips"].get(
-                method, "此钓法在该钓点完全可行，建议现场根据流水微调线组铅重。"
-            )
-            st.markdown(f"> **{method}**：{tip}")
 
-        st.markdown("---")
-        st.markdown(f"**🚗 自驾路线** &nbsp;{spot['route']}")
-        st.info(f"🅿️ **停车方案** &nbsp;{spot['parking']}")
+        # ── Tide rows ────────────────────────────────────────
+        tide_rows = ""
+        for td in spot_tides:
+            dot = "#c69230" if td["is_high"] else "#8a9cb2"
+            lbl = "满潮" if td["is_high"] else "干潮"
+            tide_rows += (
+                f'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'
+                f'border-bottom:1px solid var(--line)">'
+                f'<div style="width:7px;height:7px;border-radius:50%;background:{dot};flex-shrink:0"></div>'
+                f'<span style="font-family:var(--mono);font-size:12px;color:{dot};font-weight:600">'
+                f'{td["time"].strftime("%H:%M")}</span>'
+                f'<span style="font-size:11.5px;color:var(--muted)">{lbl}</span>'
+                f'</div>'
+            )
+
+        # ── Method rows ───────────────────────────────────────
+        method_rows = ""
+        tip_icons = {"🎯": "#2a5fb0", "👍": "#4f9b76", "⚠": "#d99540"}
+        for method in show_methods:
+            tip = spot["method_tips"].get(method, "此钓法在该钓点完全可行，建议现场根据流水微调线组铅重。")
+            icon_color = next((c for k, c in tip_icons.items() if k in tip), "#8a9cb2")
+            short_name = method.split("(")[0].strip()
+            method_rows += (
+                f'<div style="padding:8px 0;border-bottom:1px solid var(--line)">'
+                f'<div style="font-size:12px;font-weight:700;color:{icon_color};margin-bottom:3px">'
+                f'{short_name}</div>'
+                f'<div style="font-size:12px;color:var(--muted);line-height:1.55">{tip}</div>'
+                f'</div>'
+            )
+
+        st.markdown(
+            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
+            f'border-top:3px solid {border};margin-top:4px;overflow:hidden">'
+
+            f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:0">'
+
+            f'<div style="padding:14px 16px;border-right:1px solid var(--line)">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:8px">专属潮汐</div>'
+            f'{tide_rows}'
+            f'</div>'
+
+            f'<div style="padding:14px 16px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">钓法攻略</div>'
+            f'{method_rows}'
+            f'</div>'
+
+            f'</div>'
+
+            f'<div style="border-top:1px solid var(--line);padding:12px 18px;'
+            f'background:var(--surface2);display:grid;grid-template-columns:1fr 1fr;gap:12px">'
+            f'<div>'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">🚗 自驾路线</div>'
+            f'<div style="font-size:12px;color:var(--text);line-height:1.55">{spot["route"]}</div>'
+            f'</div>'
+            f'<div>'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">🅿️ 停车方案</div>'
+            f'<div style="font-size:12px;color:var(--text);line-height:1.55">{spot["parking"]}</div>'
+            f'</div>'
+            f'</div>'
+
+            f'</div>',
+            unsafe_allow_html=True,
+        )
         st.markdown(_fuel_html(spot), unsafe_allow_html=True)
 
 
@@ -642,15 +777,31 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
         v1_band, v1_kicker = "var(--coral)", "⊘ NO-GO · OVERALL"
         v1_title, v1_body  = "暂不建议出行", "浪涌与风速均超安全阈值，建议改期"
 
-    if red_n > 0:
-        v2_band, v2_kicker = "var(--coral)", "DANGER SPOTS"
-        v2_title, v2_body  = f"{red_n}", f"个外海点极危险 · 请勿前往"
-    elif orange_n > 0:
-        v2_band, v2_kicker = "var(--amber)", "CAUTION SPOTS"
-        v2_title, v2_body  = f"{orange_n}", f"个点需谨慎 · 选背风位"
+    sheltered_ok   = sum(1 for s, sa, _, _ in all_spot_data if s["sheltered"] and sa["color"] != "coral")
+    sheltered_best = sum(1 for s, sa, _, _ in all_spot_data if s["sheltered"] and sa["color"] == "sage")
+    ocean_safe     = sum(1 for s, sa, _, _ in all_spot_data if not s["sheltered"] and sa["color"] == "sage")
+    swell_val = day_w.get("swell_height") or 0
+    wind_val  = day_w.get("wind") or 0
+    ocean_danger = swell_val > OCEAN_SWELL_DANGER or wind_val > OCEAN_WIND_DANGER
+    if ocean_danger:
+        v2_band, v2_kicker = "var(--coral)", "SPOT TYPE · ADVICE"
+        v2_title = "优先内湾"
+        if sheltered_ok > 0:
+            v2_body = f"外海危险，{sheltered_ok} 个内湾钓点可前往（{sheltered_best} 个极佳）"
+        else:
+            v2_body = "今日海况全面恶化，建议改期或极轻装置内湾试探"
+    elif sheltered_ok + ocean_safe == 0:
+        v2_band, v2_kicker = "var(--coral)", "SPOT TYPE · ADVICE"
+        v2_title = "暂缓出行"
+        v2_body  = "当前海况超安全阈值，建议改期"
+    elif ocean_safe >= sheltered_ok:
+        v2_band, v2_kicker = "var(--sage)", "SPOT TYPE · ADVICE"
+        v2_title = "内外均可"
+        v2_body  = f"外海 {ocean_safe} 点 · 内湾 {sheltered_ok} 点均可前往"
     else:
-        v2_band, v2_kicker = "var(--sage)", "ALL CLEAR"
-        v2_title, v2_body  = "0", "危险点 · 所有钓点均安全"
+        v2_band, v2_kicker = "var(--amber)", "SPOT TYPE · ADVICE"
+        v2_title = "优先内湾"
+        v2_body  = f"内湾 {sheltered_ok} 点可前往，外海 {ocean_safe} 点可选"
 
     sorted_tides = sorted(base_tides, key=lambda t: t["time"])
     highs        = [t for t in sorted_tides if t["is_high"]]
@@ -692,8 +843,7 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
 
     v1, v2, v3, v4 = st.columns([1.2, 1, 1, 1.4])
     v1.markdown(_verdict_card(v1_band, v1_kicker, v1_title, v1_body), unsafe_allow_html=True)
-    v2.markdown(_verdict_card(v2_band, v2_kicker, v2_title, v2_body,
-                              f"font-family:var(--serif-en);font-size:40px;color:{v2_band}"), unsafe_allow_html=True)
+    v2.markdown(_verdict_card(v2_band, v2_kicker, v2_title, v2_body), unsafe_allow_html=True)
     v3.markdown(_window_card("var(--primary)", "WINDOW · BEST TIME", v3_win, v3_sub), unsafe_allow_html=True)
     v4.markdown(
         f'<div style="background:var(--surface2);border:1px solid var(--line);border-radius:14px;'
@@ -922,12 +1072,12 @@ def render_day_tab(day_offset: int) -> None:
                 'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">'
                 '基准潮汐</div>'
                 '<div style="font-family:var(--serif-zh);font-size:18px;font-weight:600;'
-                'margin-bottom:8px">今日潮汐 '
+                'margin-bottom:8px">潮汐表 '
                 '<span style="font-family:var(--serif-en);font-style:italic;color:var(--muted);'
                 'font-size:15px;font-weight:400">Tide curve</span></div>',
                 unsafe_allow_html=True,
             )
-            render_tide_panel(base_tides)
+            render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
