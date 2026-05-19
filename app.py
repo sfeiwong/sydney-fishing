@@ -92,13 +92,14 @@ hr { border: none; border-top: 1px solid #dde8f0; margin: 1rem 0; }
 
 # ── 侧边栏：筛选器 ────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("""
-    <div style="text-align:center;padding:24px 0 12px">
-        <div style="font-size:2.8em">🎣</div>
-        <div style="font-size:1.25em;font-weight:700;color:white;margin-top:8px">悉尼钓鱼助手</div>
-        <div style="font-size:0.8em;color:rgba(255,255,255,0.65);margin-top:3px;letter-spacing:2px">PRO+</div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        '<div style="text-align:center;padding:24px 0 12px">'
+        '<div style="font-size:2.8em">🎣</div>'
+        '<div style="font-size:1.25em;font-weight:700;color:white;margin-top:8px">悉尼钓鱼助手</div>'
+        '<div style="font-size:0.8em;color:rgba(255,255,255,0.65);margin-top:3px;letter-spacing:2px">PRO+</div>'
+        '</div>',
+        unsafe_allow_html=True
+    )
 
     st.markdown("---")
     st.markdown("**🔍 智能筛选**")
@@ -196,24 +197,26 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
 
     cols = st.columns(4)
     for col, (icon, label, val, unit, color) in zip(cols, metrics):
-        col.markdown(f"""
-        <div style="background:white;border-radius:14px;padding:18px 10px 14px;
-                    box-shadow:0 2px 12px rgba(0,0,0,0.07);text-align:center;
-                    border-bottom:3px solid {color}">
-            <div style="font-size:1.5em;line-height:1">{icon}</div>
-            <div style="color:#999;font-size:0.8em;margin:7px 0 4px">{label}</div>
-            <div style="font-size:1.75em;font-weight:800;color:{color};line-height:1.1">{val}</div>
-            <div style="color:#bbb;font-size:0.78em;margin-top:4px">{unit}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        col.markdown(
+            f'<div style="background:white;border-radius:14px;padding:18px 10px 14px;'
+            f'box-shadow:0 2px 12px rgba(0,0,0,0.07);text-align:center;'
+            f'border-bottom:3px solid {color}">'
+            f'<div style="font-size:1.5em;line-height:1">{icon}</div>'
+            f'<div style="color:#999;font-size:0.8em;margin:7px 0 4px">{label}</div>'
+            f'<div style="font-size:1.75em;font-weight:800;color:{color};line-height:1.1">{val}</div>'
+            f'<div style="color:#bbb;font-size:0.78em;margin-top:4px">{unit}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
-    st.markdown(f"""
-    <div style="text-align:center;color:#666;font-size:0.88em;margin-top:12px;
-                background:white;border-radius:10px;padding:9px 16px;
-                box-shadow:0 1px 6px rgba(0,0,0,0.05)">
-        🧭&nbsp; 涌向 <b>{swell_dir}°</b> &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️&nbsp; 浪涌周期 <b>{swell_period}s</b>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="text-align:center;color:#666;font-size:0.88em;margin-top:12px;'
+        f'background:white;border-radius:10px;padding:9px 16px;'
+        f'box-shadow:0 1px 6px rgba(0,0,0,0.05)">'
+        f'🧭&nbsp; 涌向 <b>{swell_dir}°</b> &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️&nbsp; 浪涌周期 <b>{swell_period}s</b>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 
 # ── 潮汐时间线 ────────────────────────────────────────────────────────────
@@ -235,42 +238,41 @@ def render_tide_panel(base_tides: list) -> None:
         color   = "#1565C0" if is_high else "#EF6C00"
         label   = "满潮" if is_high else "干潮"
         size    = "16px" if is_high else "11px"
-        dots_html += f"""
-        <div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);
-                    top:0;text-align:center;width:64px;margin-left:-32px">
-            <div style="font-size:0.72em;color:{color};font-weight:700;
-                        white-space:nowrap">{t['time'].strftime('%H:%M')}</div>
-            <div style="width:{size};height:{size};background:{color};border-radius:50%;
-                        margin:4px auto;box-shadow:0 2px 8px rgba(0,0,0,0.18)"></div>
-            <div style="font-size:0.68em;color:#888;white-space:nowrap">{label}</div>
-        </div>
-        """
+        dots_html += (
+            f'<div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);'
+            f'top:0;text-align:center;width:64px;margin-left:-32px">'
+            f'<div style="font-size:0.72em;color:{color};font-weight:700;'
+            f'white-space:nowrap">{t["time"].strftime("%H:%M")}</div>'
+            f'<div style="width:{size};height:{size};background:{color};border-radius:50%;'
+            f'margin:4px auto;box-shadow:0 2px 8px rgba(0,0,0,0.18)"></div>'
+            f'<div style="font-size:0.68em;color:#888;white-space:nowrap">{label}</div>'
+            f'</div>'
+        )
 
     now_html = ""
     if min_t <= now <= max_t:
         pct = to_pct(now)
-        now_html = f"""
-        <div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);top:-18px;
-                    font-size:0.65em;color:#e53935;font-weight:700;white-space:nowrap">▼ 现在</div>
-        <div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);
-                    top:-4px;bottom:-4px;width:2px;
-                    background:linear-gradient(#e53935,rgba(229,57,53,0.2));border-radius:2px"></div>
-        """
+        now_html = (
+            f'<div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);top:-18px;'
+            f'font-size:0.65em;color:#e53935;font-weight:700;white-space:nowrap">▼ 现在</div>'
+            f'<div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);'
+            f'top:-4px;bottom:-4px;width:2px;'
+            f'background:linear-gradient(#e53935,rgba(229,57,53,0.2));border-radius:2px"></div>'
+        )
 
-    st.markdown(f"""
-    <div style="background:white;border-radius:14px;padding:16px 20px 22px;
-                box-shadow:0 2px 12px rgba(0,0,0,0.07)">
-        <div style="font-size:0.78em;color:#bbb;margin-bottom:18px">
-            ⏰ Fort Denison 基准 &nbsp;·&nbsp; ±30~60 分钟误差
-        </div>
-        <div style="position:relative;height:76px;margin:0 24px">
-            <div style="position:absolute;top:28px;left:0;right:0;height:2px;
-                        background:#e8eef5;border-radius:2px"></div>
-            {now_html}
-            {dots_html}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div style="background:white;border-radius:14px;padding:16px 20px 22px;'
+        f'box-shadow:0 2px 12px rgba(0,0,0,0.07)">'
+        f'<div style="font-size:0.78em;color:#bbb;margin-bottom:18px">'
+        f'⏰ Fort Denison 基准 &nbsp;·&nbsp; ±30~60 分钟误差</div>'
+        f'<div style="position:relative;height:76px;margin:0 24px">'
+        f'<div style="position:absolute;top:28px;left:0;right:0;height:2px;'
+        f'background:#e8eef5;border-radius:2px"></div>'
+        f'{now_html}{dots_html}'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 
 # ── 精选推荐英雄卡 ────────────────────────────────────────────────────────
@@ -290,29 +292,26 @@ def render_hero_card(col, spot: dict, safety: dict, day_weather: dict) -> None:
     swell = day_weather.get("swell_height", "—")
     wind  = day_weather.get("wind", "—")
 
-    col.markdown(f"""
-    <div style="background:white;border-radius:16px;padding:18px 20px;
-                box-shadow:0 4px 20px rgba(0,0,0,0.10);border-top:4px solid {border};
-                min-height:210px">
-        <div style="font-weight:700;font-size:1.0em;margin-bottom:10px;
-                    color:#1a1a2e;line-height:1.3">{spot['name']}</div>
-        <span style="background:{badge_bg};color:{border};padding:3px 12px;
-                     border-radius:20px;font-size:0.82em;font-weight:600">
-            {safety['status']}
-        </span>
-        <div style="color:#777;font-size:0.82em;margin:10px 0 6px">
-            📍 {spot['region']} &nbsp;·&nbsp; {spot['type']}
-        </div>
-        <div style="color:#444;font-size:0.86em;margin:6px 0">
-            🌊 <b>{swell}m</b> &nbsp;&nbsp; 💨 <b>{wind}km/h</b>
-        </div>
-        <div style="margin:10px 0 6px">{fish_html}</div>
-        <div style="color:#666;font-size:0.79em;border-top:1px solid #f0f4f8;
-                    padding-top:8px;margin-top:8px">
-            ⏱️ {spot['best_window']}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    col.markdown(
+        f'<div style="background:white;border-radius:16px;padding:18px 20px;'
+        f'box-shadow:0 4px 20px rgba(0,0,0,0.10);border-top:4px solid {border};'
+        f'min-height:210px">'
+        f'<div style="font-weight:700;font-size:1.0em;margin-bottom:10px;'
+        f'color:#1a1a2e;line-height:1.3">{spot["name"]}</div>'
+        f'<span style="background:{badge_bg};color:{border};padding:3px 12px;'
+        f'border-radius:20px;font-size:0.82em;font-weight:600">'
+        f'{safety["status"]}</span>'
+        f'<div style="color:#777;font-size:0.82em;margin:10px 0 6px">'
+        f'📍 {spot["region"]} &nbsp;·&nbsp; {spot["type"]}</div>'
+        f'<div style="color:#444;font-size:0.86em;margin:6px 0">'
+        f'🌊 <b>{swell}m</b> &nbsp;&nbsp; 💨 <b>{wind}km/h</b></div>'
+        f'<div style="margin:10px 0 6px">{fish_html}</div>'
+        f'<div style="color:#666;font-size:0.79em;border-top:1px solid #f0f4f8;'
+        f'padding-top:8px;margin-top:8px">'
+        f'⏱️ {spot["best_window"]}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 
 # ── 钓点详情卡片 ──────────────────────────────────────────────────────────
@@ -330,13 +329,14 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
 
     with st.expander(title):
         # 安全状态横幅
-        st.markdown(f"""
-        <div style="background:{badge_bg};border-left:4px solid {border};
-                    padding:10px 16px;border-radius:8px;margin-bottom:16px;
-                    color:{badge_txt};font-size:0.92em">
-            <b>{safety['status']}</b> &nbsp;—&nbsp; {safety['advice']}
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            f'<div style="background:{badge_bg};border-left:4px solid {border};'
+            f'padding:10px 16px;border-radius:8px;margin-bottom:16px;'
+            f'color:{badge_txt};font-size:0.92em">'
+            f'<b>{safety["status"]}</b> &nbsp;—&nbsp; {safety["advice"]}'
+            f'</div>',
+            unsafe_allow_html=True
+        )
 
         left, right = st.columns([1.2, 0.8])
 
@@ -366,24 +366,23 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
             sw_color = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
             wi_color = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
 
-            st.markdown(f"""
-            <div style="background:#f8fafc;border-radius:12px;padding:16px 18px">
-                <div style="font-size:0.9em;margin-bottom:10px">
-                    🌊 浪涌
-                    <span style="font-weight:800;color:{sw_color};font-size:1.15em">
-                        &nbsp;{swell}m
-                    </span>
-                    &emsp;
-                    💨 风速
-                    <span style="font-weight:800;color:{wi_color};font-size:1.15em">
-                        &nbsp;{wind}km/h
-                    </span>
-                </div>
-                <div style="font-size:0.86em;color:#555;line-height:1.5">
-                    👨‍👩‍👧‍👦 {spot['family_friendly']}
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div style="background:#f8fafc;border-radius:12px;padding:16px 18px">'
+                f'<div style="font-size:0.9em;margin-bottom:10px">'
+                f'🌊 浪涌'
+                f'<span style="font-weight:800;color:{sw_color};font-size:1.15em">'
+                f'&nbsp;{swell}m</span>'
+                f'&emsp;'
+                f'💨 风速'
+                f'<span style="font-weight:800;color:{wi_color};font-size:1.15em">'
+                f'&nbsp;{wind}km/h</span>'
+                f'</div>'
+                f'<div style="font-size:0.86em;color:#555;line-height:1.5">'
+                f'👨‍👩‍👧‍👦 {spot["family_friendly"]}'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
 
         st.markdown("---")
 
@@ -404,7 +403,7 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
             tip = spot["method_tips"].get(
                 method, "此钓法在该钓点完全可行，建议现场根据流水微调线组铅重。"
             )
-            st.markdown(f"> **{method}**：{tip}")
+            st.markdown(f"> **{method}**：{tip}", unsafe_allow_html=True)
 
         st.markdown("---")
         st.markdown(f"**🚗 自驾路线** &nbsp;{spot['route']}", unsafe_allow_html=True)
@@ -505,23 +504,22 @@ def render_map_tab() -> None:
 
 # ── 页面主标题 ────────────────────────────────────────────────────────────
 today_str = datetime.now().strftime("%Y年%m月%d日")
-st.markdown(f"""
-<div style="background:linear-gradient(135deg, #0a3d5c 0%, #1565C0 100%);
-            color:white;padding:22px 32px;border-radius:18px;margin-bottom:20px;
-            box-shadow:0 6px 28px rgba(10,61,92,0.35)">
-    <div style="display:flex;align-items:center;gap:18px">
-        <div style="font-size:2.8em;line-height:1">🎣</div>
-        <div>
-            <div style="font-size:1.55em;font-weight:800;letter-spacing:0.3px">
-                悉尼钓鱼助手 Pro+
-            </div>
-            <div style="font-size:0.88em;opacity:0.8;margin-top:5px">
-                实时海况 · 潮汐推算 · 智能推荐 &nbsp;|&nbsp; {today_str}
-            </div>
-        </div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    f'<div style="background:linear-gradient(135deg, #0a3d5c 0%, #1565C0 100%);'
+    f'color:white;padding:22px 32px;border-radius:18px;margin-bottom:20px;'
+    f'box-shadow:0 6px 28px rgba(10,61,92,0.35)">'
+    f'<div style="display:flex;align-items:center;gap:18px">'
+    f'<div style="font-size:2.8em;line-height:1">🎣</div>'
+    f'<div>'
+    f'<div style="font-size:1.55em;font-weight:800;letter-spacing:0.3px">'
+    f'悉尼钓鱼助手 Pro+</div>'
+    f'<div style="font-size:0.88em;opacity:0.8;margin-top:5px">'
+    f'实时海况 · 潮汐推算 · 智能推荐 &nbsp;|&nbsp; {today_str}'
+    f'</div>'
+    f'</div>'
+    f'</div>',
+    unsafe_allow_html=True
+)
 
 # ── Tab 布局 ──────────────────────────────────────────────────────────────
 today = datetime.now()
