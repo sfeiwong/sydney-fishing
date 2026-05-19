@@ -1095,20 +1095,32 @@ def render_day_tab(day_offset: int) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
-    top_safe = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["safe"] and sa["color"] == "sage"]
-    section_head(f"TOP PICK · {label.upper()}", f"{label}精选推荐", "海况 × 潮汐综合评分最优")
+    top_sage  = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["color"] == "sage"]
+    top_amber = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["color"] == "amber"]
+    top_safe  = top_sage or top_amber
+    is_amber_fallback = not top_sage and bool(top_amber)
+    pick_accent = "海况温和，综合评分最优" if not is_amber_fallback else "无满分点，以下为谨慎可前往钓点"
+    section_head(f"TOP PICK · {label.upper()}", f"{label}精选推荐", pick_accent)
     if top_safe:
         top3 = top_safe[:3]
         cols = st.columns(len(top3))
         for col, (spot, safety, tides, dw) in zip(cols, top3):
             render_hero_card(col, spot, safety, dw, tides)
+        if is_amber_fallback:
+            st.markdown(
+                '<div style="background:#fcf2e0;border-radius:10px;padding:10px 16px;'
+                'border-left:3px solid var(--amber);font-size:12.5px;color:#7a5010;margin-top:6px">'
+                '⚠️ 当日无满分推荐钓点，以上为谨慎可前往的内湾钓点，出行请注意风浪变化。'
+                '</div>',
+                unsafe_allow_html=True,
+            )
     else:
         st.markdown(
             '<div style="background:linear-gradient(90deg,#fbf3e1 0%,#fdf8eb 60%,#fff 100%);'
             'border-radius:14px;padding:20px 24px;border:1px solid #f0e3c0;'
             'border-left:4px solid var(--gold)">'
             '<div style="font-family:var(--serif-zh);font-size:17px;font-weight:600;margin-bottom:6px">'
-            f'今日海况不佳，暂无满分推荐点</div>'
+            f'当日海况不佳，暂无推荐钓点</div>'
             '<div style="font-size:13px;color:var(--muted);line-height:1.55">'
             '涌浪或风速超出安全阈值。调整侧边栏筛选条件、改去内湾试试手气。</div>'
             '</div>',
@@ -1122,7 +1134,7 @@ def render_day_tab(day_offset: int) -> None:
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
     section_head(
         f"MATCHED SPOTS · {len(filtered)} / {len(spots)}",
-        "匹配钓点", "按今日海况评分排序"
+        "匹配钓点", "按当日海况评分排序"
     )
     visible = 0
     for spot, safety, spot_tides, spot_day_w in all_spot_data:
