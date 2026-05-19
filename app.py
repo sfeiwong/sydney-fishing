@@ -343,14 +343,15 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
         with left:
             st.markdown(
                 f"**🌍 区域** &nbsp;`{spot['region']}`"
-                f"&emsp;**📍 地形** &nbsp;`{spot['type']}`"
+                f"&emsp;**📍 地形** &nbsp;`{spot['type']}`",
+                unsafe_allow_html=True
             )
-            st.markdown(f"**⏱️ 最佳窗口** &nbsp;{spot['best_window']}")
+            st.markdown(f"**⏱️ 最佳窗口** &nbsp;{spot['best_window']}", unsafe_allow_html=True)
 
             tides_str = " &nbsp;|&nbsp; ".join(
                 f"{t['label']} `{t['time'].strftime('%H:%M')}`" for t in spot_tides
             )
-            st.markdown(f"**⏰ 专属潮汐** &nbsp;{tides_str}")
+            st.markdown(f"**⏰ 专属潮汐** &nbsp;{tides_str}", unsafe_allow_html=True)
 
             fish_html = "".join(
                 f'<span style="background:#e3f2fd;color:#1565c0;padding:3px 10px;'
@@ -406,7 +407,7 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
             st.markdown(f"> **{method}**：{tip}")
 
         st.markdown("---")
-        st.markdown(f"**🚗 自驾路线** &nbsp;{spot['route']}")
+        st.markdown(f"**🚗 自驾路线** &nbsp;{spot['route']}", unsafe_allow_html=True)
         st.info(f"🅿️ **停车方案** &nbsp;{spot['parking']}")
 
 

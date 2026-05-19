@@ -12,7 +12,7 @@ from datetime import datetime, timedelta
 from config import WEATHER_CACHE_TTL
 
 
-def _round_coord(val: float, precision: float = 0.5) -> float:
+def _round_coord(val: float, precision: float = 0.1) -> float:
     """将坐标四舍五入到最近的格点，用作缓存键。"""
     return round(val / precision) * precision
 
