@@ -69,8 +69,8 @@ def assess_safety(spot: dict, day_weather: dict) -> dict:
     根据当天天气评估钓点安全性。
     返回含 status / score / safe / advice / color 的字典。
     """
-    swell = day_weather["swell_height"]
-    wind  = day_weather["wind"]
+    swell = day_weather.get("swell_height") or 0.0
+    wind  = day_weather.get("wind") or 0.0
 
     if not spot["sheltered"] and (swell > OCEAN_SWELL_DANGER or wind > OCEAN_WIND_DANGER):
         return {
