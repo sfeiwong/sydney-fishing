@@ -1,0 +1,597 @@
+[
+  {
+    "name": "Blue Fish Point (Manly外海)",
+    "region": "Northern Beaches (北部外海矶钓)",
+    "type": "⚠️ 史诗级高危绝壁平台 (Ocean Rock Platform)",
+    "lat": -33.7978,
+    "lon": 151.2890,
+    "sheltered": false,
+    "tide_delay": -5,
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Black Drummer (黑毛)、Blue Groper (蓝唇鱼)、Tuna (金枪鱼)",
+    "fish_tags": ["Kingfish (黄尾师)", "Drummer (黑毛)", "Blue Groper (蓝唇鱼)"],
+    "best_window": "🌅 破晓第一缕光 + 满潮前后1.5小时。此时深海巨物会贴着绝壁游过。",
+    "family_friendly": "⭐ (绝壁死地，禁带家属) 悉尼最著名的重矶圣地，也是发生坠海事故最多的地方。需要攀爬悬崖，无任何护栏及设施，全家出行请自动拉黑该点！",
+    "supported_methods": ["路亚大物", "重铅沉底", "全游动", "活饵放流"],
+    "method_tips": {
+      "路亚大物": "🎯 顶级推荐！使用 40-80g 重型路亚铁板或波趴疯狂远投，常年出产超级大 Kingfish 和 Bonito。",
+      "重铅沉底": "👍 推荐！使用5号以上重铅死守底层，挂整只大螃蟹或章鱼触手，单挑深海怪兽级 Blue Groper 蓝唇鱼。",
+      "全游动": "🎯 顶级推荐！使用 00号无自重阿波线组，让诱饵顺着崖壁完全自然下沉，是狙击巨型避流黑毛（Drummer）的最高境界。",
+      "活饵放流": "🎯 顶级推荐！在此处用挂活黄尾（Yellowtail）浮游放流出海数百米，是岸钓斩获大 Tuna（金枪鱼）的梦幻位。"
+    },
+    "route": "驱车前往 Manly 的 North Head Scenic Drive，将车停在炮台遗址附近，随后背负装备沿极其隐秘的丛林小径和悬崖绳索下切（极其危险）。",
+    "parking": "有小型的路边免费和收费停车点，车位不多。去往平台对体力要求极大，必须全副武装（钉鞋+救生衣）。"
+  },
+  {
+    "name": "North Head Rock Ledge",
+    "region": "Manly (北部大岬角)",
+    "type": "⚠️ 巨浪拍岸外海深水矶 (Deep Ocean Ledge)",
+    "lat": -33.8321,
+    "lon": 151.2905,
+    "sheltered": false,
+    "tide_delay": -5,
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (三文鱼)、Tailor (蓝鱼)、Black Drummer (黑毛)",
+    "fish_tags": ["Kingfish (黄尾师)", "Salmon (三文鱼)", "Tailor (蓝鱼)", "Drummer (黑毛)"],
+    "best_window": "🌊 涨潮期 + 外海无大涌。这里是整个悉尼港的入口大门，水深极大。",
+    "family_friendly": "⭐ (地狱难度，拒绝家人) 站在高达数十米的悬崖下方作钓，风浪稍微超过1.2米就会有暗涌直接洗刷平台，极度危险！没有任何生活设施，请让家人远离此地。",
+    "supported_methods": ["路亚大物", "活饵放流", "半游动"],
+    "method_tips": {
+      "路亚大物": "🎯 顶级推荐！直面大洋入口，回游鱼疯狂炸水。甩重型铁板能拉到手软。",
+      "活饵放流": "🎯 顶级推荐！用漂流气球或者大浮标挂活饵放流，静待大 Kingfish 咬线清杯的刺激瞬间。",
+      "半游动": "👍 推荐！使用 2B-5B 传统阿波线组钓大白沫区，主攻藏在礁石缝隙里的老黑毛。"
+    },
+    "route": "沿 North Head Scenic Drive 开到底，停在观景台停车场，沿陡峭山路步行下切。",
+    "parking": "国家公园专属大型停车场（收费）。位置充足。切记：磯钓必须结伴同行，现场浪况不对必须立刻撤退。"
+  },
+  {
+    "name": "Roseville Bridge (Middle Harbour 桥底公园)",
+    "region": "Middle Harbour (中峡湾腹地)",
+    "type": "内河主干大桥底 / 泥沙碎石交错带",
+    "lat": -33.7757,
+    "lon": 151.1967,
+    "sheltered": true,
+    "tide_delay": 35,
+    "active_fish": "Dusk Flathead (牛鳅)、Bream (鳊鱼)、Mulloway (皇冠鲊)",
+    "fish_tags": ["Flathead (牛鳅)", "Bream (鳊鱼)", "Jewfish (皇冠鲊)"],
+    "best_window": "🕒 夜间涨潮顶峰前 2 小时。桥梁巨大的灯光投影在水面形成完美的天然猎场。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (周末野餐神位) 桥底连着超大型的 Davidson Park。配有大量高品质免费公共 BBQ 电炉、全平整林荫大草坪、儿童滑梯。100%无障碍推车，全家烧烤，爸爸在桥墩旁稳坐钓大鱼！",
+    "supported_methods": ["Running Sinker (活铅沉底)", "重铅沉底"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 顶级推荐！由于底部有泥沙结合部，用中轻型活铅沉底钓组在桥墩阴影边缘拖底，大 Flathead 牛鳅极其多。",
+      "重铅沉底": "👍 推荐！在主桥墩深水槽，用重铅（4-5号）死守活饵，深夜是截击回游上河的大 Jewfish 皇冠鲊的黄金点。"
+    },
+    "route": "走 Warringah Road，在过 Roseville Bridge 前的左侧匝道直接拐下桥，切入 Healy Road 进入公园。",
+    "parking": "Davidson Park 内部建有数个极大型停车场。属于国家公园管理，白天收费（约 $8/天或使用年卡），车位极多，极其省心。"
+  },
+  {
+    "name": "Clontarf Reserve Beach & Jetty",
+    "region": "Middle Harbour (中峡湾高档区)",
+    "type": "内湾镜面沙滩 / 休闲游艇小栈桥",
+    "lat": -33.7987,
+    "lon": 151.2373,
+    "sheltered": true,
+    "tide_delay": 10,
+    "active_fish": "Sand Whiting (沙尖)、Bream (鳊鱼)、Dusk Flathead (牛鳅)",
+    "fish_tags": ["Whiting (沙尖)", "Bream (鳊鱼)", "Flathead (牛鳅)"],
+    "best_window": "☀️ 白天暖和日照 + 满潮退三分。清澈见底的纯沙平滩是沙尖鱼的最爱。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (遛娃天花板级别) 悉尼北区顶级遛娃圣地。超大型遮阳儿童水上乐园、高档免费 BBQ 电炉群、自带精品拿铁咖啡馆。没有大洋巨浪，孩子在浅滩里安全挖沙，老少咸宜！",
+    "supported_methods": ["Running Sinker (活铅沉底)", "无铅漂钓"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 顶级推荐！在沙滩右侧或者小栈桥前方，用1号超轻铅玩 Running Sinker 钓组，挂活沙蚕（Worm），能拉到东岸最高品质的大白沙尖 Whiting。",
+      "无铅漂钓": "👍 推荐！夜间坐在平整的游艇栈桥木椅上，无铅漂单钩虾肉，专钓桩基阴影里的大 Bream。"
+    },
+    "route": "过 Spit Bridge 后靠右切入 Sandy Bay Road，顺着开进 Clontarf Street 即可直达水边公园。",
+    "parking": "公园自带超大型 Council 停车场。白天收费极其昂贵（约 $8/小时），但傍晚和夜钓时间完全免费，且位置非常多。"
+  },
+  {
+    "name": "Echo Point Park (Roseville Chase)",
+    "region": "Middle Harbour (中峡湾深处)",
+    "type": "红树林环绕木栈道 / 亲水平台",
+    "lat": -33.7713,
+    "lon": 151.1983,
+    "sheltered": true,
+    "tide_delay": 30,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)、Calamari (大鱿鱼)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)", "Squid (鱿鱼)"],
+    "best_window": "🌅 傍晚黄昏（Sunset）结合涨潮。红树林里倒下的大量枯木断枝为底栖鱼类提供了极佳隐藏结构。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (极具生态风情) 风景极其幽静。建有漂亮的红树林悬空无障碍高木步道、小型滑梯游乐场、现代公共免费 BBQ、自带高分水岸西餐厅。推推车极其舒适顺畅。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "无铅漂钓", "木虾抽鱿鱼"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "👍 推荐！抛向红树林边缘的深浅交界沙地，用活虾钓组专门欺负埋在泥里的大 Flathead 牛鳅。",
+      "无铅漂钓": "🎯 顶级推荐！利用无铅漂钓，让新鲜虾肉顺着水流缓缓飘进红树林气根边缘的障碍区，极易引诱大 Bream 疯狂冲出来截杀。",
+      "木虾抽鱿鱼": "👍 推荐！虽然处于中湾深处，但水质清澈，黄昏时用2.0号小木虾在草床边缘慢抽，偶有大鱿鱼惊喜。"
+    },
+    "route": "走 Babbage Road，拐入 Allan Street，顺着顺山路向下开到底进入 Echo Point Road 尽头。",
+    "parking": "Echo Point 专属免费公共停车场。车位数量适中，晚上通常空旷无车，下车走 50 米即是钓点。"
+  },
+  {
+    "name": "Bantry Bay (Middle Harbour 深湾)",
+    "region": "Middle Harbour (国家公园内港)",
+    "type": "幽深峡湾静水岸礁 / 历史弹药库对岸",
+    "lat": -33.7672,
+    "lon": 151.2093,
+    "sheltered": true,
+    "tide_delay": 40,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)、Leatherjacket (剥皮鱼)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)", "Leatherjacket (剥皮鱼)"],
+    "best_window": "☀️ 白天静水期。由于是一个完全封闭的狭长深水内湾，水面平静如镜，不受任何外海风浪干扰。",
+    "family_friendly": "⭐⭐⭐ (纯自然徒步风光) 风景非常静谧原始，绿树环绕。属于野外探险风格，没有滑梯和固定电 BBQ 炉子。需要走一小段林荫土路，推车略显吃力。适合大一点的孩子来看历史遗迹。",
+    "supported_methods": ["无铅漂钓", "Running Sinker (活铅沉底)", "半游动"],
+    "method_tips": {
+      "无铅漂钓": "👍 推荐！在岸边礁石深水边缘，无铅漂鸡肉，专门对付内湾那些游速极慢、极度精明的陈年大鳊鱼。",
+      "Running Sinker (活铅沉底)": "👍 推荐！往深水中槽抛投，适合守钓底层的牛鳅。",
+      "半游动": "🎯 顶级推荐！使用立式浮漂半游动线组，定层 3-4米钓石缝边缘，疯狂拉剥皮鱼（Leatherjacket），中鱼率惊人。"
+    },
+    "route": "驱车前往 Killarney Heights 的 Cook Street 尽头，随后沿着 Bantry Bay Walking Track 丛林步道下切到水边。",
+    "parking": "街尾居民区有大量全免费的路边停车位。需要背负装备步行约 8 分钟，比较考验体力。"
+  },
+  {
+    "name": "Sugarloaf Point (Pickering Point岸礁)",
+    "region": "Middle Harbour (西侧暗礁带)",
+    "type": "港内原始怪石陡坡 (Natural Harbor Ledge)",
+    "lat": -33.8172,
+    "lon": 151.1963,
+    "sheltered": true,
+    "tide_delay": 25,
+    "active_fish": "Bream (鳊鱼)、Tailor (蓝鱼)、Leatherjacket (剥皮鱼)",
+    "fish_tags": ["Bream (鳊鱼)", "Tailor (蓝鱼)", "Leatherjacket (剥皮鱼)"],
+    "best_window": "🕒 满潮前后 1 小时。高水位会把主河道的鱼群推向这里的岸边乱石缝中寻找螃蟹贝壳。",
+    "family_friendly": "⭐⭐ (硬核钓点，不宜低龄娃) 属于典型的野生自然岸线。完全没有人工游乐场或 BBQ 炉，没有公共洗手间。台阶多且陡峭，无法推婴儿车。不适合家庭休闲野餐。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "半游动", "路亚大物"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "一般。水下有密集的牡蛎礁石，重铅沉底抛出去很容易发生毁灭性卡线挂底。",
+      "半游动": "🎯 顶级推荐！在这种港内乱石区，半游动是绝对的王者。定层离底 50cm，挂面团或面包，是浮游矶钓钓大 Bream 的秘密老窝子。",
+      "路亚大物": "👍 推荐！黄昏时常常有大群 Tailor 蓝鱼游过大桥冲进这个拐角炸水，甩 20g 银色亮片路亚极易连击。"
+    },
+    "route": "驱车至 Castlecrag 区域的 Sunnyside Crescent 尽头，沿着 Sugarloaf Reserve 的石头台阶一路向下摸到水边。",
+    "parking": "街尾路边大把全免费公共车位。去程全是下山台阶，回程上山抬装备会非常酸爽。"
+  },
+  {
+    "name": "Palm Beach Rockplatform (最北端矶钓点)",
+    "region": "Northern Beaches (北部外海边缘)",
+    "type": "⚠️ 标志性外海平整大矶盘 (Ocean Rock Platform)",
+    "lat": -33.5970,
+    "lon": 151.3247,
+    "sheltered": false,
+    "tide_delay": -5,
+    "active_fish": "Black Drummer (黑毛)、Blue Groper (蓝唇鱼)、Yellowtail Kingfish (黄尾师)",
+    "fish_tags": ["Drummer (黑毛)", "Blue Groper (蓝唇鱼)", "Kingfish (黄尾师)"],
+    "best_window": "🌊 外海绝对风平浪静（Swell < 1.1米）的清晨。这里风光无限好，但背后就是凶猛的南太平洋。",
+    "family_friendly": "⭐ (高危矶盘，严禁带娃) 属于拍过无数电影的著名灯塔下方大矶盘。怪石鳞峋，大浪随时洗盘，极度危险！没有任何生活设施，千万别带孩子和太太站上这片危险区域！",
+    "supported_methods": ["半游动", "全游动", "路亚大物"],
+    "method_tips": {
+      "半游动": "🎯 顶级推荐！使用标准大号阿波，定层2-3米，抛入白沫 Wash 区。这里的黑毛个头极大，拉力狂暴！",
+      "全游动": "👍 推荐！用全游动无铅自重线组随波逐流，让大虾肉自然滑过礁石边缘，主攻巨型 Blue Groper。",
+      "路亚大物": "👍 推荐！迎风抛投重型路亚，清晨长线钓法很容易遭遇大 Salmon 和大 Tailor 疯狂咬钩。"
+    },
+    "route": "一路向北开到全悉尼最北端的 Barrenjoey Road 尽头停车场，随后沿着海滩北侧礁石边缘步行绕到灯塔下方的平台。",
+    "parking": "大型 Council 收费停车场（限时且贵）。停好车后需要沿着粗糙的沙滩和礁石步行很长距离，必须全程穿着钉鞋。"
+  },
+  {
+    "name": "Dolls Point & Sandringham Beach",
+    "region": "Botany Bay (圣乔治南区)",
+    "type": "宽阔浅水沙滩 / Georges River 河口结合部",
+    "lat": -33.9963,
+    "lon": 151.1430,
+    "sheltered": true,
+    "tide_delay": 10,
+    "active_fish": "Dusk Flathead (牛鳅)、Sand Whiting (沙尖)、Bream (鳊鱼)",
+    "fish_tags": ["Flathead (牛鳅)", "Whiting (沙尖)", "Bream (鳊鱼)"],
+    "best_window": "🕒 满潮刚刚开始退潮的前 2 小时。从 Georges River 冲刷出的丰富水流会吸引无数牛鳅在浅滩沙底一字排开埋伏。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (家庭周末阳光沙滩) 拥有全悉尼数一数二的细腻白沙滩。紧挨着大型公共公园，建有极棒的带遮阳儿童乐园、多台全免费 BBQ 电炉、高水平亲水无障碍推车道。孩子可以完全放飞玩水，体验直接拉满！",
+    "supported_methods": ["Running Sinker (活铅沉底)", "重铅沉底"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 顶级推荐！纯白净细沙，100%绝不挂底！用轻铅活铅沉底线组挂活沙蚕，在水里一边漫步一边拖线，是大 Whiting 和大 Flathead 的神仙天堂。",
+      "重铅沉底": "👍 推荐！带上大号远投竿，使用 3号以上通心铅，将鱼饵暴力远投打入河道主深水槽，深夜经常有巨型大鳊鱼上钩。"
+    },
+    "route": "沿着 Grand Parade 一路向南开，接 Chuter Avenue，顺着开到 Dolls Point 的 Russell Avenue 尽头水边公园。",
+    "parking": "公园自带超大型全免费划线公共停车场，车位极度充足。下车直接就是平整的草坪和沙滩，推婴儿车极度丝滑。"
+  },
+  {
+    "name": "Brighton-Le-Sands Public Jetty",
+    "region": "Botany Bay (内湾大东区)",
+    "type": "伸入式水泥公共长栈桥 (Harbor Concrete Pier)",
+    "lat": -33.9563,
+    "lon": 151.1523,
+    "sheltered": true,
+    "tide_delay": 5,
+    "active_fish": "Calamari (大鱿鱼)、Bream (鳊鱼)、Dusk Flathead (牛鳅)",
+    "fish_tags": ["Squid (鱿鱼)", "Bream (鳊鱼)", "Flathead (牛鳅)"],
+    "best_window": "🌃 晚上 8 点至夜间 11 点。桥面建有高亮度路灯，在夜间会形成完美的天然集鱼灯圈。",
+    "family_friendly": "⭐⭐⭐⭐ (繁华热闹街区) 栈桥极为平整开阔，建有非常高、非常安全的水泥高护栏，推婴儿车完全无障碍。马路对面就是全悉尼最著名的步行街，无数高分冰淇淋店、希腊餐厅和咖啡馆，吃喝、遛娃极其方便。无固定 BBQ 炉子。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "木虾抽鱿鱼"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "👍 推荐！站在高位把 Running Sinker 钓组向桥外远投，顺着海底沙床缓缓回收，经常能钓到偷袭路过的大 Flathead 牛鳅。",
+      "木虾抽鱿鱼": "🎯 顶级推荐！夜钓新手摸鱿鱼的核心宝地。桥灯把小鱼小虾吸引在水面，使用 2.5号粉色木虾在灯光与阴影的交界边缘轻轻抽动，鱿鱼咬钩极其频繁。"
+    },
+    "route": "从 City 沿 General Holmes Drive 向南，切入 Grand Parade，开到 Brighton-Le-Sands 商业中心正对面的水边栈桥。",
+    "parking": "街边有大量划线 Council 车位（白天收费）。由于是超级热门街区周末极难找车位，强推夜钓前往，晚上 10点后车位多且全免费。"
+  },
+  {
+    "name": "Whale Beach (鲸鱼海滩及两侧礁石)",
+    "region": "Northern Beaches (北部外海)",
+    "type": "⚠️ 外海巨浪沙滩 / 岩石陡坡",
+    "lat": -33.6330,
+    "lon": 151.3193,
+    "sheltered": false,
+    "tide_delay": -5,
+    "active_fish": "Australian Salmon (三文鱼)、Tailor (蓝鱼)、Black Drummer (黑毛)",
+    "fish_tags": ["Salmon (三文鱼)", "Tailor (蓝鱼)", "Drummer (黑毛)"],
+    "best_window": "🌅 清晨或黄昏 + 涨潮前后2小时。",
+    "family_friendly": "⭐⭐ (不适合低龄娃) 有洗手间和金黄沙滩，但风浪大，两侧礁石高危，绝不能带孩子过去。",
+    "supported_methods": ["路亚大物", "Running Sinker (活铅沉底)", "活饵放流", "半游动"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 远投竿沙滩远投打沙丁鱼块，抓大 Salmon！",
+      "活饵放流": "👍 适合外海挂小活鱼放流钓回游大物。"
+    },
+    "route": "从 City 向北沿 Barrenjoey Rd 一路北上，右转切入 Whale Beach Road 下山。",
+    "parking": "海滩下方有收费停车场。清晨卡着日出出竿可避开收费。"
+  },
+  {
+    "name": "Bare Island (La Perouse 秃头岛桥底)",
+    "region": "La Perouse (东南区湾口)",
+    "type": "历史古迹桥底 / 外海礁石边缘",
+    "lat": -33.9933,
+    "lon": 151.2320,
+    "sheltered": false,
+    "tide_delay": -2,
+    "active_fish": "Bream (鳊鱼)、Luderick (黑毛类)、Dusk Flathead (牛鳅)",
+    "fish_tags": ["Bream (鳊鱼)", "Drummer (黑毛)", "Flathead (牛鳅)"],
+    "best_window": "🌊 潮水刚开始上涨至满潮期间。",
+    "family_friendly": "⭐⭐⭐⭐ (极佳打卡地) 拥有绝美晚霞和木桥。草坪开阔适合野餐，洗手间便利，极其适合推车遛娃。",
+    "supported_methods": ["无铅漂钓", "Running Sinker (活铅沉底)", "全游动", "半游动"],
+    "method_tips": {
+      "无铅漂钓": "🎯 桥上无铅挂整条虾肉顺流漂进桥墩阴影绝杀大 Bream！",
+      "全游动": "👍 站在两侧礁石玩全游动，随流打面包窝钓黑毛。"
+    },
+    "route": "沿 Anzac Parade 一路向南开到最尽头即可看到木桥。",
+    "parking": "周边有超大免费公共停车场。周末白天观光客极堵。"
+  },
+  {
+    "name": "Bradleys Head (石坝与旧码头)",
+    "region": "Mosman (北区岬角)",
+    "type": "港内伸入式石坝 / 乱石区",
+    "lat": -33.8500,
+    "lon": 151.2583,
+    "sheltered": true,
+    "tide_delay": 3,
+    "active_fish": "Bream (鳊鱼)、Yellowtail Kingfish (黄尾师)、Calamari (大鱿鱼)",
+    "fish_tags": ["Bream (鳊鱼)", "Kingfish (黄尾师)", "Squid (鱿鱼)"],
+    "best_window": "🕒 退潮三分，主航道水流湍急时。",
+    "family_friendly": "⭐⭐⭐⭐ (风景绝美) 剧场式大草坪，正对歌剧院。有干净厕所，极其适合铺野餐垫遛娃。",
+    "supported_methods": ["无铅漂钓", "路亚大物", "木虾抽鱿鱼", "活饵放流"],
+    "method_tips": {
+      "无铅漂钓": "🎯 灯塔石坝两侧无铅虾肉自然下沉钓巨型老 Bream。",
+      "活饵放流": "👍 站在石坝尖头挂活黄尾放流狙击主航道 Kingfish。"
+    },
+    "route": "驱车进入 Bradley's Head Road 一直向南开到尽头。",
+    "parking": "国家公园收费停车（约 $12/天）。夜钓时间车位多。"
+  },
+  {
+    "name": "Balmoral Jetty & Public Wharf",
+    "region": "Mosman (北区顶级内湾)",
+    "type": "防波堤休闲木栈桥",
+    "lat": -33.8283,
+    "lon": 151.2570,
+    "sheltered": true,
+    "tide_delay": 8,
+    "active_fish": "Calamari (大鱿鱼)、Sand Whiting (沙尖)、Bream (鳊鱼)",
+    "fish_tags": ["Squid (鱿鱼)", "Whiting (沙尖)", "Bream (鳊鱼)"],
+    "best_window": "🌃 晚上 9 点至午夜的满潮期。夜间木桥路灯极其集鱼。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (满分遛娃圣地) 儿童游乐场、遮阴草坪、免费高级 BBQ 炉。栈桥平整安全，推车遛娃无压力！",
+    "supported_methods": ["Running Sinker (活铅沉底)", "木虾抽鱿鱼", "无铅漂钓"],
+    "method_tips": {
+      "木虾抽鱿鱼": "🎯 悉尼木虾摸鱿鱼高产新手村！桥下密布海草，夜灯效果极佳。",
+      "Running Sinker (活铅沉底)": "👍 前方大片白沙滩，挂沙蚕钓大 Whiting。"
+    },
+    "route": "走 Military Rd 转 Spit Rd，右转下山进入 Awaba St 开到水边。",
+    "parking": "白天停车极为昂贵且抢手。夜钓绝对是首选，晚上 8 点后免费。"
+  },
+  {
+    "name": "Blues Point Reserve (McMahons Point)",
+    "region": "North Sydney (北悉尼港内)",
+    "type": "港内深水石墙 (Harbor Rock Wall)",
+    "lat": -33.8490,
+    "lon": 151.2073,
+    "sheltered": true,
+    "tide_delay": 0,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)、Mulloway (皇冠鲊)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)", "Jewfish (皇冠鲊)"],
+    "best_window": "🌙 深夜到凌晨 3 点。轮渡停航航道恢复死寂时。",
+    "family_friendly": "⭐⭐⭐⭐ (硬核大桥夜景) 有很棒的儿童秋千滑梯、大草坪和洗手间。白天遛娃看船、夜间老爸守夜大物。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "重铅沉底", "无铅漂钓"],
+    "method_tips": {
+      "重铅沉底": "🎯 深夜挂整条鲜鱿鱼或活饵打入中心航道，死守巨型大 Jewfish 皇冠鲊！",
+      "Running Sinker (活铅沉底)": "👍 活铅抛投守钓底层的 Flathead 牛鳅。"
+    },
+    "route": "经北悉尼切入 Blues Point Road 一路向南开到半岛最尽头。",
+    "parking": "道路尽头环形区车位多。推荐晚上 8 点后前往完全免费。"
+  },
+  {
+    "name": "Captain Cook Bridge (Sans Souci北侧)",
+    "region": "St George (南区河口)",
+    "type": "沙滩平滩 / 桥墩阴影",
+    "lat": -33.9873,
+    "lon": 151.1213,
+    "sheltered": true,
+    "tide_delay": 15,
+    "active_fish": "Dusk Flathead (牛鳅)、Sand Whiting (沙尖)、Bream (鳊鱼)",
+    "fish_tags": ["Flathead (牛鳅)", "Whiting (沙尖)", "Bream (鳊鱼)"],
+    "best_window": "🕒 满潮后开始退潮的前 3 小时。退水冲出小虾。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (家庭野餐神位) 拥有大量全免费公共 BBQ 炉子、大型遮阳亭、平整推车绿道。浅沙滩安全无浪。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "重铅沉底"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 纯泥沙底不挂底，用活铅沉底挂沙蚕，玩拖底慢收，主攻超大 Flathead 牛鳅！"
+    },
+    "route": "沿 Princes Highway 向南开，大桥前靠最左侧匝道切入桥底 Riverside Drive。",
+    "parking": "大桥下方有超大型全免费公共停车场，下车即钓。"
+  },
+  {
+    "name": "George Head (Mosman)",
+    "region": "Mosman (北区岬角)",
+    "type": "内湾深水岩石平台",
+    "lat": -33.8400,
+    "lon": 151.2630,
+    "sheltered": true,
+    "tide_delay": 5,
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Calamari (大鱿鱼)、Black Drummer (黑毛)",
+    "fish_tags": ["Kingfish (黄尾师)", "Squid (鱿鱼)", "Drummer (黑毛)"],
+    "best_window": "🌄 太阳破晓前后 1 小时 + 潮流最急的涨潮期。",
+    "family_friendly": "⭐ (硬核荒野绝壁) 需要走很长的原始泥泞陡坡下山，完全无法推车，无任何生活设施，严禁带娃。",
+    "supported_methods": ["路亚大物", "木虾抽鱿鱼", "全游动", "半游动"],
+    "method_tips": {
+      "路亚大物": "🎯 直面主航道最窄处，甩 30g 铁板拦截炸水冲锋的 Kingfish！",
+      "木虾抽鱿鱼": "🎯 水下大叶藻极其丰茂，3.0号常规木虾摸大 Calamari 极佳。"
+    },
+    "route": "驱车至 Mosman 的 Middle Head Road，切入 Suakin Drive 停靠在 Headland Park。",
+    "parking": "收费停车场。停好车后需要下切丛林步行 10 分钟。"
+  },
+  {
+    "name": "Darling Point Wharf",
+    "region": "Darling Point (东区内湾)",
+    "type": "渡轮码头 / 亲水石墙",
+    "lat": -33.8693,
+    "lon": 151.2360,
+    "sheltered": true,
+    "tide_delay": 0,
+    "active_fish": "Bream (鳊鱼)、Leatherjacket (剥皮鱼)、Calamari (大鱿鱼)",
+    "fish_tags": ["Bream (鳊鱼)", "Leatherjacket (剥皮鱼)", "Squid (鱿鱼)"],
+    "best_window": "🕗 晚上 8 点至夜间 11 点轮渡停航后。",
+    "family_friendly": "⭐⭐⭐ (精致小巧) 紧挨着漂亮的 McKell Park。绿草如茵有公厕，但限时严重且没 BBQ，楼梯多推车不便。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "无铅漂钓", "木虾抽鱿鱼"],
+    "method_tips": {
+      "无铅漂钓": "👍 夜间挂小块鸡肉顺着栈桥桩基无铅下沉，偷袭藏匿的精明大 Bream。",
+      "木虾抽鱿鱼": "👍 慢沉小木虾贴着高位探照灯结构阴影边缘摸鱿鱼。"
+    },
+    "route": "从 City 沿 New South Head Rd 向东，左转切入 Darling Point Road 一直开到底。",
+    "parking": "富人区白天极难停车。强烈推荐晚上 8 点后自驾夜钓免车费。"
+  },
+  {
+    "name": "Buchan Point (Malabar)",
+    "region": "Randwick (东区外海)",
+    "type": "⚠️ 高危外海岩石平台",
+    "lat": -33.9783,
+    "lon": 151.2460,
+    "sheltered": false,
+    "tide_delay": -5,
+    "active_fish": "Black Drummer (黑毛)、Blue Groper (蓝唇鱼)、Yellowtail Kingfish (黄尾师)",
+    "fish_tags": ["Drummer (黑毛)", "Blue Groper (蓝唇鱼)", "Kingfish (黄尾师)"],
+    "best_window": "🌊 外海风浪极小的极端晴朗天气。生命第一！",
+    "family_friendly": "⭐ (极限高危险，拒绝家属) 纯野生乱石矶钓场，完全没有任何人工设施，打浪严重，必须穿钉鞋救生衣。",
+    "supported_methods": ["无铅漂钓", "半游动", "全游动", "路亚大物"],
+    "method_tips": {
+      "无铅漂钓": "🎯 经典【白面包流漂钓】，面包碎打窝，单钩挂面包芯随波逐流钓巨型黑毛 Drummer。"
+    },
+    "route": "沿 Anzac Parade 一路向南开到底，左转 Franklin St，再转 Fishermans Road 到底。",
+    "parking": "路边有免费停车位。停好车后需要背负装备翻越很长乱石坡。"
+  },
+  {
+    "name": "Bobbin Head (Ku-ring-gai Chase)",
+    "region": "Ku-ring-gai (北区国家公园)",
+    "type": "国家公园深湾栈桥/河口",
+    "lat": -33.6770,
+    "lon": 151.1550,
+    "sheltered": true,
+    "tide_delay": 50,
+    "active_fish": "Dusk Flathead (牛鳅)、Sand Whiting (沙尖)、Bream (鳊鱼)",
+    "fish_tags": ["Flathead (牛鳅)", "Whiting (沙尖)", "Bream (鳊鱼)"],
+    "best_window": "☀️ 白天中午阳光充足期结合满潮，底栖鱼活跃。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (奢华森林天然氧吧) 顶级遮阳 BBQ 亭子群、海盗船儿童乐园、无障碍步道。带袋鼠和巨蜥生态观赏。",
+    "supported_methods": ["Running Sinker (活铅沉底)"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 极品避风泥沙底。无脑盲抛绝对不挂底，挂鲜虾肉主攻大 Flathead 牛鳅。"
+    },
+    "route": "从 Turramurra 沿着 Bobbin Head Rd 一直向下开到山谷最底部的入海口。",
+    "parking": "大型景区停车场，车位极多。国家公园车辆入园单日票为 $12。"
+  },
+  {
+    "name": "Clifton Gardens Wharf (Mosman)",
+    "region": "Mosman (北区内湾)",
+    "type": "内湾大栈桥 (Inner Harbor Wharf)",
+    "lat": -33.8473,
+    "lon": 151.2643,
+    "sheltered": true,
+    "tide_delay": 5,
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Calamari (大鱿鱼)、Bream (鳊鱼)",
+    "fish_tags": ["Kingfish (黄尾师)", "Squid (鱿鱼)", "Bream (鳊鱼)"],
+    "best_window": "🌅 清晨第一缕光破晓期，回游大鱼冲岸洗劫。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (悉尼老牌全能王) 自带安全高护栏和防鲨网泳池。海滩旁就是树荫儿童滑梯、一整排高品质 BBQ 炉。",
+    "supported_methods": ["无铅漂钓", "路亚大物", "木虾抽鱿鱼", "活饵放流"],
+    "method_tips": {
+      "木虾抽鱿鱼": "🎯 夜间桥头高位路灯点亮后，用 2.5号木虾贴着草床慢抽大号 Calamari 鱿鱼。",
+      "路亚大物": "🎯 清晨用 25g 铁板抛向防鲨网外侧，狂拉暴走 Kingfish。"
+    },
+    "route": "走 Military Rd，右转切入 Bradley's Head Rd，顺 Chowder Bay Rd 开到底。",
+    "parking": "码头收费停车场较贵。周末白天爆满，建议提前卡点或夜钓。"
+  },
+  {
+    "name": "Tom Uglys Bridge (北侧平台)",
+    "region": "Blakehurst (南区河口)",
+    "type": "水道交汇桥底平台",
+    "lat": -34.0023,
+    "lon": 151.1170,
+    "sheltered": true,
+    "tide_delay": 20,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)、Mulloway (皇冠鲊)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)", "Jewfish (皇冠鲊)"],
+    "best_window": "🕒 每天深夜暗河涨潮至满潮黄金窗口。",
+    "family_friendly": "⭐⭐⭐ (下车走十米即钓) 宽敞铁护栏专属垂钓站台，推车全无障碍。但缺乏秋千滑梯，有公路过车噪音。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "重铅沉底"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 重型活铅挂整条大鲜虾抛向新旧大桥巨大的中流桥墩，死守特大夜行性 Mulloway！"
+    },
+    "route": "沿 Princes Highway 向南开，在即将驶上大桥前的最左侧匝道切入桥底。",
+    "parking": "桥底北方尽头配有专属垂钓完全免费停车场，位置充足。"
+  },
+  {
+    "name": "Gunnamatta Bay Baths",
+    "region": "Cronulla (南区湾内)",
+    "type": "平缓内湾木网水闸 / 栈桥",
+    "lat": -34.0400,
+    "lon": 151.1370,
+    "sheltered": true,
+    "tide_delay": 10,
+    "active_fish": "Sand Whiting (沙尖)、Bream (鳊鱼)、Dusk Flathead (牛鳅)",
+    "fish_tags": ["Whiting (沙尖)", "Bream (鳊鱼)", "Flathead (牛鳅)"],
+    "best_window": "☀️ 白天阳光普照 + 满潮退三分浅滩啃食期。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (小娃挖沙极品) 自带天然静水围栏大泳池。草坪极其平坦开阔，配备高档遮阳野餐桌及洗手间。",
+    "supported_methods": ["Running Sinker (活铅沉底)"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 白沙底质完全不挂底！1号微型活铅搭1米细长子线挂活沙蚕，专拉大白 Whiting。"
+    },
+    "route": "走 Princes Hwy 接 Kingsway 向东，右转进入 Nicholson Parade 即可看到大公园。",
+    "parking": "公园自带超大型全免费公共停车场，下车推婴儿车轻松。"
+  },
+  {
+    "name": "Clarkes Point Reserve & Woolwich Dock",
+    "region": "Woolwich (中北区河口)",
+    "type": "双河交汇岬角石墙 / 废弃旧船坞",
+    "lat": -33.8330,
+    "lon": 151.1540,
+    "sheltered": true,
+    "tide_delay": 2,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)、Calamari (大鱿鱼)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)", "Squid (鱿鱼)"],
+    "best_window": "🌅 黄昏日落交替至大入夜。双河交汇激流明显。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (草坪野餐巨无霸) 拥有全悉尼数一数二的高级大无敌江景绿地。配大量免费 BBQ 烤炉、平整无阶梯漫步道。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "无铅漂钓", "木虾抽鱿鱼"],
+    "method_tips": {
+      "无铅漂钓": "👍 在斑驳旧石墙根打碎面包碎，无铅漂大块新鲜死虾肉，狙击大肥 Bream 的隐藏窝子。"
+    },
+    "route": "走 Victoria Rd，在 Hunters Hill 拐入 Church St，顺 Woolwich Road 开到底。",
+    "parking": "公园配有极其宽敞的大型停车场，2小时免费，夜钓全免。"
+  },
+  {
+    "name": "Cabarita Park Wharf",
+    "region": "Cabarita (内西区河道)",
+    "type": "内河主干道轮渡码头旁石墙",
+    "lat": -33.8630,
+    "lon": 151.0880,
+    "sheltered": true,
+    "tide_delay": 12,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)、Mulloway (皇冠鲊)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)", "Jewfish (皇冠鲊)"],
+    "best_window": "🕒 夜间涨潮至满潮期，避开白天轮渡轰鸣。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (西区遛娃常青树) 喷水戏水泉、前卫儿童乐园、完美平整草坪、全无障碍推车绿道及高分咖啡馆。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "重铅沉底"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 沿着乱石挡土墙边缘活铅沉底挂河虾钓大平头牛鳅。深夜大铅守钓 Jewfish 皇冠鲊。"
+    },
+    "route": "走 Parramatta Rd 转 Cabarita Road 一直开到半岛最底部的 Cabarita Park 景区里。",
+    "parking": "有 Council 大型停车场。白天手机缴费，入夜后完全免费。"
+  },
+  {
+    "name": "Kissing Point Park & Wharf",
+    "region": "Ryde (西区内河)",
+    "type": "内河亲水石墙 / 浅滩乱石结合部",
+    "lat": -33.8260,
+    "lon": 151.1000,
+    "sheltered": true,
+    "tide_delay": 20,
+    "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)",
+    "fish_tags": ["Bream (鳊鱼)", "Flathead (牛鳅)"],
+    "best_window": "🌅 傍晚黄昏到晚上 10 点，海水涨满漫过河口泥湾浅滩时。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (华人烧烤高分点) 橡胶软地儿童高空滑梯乐园、多台全自动免费 BBQ 电炉。岸边配有百分之百安全的厚实护栏。",
+    "supported_methods": ["Running Sinker (活铅沉底)"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 面向平缓河道，活铅钓组挂活香蕉虾，疯狂拉扯内西区极富盛名的红眼老鳊鱼（Bream）。"
+    },
+    "route": "走 Victoria Road，拐 Morrison Road，再转进 Waterview Street 开到底公园。",
+    "parking": "公园自带大型全免费公共停车场。夜钓车位极多，下车秒开钓。"
+  },
+  {
+    "name": "Lyne Park & Rose Bay Public Jetty",
+    "region": "Rose Bay (东区高端湾区)",
+    "type": "高档内湾浅滩沙地 / 公众小栈桥",
+    "lat": -33.8713,
+    "lon": 151.2523,
+    "sheltered": true,
+    "tide_delay": 0,
+    "active_fish": "Sand Whiting (沙尖)、Bream (鳊鱼)、Calamari (大鱿鱼)",
+    "fish_tags": ["Whiting (沙尖)", "Bream (鳊鱼)", "Squid (鱿鱼)"],
+    "best_window": "🕒 清澈的涨潮大顶峰期。洋流带来大批白沙尖。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (看高档水上飞机) 全封闭大围栏儿童城堡、高级 BBQ 烤炉、巨型遮阴草坪。推婴儿车漫步海景看飞机无压力。",
+    "supported_methods": ["Running Sinker (活铅沉底)", "木虾抽鱿鱼"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 站在小木桥向草床与白沙滩交接处抛投轻活铅挂鲜沙蚕，拉扯肥大沙尖 Whiting 的胜地。"
+    },
+    "route": "从 City 沿 New South Head Road 一路向东开，看到大草坪和飞机码头即是。",
+    "parking": "公园配两个极大型公共免费 2-4 小时停车场，完全无车位焦虑。"
+  },
+  {
+    "name": "The Spit Bridge (Seaforth侧桥底)",
+    "region": "Seaforth (北区航道窄口)",
+    "type": "极深水道天然瓶颈石墙 (Deep Channel Wall)",
+    "lat": -33.7970,
+    "lon": 151.2440,
+    "sheltered": true,
+    "tide_delay": 10,
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (三文鱼)、Calamari (大鱿鱼)",
+    "fish_tags": ["Kingfish (黄尾师)", "Salmon (三文鱼)", "Squid (鱿鱼)"],
+    "best_window": "🕒 湍急潮汐刚转停流的半小时（Slack Water）前后。",
+    "family_friendly": "⭐⭐ (风景极美但无游乐场) 桥底连接看海大草坪，全平整。推车方便。但现场无任何儿童滑梯或固定 BBQ 设施。",
+    "supported_methods": ["路亚大物", "木虾抽鱿鱼", "活饵放流"],
+    "method_tips": {
+      "路亚大物": "🎯 北区经典铁板重路亚位。30g 铁板大力斩向主激流，拦截大 Salmon 和 Kingfish！"
+    },
+    "route": "北上过 Spit Bridge 大桥，立刻左转下山切入 Seaforth 侧桥底的 Ellery Park。",
+    "parking": "配划线 Council 收费停车场。下车推装备步行 2 分钟即可到亲水石坝。"
+  },
+  {
+    "name": "Little Manly Point",
+    "region": "Manly (北区岬角内侧)",
+    "type": "港内深水水泥码头 / 亲水石护栏",
+    "lat": -33.7983,
+    "lon": 151.2880,
+    "sheltered": true,
+    "tide_delay": 2,
+    "active_fish": "Calamari (大鱿鱼)、Bream (鳊鱼)、Yellowtail Kingfish (黄尾师)",
+    "fish_tags": ["Squid (鱿鱼)", "Bream (鳊鱼)", "Kingfish (黄尾师)"],
+    "best_window": "🌅 黎明破晓前 1 小时至上午 9 点。海水纯净度极高。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (无敌海景安全护栏) 拥有现代化大型滑梯儿童乐园、免费公共高级 BBQ 电炉。作钓区有极安全的高护栏，推婴儿车极省力。",
+    "supported_methods": ["木虾抽鱿鱼", "Running Sinker (活铅沉底)", "无铅漂钓"],
+    "method_tips": {
+      "木虾抽鱿鱼": "🎯 北区摸大鱿鱼终极王牌基地！下方密布深水藻礁交错带。黄昏用 2.5号粉色木虾高产。"
+    },
+    "route": "走 Military Rd 接 Condamine St 向 Manly 开，右转 Stuart Street 一直开到底。",
+    "parking": "内部自带超大型全免费公共 4 小时停车场。车位极多，北区良心车位。"
+  },
+  {
+    "name": "Narrabeen Lagoon (湖口内侧平滩)",
+    "region": "Narrabeen (北部大泻湖)",
+    "type": "半封闭型泻湖内口 / 平缓纯沙平滩",
+    "lat": -33.7183,
+    "lon": 151.2963,
+    "sheltered": true,
+    "tide_delay": 30,
+    "active_fish": "Dusk Flathead (牛鳅)、Sand Whiting (沙尖)、Bream (鳊鱼)",
+    "fish_tags": ["Flathead (牛鳅)", "Whiting (沙尖)", "Bream (鳊鱼)"],
+    "best_window": "🕒 满潮退三分至干潮底的前 2 小时大退水退鱼期。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (水上度假乐园) 连绵数公里长的完美无阶梯胶质环湖道。遍布顶级野餐 BBQ 遮阳群亭，小娃可在清澈死水滩安全玩沙。",
+    "supported_methods": ["Running Sinker (活铅沉底)"],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 全悉尼最绝的【拖底活铅沉底】天堂！纯细沙绝不挂底，挂沙蚕拖拽收线，大牛鳅咬钩极度疯狂！"
+    },
+    "route": "沿 Pittwater Road 向北开，过 Narrabeen 桥立刻左转切入 Lake Park Road。",
+    "parking": "湖口配 Council 大型专属停车场。位置极度充裕，推车非常惬意。"
+  }
+]
