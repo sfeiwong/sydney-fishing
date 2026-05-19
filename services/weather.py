@@ -40,16 +40,29 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
         w = requests.get(weather_url, timeout=10).json()
         m = requests.get(marine_url, timeout=10).json()
 
+        # 若格点落在陆地，marine API 返回全 None；改用悉尼近海参考点补充
+        marine_daily = m.get("daily", {})
+        if not any(v for v in (marine_daily.get("swell_wave_height_max") or [])):
+            fallback_url = (
+                "https://marine-api.open-meteo.com/v1/marine"
+                "?latitude=-33.9&longitude=151.3"
+                "&daily=wave_height_max,swell_wave_height_max,"
+                "swell_wave_direction_dominant,swell_wave_period_max"
+                "&timezone=Australia%2FSydney"
+            )
+            m = requests.get(fallback_url, timeout=10).json()
+            marine_daily = m.get("daily", {})
+
         days = []
         for i in range(3):
             days.append({
                 "date":           w["daily"]["time"][i],
                 "temp":           w["daily"]["temperature_2m_max"][i],
                 "wind":           w["daily"]["wind_speed_10m_max"][i],
-                "wave":           m["daily"]["wave_height_max"][i],
-                "swell_height":   m["daily"]["swell_wave_height_max"][i],
-                "swell_direction":m["daily"]["swell_wave_direction_dominant"][i],
-                "swell_period":   m["daily"]["swell_wave_period_max"][i],
+                "wave":           (marine_daily.get("wave_height_max") or [None]*3)[i],
+                "swell_height":   (marine_daily.get("swell_wave_height_max") or [None]*3)[i],
+                "swell_direction":(marine_daily.get("swell_wave_direction_dominant") or [None]*3)[i],
+                "swell_period":   (marine_daily.get("swell_wave_period_max") or [None]*3)[i],
             })
         return {"success": True, "days": days}
 
