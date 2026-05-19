@@ -5,13 +5,14 @@
 import math
 import streamlit as st
 from datetime import datetime, timedelta
+import os
 
 import folium
 from streamlit_folium import st_folium
 import streamlit.components.v1 as components
 
 from config import (
-    ALL_METHODS, ALL_FISH,
+    ALL_METHODS, ALL_FISH, FISH_COOKING_RECIPES,
     OCEAN_SWELL_DANGER, OCEAN_WIND_DANGER,
     SHELTERED_SWELL_WARN, SHELTERED_WIND_WARN,
 )
@@ -466,12 +467,59 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
             )
             st.markdown(f"**⏰ 专属潮汐** &nbsp;{tides_str}")
 
-            fish_html = "".join(
-                f'<span style="background:#e3f2fd;color:#1565c0;padding:3px 10px;'
-                f'border-radius:12px;font-size:0.8em;margin:2px;display:inline-block">{f}</span>'
-                for f in spot["fish_tags"]
-            )
-            st.markdown(f"**🐟 目标鱼种** &nbsp;{fish_html}", unsafe_allow_html=True)
+            # 目标鱼种标签 + 烹饪做法展开
+            st.markdown("**🐟 目标鱼种**", unsafe_allow_html=True)
+            
+            # 为每种鱼创建可点击的标签按钮
+            for fish in spot["fish_tags"]:
+                recipe = FISH_COOKING_RECIPES.get(fish, {})
+                legal_size = recipe.get("legal_size", "—")
+                
+                # 用 expander label 直接显示所有信息（最稳定）
+                expander_label = f"🐟 {fish}  📏 Legal: {legal_size}  🍳"
+                photo_url = recipe.get("photo_url", "")
+                
+                with st.expander(expander_label, expanded=False):
+                    photo_path = recipe.get("photo_path", "")
+                    has_photo = photo_path and os.path.exists(photo_path) and os.path.getsize(photo_path) > 1000
+                    
+                    if has_photo:
+                        # 有图片时用双列布局
+                        col_a, col_b = st.columns([0.3, 0.7])
+                        with col_a:
+                            st.image(photo_path, use_column_width=True)
+                        with col_b:
+                            st.markdown(
+                                f'<h5 style="margin:0 0 8px 0;padding:0;font-size:1.1em;font-weight:700">🍳 {fish} 烹饪指南</h5>'
+                                f'<p style="margin:0;color:#666;font-size:0.85em">📏 法定尺寸：{legal_size}</p>',
+                                unsafe_allow_html=True
+                            )
+                    else:
+                        # 无图片时单列布局
+                        st.markdown(
+                            f'<h5 style="margin:0 0 8px 0;padding:0;font-size:1.1em;font-weight:700">🍳 {fish} 烹饪指南</h5>'
+                            f'<p style="margin:0;color:#666;font-size:0.85em">📏 法定尺寸：{legal_size}</p>',
+                            unsafe_allow_html=True
+                        )
+                    
+                    st.markdown('<hr style="margin:8px 0 12px 0;border:0;border-top:1px solid #e0e0e0">', unsafe_allow_html=True)
+                    
+                    # 推荐做法
+                    if recipe.get("methods"):
+                        st.markdown("**🥘 推荐做法**")
+                        for method in recipe["methods"]:
+                            st.markdown(f'- {method}')
+                    
+                    # 小贴士
+                    if recipe.get("tips"):
+                        st.markdown("\n**💡 烹饪小贴士**")
+                        st.info(recipe["tips"])
+                    
+                    # 参考视频
+                    if recipe.get("videos"):
+                        st.markdown("\n**🎬 参考视频**")
+                        for i, video in enumerate(recipe["videos"], 1):
+                            st.markdown(f'- [视频教程 {i}]({video})')
 
         with right:
             swell = spot_weather.get("swell_height") or 0
