@@ -2,11 +2,13 @@
 # app.py — 悉尼钓鱼助手 Pro+ 主程序
 # ============================================================
 
+import math
 import streamlit as st
 from datetime import datetime, timedelta
 
 import folium
 from streamlit_folium import st_folium
+import streamlit.components.v1 as components
 
 from config import (
     ALL_METHODS, ALL_FISH,
@@ -180,97 +182,209 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
     if not data_ok:
         st.warning("⚠️ **天气数据加载失败**，以下为估算值，出行前请以 BOM 官方预报为准。", icon="🛰️")
 
-    temp  = day_weather.get("temp") or 0
-    wind  = day_weather.get("wind") or 0
-    wave  = day_weather.get("wave") or 0
-    swell = day_weather.get("swell_height") or 0
+    temp         = day_weather.get("temp") or 0
+    temp_min     = day_weather.get("temp_min") or 0
+    wind         = day_weather.get("wind") or 0
+    wave         = day_weather.get("wave") or 0
+    swell        = day_weather.get("swell_height") or 0
+    rain_prob    = day_weather.get("rain_prob") or 0
+    precipitation= day_weather.get("precipitation") or 0
     swell_dir    = day_weather.get("swell_direction", "—")
     swell_period = day_weather.get("swell_period", "—")
 
-    metrics = [
-        ("🌡️", "最高气温", temp,  "°C",   "#1976D2"),
-        ("💨", "最大风速", wind,  "km/h", _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)),
-        ("🌊", "综合浪高", wave,  "m",    _val_color(wave,  SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)),
-        ("🌀", "浪涌高度", swell, "m",    _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)),
-    ]
+    def rain_color(p):
+        if p >= 60: return "#dc3545"
+        if p >= 25: return "#fd7e14"
+        return "#28a745"
 
-    cols = st.columns(4)
-    for col, (icon, label, val, unit, color) in zip(cols, metrics):
-        col.markdown(f"""
-        <div style="background:white;border-radius:14px;padding:18px 10px 14px;
-                    box-shadow:0 2px 12px rgba(0,0,0,0.07);text-align:center;
+    def _card(icon, label, val, unit, color):
+        return f"""
+        <div style="background:white;border-radius:12px;padding:14px 8px 12px;
+                    box-shadow:0 2px 10px rgba(0,0,0,0.07);text-align:center;
                     border-bottom:3px solid {color}">
-            <div style="font-size:1.5em;line-height:1">{icon}</div>
-            <div style="color:#999;font-size:0.8em;margin:7px 0 4px">{label}</div>
-            <div style="font-size:1.75em;font-weight:800;color:{color};line-height:1.1">{val}</div>
-            <div style="color:#bbb;font-size:0.78em;margin-top:4px">{unit}</div>
-        </div>
-        """, unsafe_allow_html=True)
+            <div style="font-size:1.3em;line-height:1">{icon}</div>
+            <div style="color:#aaa;font-size:0.72em;margin:5px 0 3px">{label}</div>
+            <div style="font-size:1.55em;font-weight:800;color:{color};line-height:1.1">{val}</div>
+            <div style="color:#ccc;font-size:0.72em;margin-top:3px">{unit}</div>
+        </div>"""
 
+    row1 = st.columns(3)
+    row1[0].markdown(_card("🌡️", "最高气温", temp,      "°C",   "#1976D2"), unsafe_allow_html=True)
+    row1[1].markdown(_card("🌡️", "最低气温", temp_min,  "°C",   "#42a5f5"), unsafe_allow_html=True)
+    row1[2].markdown(_card("🌧️", "降雨概率", f"{int(rain_prob)}%", "",
+                           rain_color(rain_prob)), unsafe_allow_html=True)
+
+    row2 = st.columns(3)
+    row2[0].markdown(_card("💨", "最大风速", wind,  "km/h",
+                           _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)), unsafe_allow_html=True)
+    row2[1].markdown(_card("🌊", "综合浪高", wave,  "m",
+                           _val_color(wave,  SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)), unsafe_allow_html=True)
+    row2[2].markdown(_card("🌀", "浪涌高度", swell, "m",
+                           _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)), unsafe_allow_html=True)
+
+    rain_str = f"{precipitation:.1f} mm" if precipitation > 0 else "无降水"
     st.markdown(f"""
-    <div style="text-align:center;color:#666;font-size:0.88em;margin-top:12px;
-                background:white;border-radius:10px;padding:9px 16px;
+    <div style="text-align:center;color:#666;font-size:0.84em;margin-top:10px;
+                background:white;border-radius:10px;padding:8px 14px;
                 box-shadow:0 1px 6px rgba(0,0,0,0.05)">
-        🧭&nbsp; 涌向 <b>{swell_dir}°</b> &nbsp;&nbsp;|&nbsp;&nbsp; ⏱️&nbsp; 浪涌周期 <b>{swell_period}s</b>
+        🌂&nbsp; 预计降水 <b>{rain_str}</b>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        🧭&nbsp; 涌向 <b>{swell_dir}°</b>
+        &nbsp;&nbsp;|&nbsp;&nbsp;
+        ⏱️&nbsp; 浪涌周期 <b>{swell_period}s</b>
     </div>
     """, unsafe_allow_html=True)
+
+
+# ── 最佳时段推算 ──────────────────────────────────────────────────────────
+
+def _best_window_times(best_window: str, tides: list) -> str:
+    """根据描述关键词 + 当日潮汐，推算今日参考时间段（返回如 '13:00–15:30'）。"""
+    import re
+
+    text = best_window
+
+    # 提取文本中明确写出的时间段（如 (19:30-23:00)）
+    explicit = re.findall(r'\d{1,2}:\d{2}[–\-]\d{1,2}:\d{2}', text)
+    if explicit:
+        return explicit[0]
+
+    sorted_tides = sorted(tides, key=lambda t: t["time"])
+
+    # 从文本提取小时数，如 "1.5小时" → 1.5，"2小时" → 2.0，默认 1.5
+    hrs_match = re.search(r'(\d+(?:\.\d+)?)[\s]*小时', text)
+    offset_h  = float(hrs_match.group(1)) if hrs_match else 1.5
+
+    def fmt_window(center, before_h, after_h):
+        start = center - timedelta(hours=before_h)
+        end   = center + timedelta(hours=after_h)
+        return f"{start.strftime('%H:%M')}–{end.strftime('%H:%M')}"
+
+    # 优先匹配满潮
+    if "满潮" in text or "涨潮" in text or "高潮" in text:
+        highs = [t for t in sorted_tides if t["is_high"]]
+        if highs:
+            return fmt_window(highs[0]["time"], offset_h, offset_h)
+
+    # 干潮 / 落潮
+    if "干潮" in text or "落潮" in text or "低潮" in text:
+        lows = [t for t in sorted_tides if not t["is_high"]]
+        if lows:
+            return fmt_window(lows[0]["time"], offset_h, offset_h)
+
+    # 静态时段
+    if "破晓" in text or "黎明" in text or "日出" in text:
+        return "05:30–08:00"
+    if "黄昏" in text or "日落" in text:
+        return "17:00–19:30"
+    if "夜间" in text or "夜晚" in text:
+        return "20:00–23:00"
+    if "白天" in text or "正午" in text:
+        return "09:00–16:00"
+
+    return "—"
 
 
 # ── 潮汐时间线 ────────────────────────────────────────────────────────────
 
 def render_tide_panel(base_tides: list) -> None:
-    now   = datetime.now()
-    times = [t["time"] for t in base_tides]
-    min_t = min(times)
-    max_t = max(times)
-    span  = (max_t - min_t).total_seconds()
+    now          = datetime.now()
+    sorted_tides = sorted(base_tides, key=lambda x: x["time"])
+    times        = [t["time"] for t in sorted_tides]
+    min_t, max_t = min(times), max(times)
+    span_s       = (max_t - min_t).total_seconds()
 
-    def to_pct(t: datetime) -> float:
-        return max(2, min(98, (t - min_t).total_seconds() / span * 100)) if span > 0 else 50
+    # 余弦插值生成平滑潮汐曲线
+    NUM = 150
+    heights = []
+    for i in range(NUM + 1):
+        t = min_t + timedelta(seconds=span_s * i / NUM)
+        prev_td = next_td = None
+        for td in sorted_tides:
+            if td["time"] <= t:
+                prev_td = td
+            elif next_td is None:
+                next_td = td
+                break
+        if prev_td is None:
+            h = 1.0 if sorted_tides[0]["is_high"] else 0.0
+        elif next_td is None:
+            h = 1.0 if sorted_tides[-1]["is_high"] else 0.0
+        else:
+            ph = 1.0 if prev_td["is_high"] else 0.0
+            nh = 1.0 if next_td["is_high"] else 0.0
+            period  = (next_td["time"] - prev_td["time"]).total_seconds()
+            elapsed = (t - prev_td["time"]).total_seconds()
+            frac    = elapsed / period if period > 0 else 0
+            h = ph + (nh - ph) * (1 - math.cos(math.pi * frac)) / 2
+        heights.append(h)
 
-    dots_html = ""
-    for t in base_tides:
-        pct     = to_pct(t["time"])
-        is_high = t["is_high"]
-        color   = "#1565C0" if is_high else "#EF6C00"
-        label   = "满潮" if is_high else "干潮"
-        size    = "16px" if is_high else "11px"
-        dots_html += f"""
-        <div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);
-                    top:0;text-align:center;width:64px;margin-left:-32px">
-            <div style="font-size:0.72em;color:{color};font-weight:700;
-                        white-space:nowrap">{t['time'].strftime('%H:%M')}</div>
-            <div style="width:{size};height:{size};background:{color};border-radius:50%;
-                        margin:4px auto;box-shadow:0 2px 8px rgba(0,0,0,0.18)"></div>
-            <div style="font-size:0.68em;color:#888;white-space:nowrap">{label}</div>
-        </div>
-        """
+    # SVG 布局常量
+    VW, VH       = 600, 148
+    PX, PT, PB   = 10, 40, 30
+    CW, CH       = VW - 2 * PX, VH - PT - PB
 
-    now_html = ""
+    def sx(i):  return PX + i / NUM * CW
+    def sy(h):  return PT + (1 - h) * CH
+
+    # 波浪路径
+    path_d = "M " + " L ".join(f"{sx(i):.1f},{sy(h):.1f}" for i, h in enumerate(heights))
+    ybot   = PT + CH
+    fill_d = f"{path_d} L {sx(NUM):.1f},{ybot:.1f} L {sx(0):.1f},{ybot:.1f} Z"
+
+    # "现在"竖线
+    now_svg = ""
     if min_t <= now <= max_t:
-        pct = to_pct(now)
-        now_html = f"""
-        <div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);top:-18px;
-                    font-size:0.65em;color:#e53935;font-weight:700;white-space:nowrap">▼ 现在</div>
-        <div style="position:absolute;left:{pct:.1f}%;transform:translateX(-50%);
-                    top:-4px;bottom:-4px;width:2px;
-                    background:linear-gradient(#e53935,rgba(229,57,53,0.2));border-radius:2px"></div>
-        """
+        nx = PX + (now - min_t).total_seconds() / span_s * CW
+        now_svg = (
+            f'<line x1="{nx:.1f}" y1="{PT}" x2="{nx:.1f}" y2="{ybot}"'
+            f' stroke="#e53935" stroke-width="1.8" stroke-dasharray="5,3"/>'
+            f'<rect x="{nx-14:.1f}" y="{PT-17}" width="28" height="14" rx="4" fill="#e53935"/>'
+            f'<text x="{nx:.1f}" y="{PT-6}" text-anchor="middle"'
+            f' font-size="9.5" fill="white" font-weight="700">现在</text>'
+        )
 
-    st.markdown(f"""
-    <div style="background:white;border-radius:14px;padding:16px 20px 22px;
+    # 潮汐事件标记
+    markers_svg = ""
+    for td in sorted_tides:
+        x     = PX + (td["time"] - min_t).total_seconds() / span_s * CW
+        is_hi = td["is_high"]
+        yc    = sy(1.0 if is_hi else 0.0)
+        color = "#1565C0" if is_hi else "#EF6C00"
+        label = "满潮" if is_hi else "干潮"
+        ts    = td["time"].strftime("%H:%M")
+        ty, ly = (yc - 22, yc - 11) if is_hi else (yc + 27, yc + 16)
+        markers_svg += (
+            f'<circle cx="{x:.1f}" cy="{yc:.1f}" r="5.5" fill="{color}"'
+            f' stroke="white" stroke-width="2.5"/>'
+            f'<text x="{x:.1f}" y="{ty:.1f}" text-anchor="middle"'
+            f' font-size="11" fill="{color}" font-weight="700">{ts}</text>'
+            f'<text x="{x:.1f}" y="{ly:.1f}" text-anchor="middle"'
+            f' font-size="9.5" fill="{color}" opacity="0.85">{label}</text>'
+        )
+
+    components.html(f"""
+    <style>body{{margin:0;background:transparent}}</style>
+    <div style="background:white;border-radius:14px;padding:14px 16px 12px;
                 box-shadow:0 2px 12px rgba(0,0,0,0.07)">
-        <div style="font-size:0.78em;color:#bbb;margin-bottom:18px">
+        <div style="font-size:0.75em;color:#bbb;margin-bottom:8px">
             ⏰ Fort Denison 基准 &nbsp;·&nbsp; ±30~60 分钟误差
         </div>
-        <div style="position:relative;height:76px;margin:0 24px">
-            <div style="position:absolute;top:28px;left:0;right:0;height:2px;
-                        background:#e8eef5;border-radius:2px"></div>
-            {now_html}
-            {dots_html}
-        </div>
+        <svg viewBox="0 0 {VW} {VH}" style="width:100%;display:block;overflow:visible">
+            <defs>
+                <linearGradient id="wg" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="#1976D2" stop-opacity="0.28"/>
+                    <stop offset="100%" stop-color="#42a5f5" stop-opacity="0.04"/>
+                </linearGradient>
+            </defs>
+            <path d="{fill_d}" fill="url(#wg)"/>
+            <path d="{path_d}" fill="none" stroke="#1976D2" stroke-width="2.5"
+                  stroke-linecap="round" stroke-linejoin="round"/>
+            {now_svg}
+            {markers_svg}
+        </svg>
     </div>
-    """, unsafe_allow_html=True)
+    """, height=210, scrolling=False)
 
 
 # ── 精选推荐英雄卡 ────────────────────────────────────────────────────────
@@ -439,20 +553,34 @@ def render_day_tab(day_offset: int) -> None:
         tides      = get_tides_for_date(target_date, spot["tide_delay"])
         all_spot_data.append((spot, safety, tides, spot_day_w))
 
-    # 精选推荐区（绿色安全钓点，最多展示 3 个）
+    # 精选推荐区（始终显示，无推荐时给出说明）
+    label = "今天" if day_offset == 0 else ("明天" if day_offset == 1 else "后天")
     top_safe = [
         (s, sa, sw)
         for s, sa, ti, sw in all_spot_data
         if sa["safe"] and sa["color"] == "green"
     ]
+    st.markdown(f"### 🏆 {label}精选推荐")
     if top_safe:
-        label = "今天" if day_offset == 0 else ("明天" if day_offset == 1 else "后天")
-        st.markdown(f"### 🏆 {label}精选推荐")
         top3 = top_safe[:3]
         cols = st.columns(len(top3))
         for col, (spot, safety, dw) in zip(cols, top3):
             render_hero_card(col, spot, safety, dw)
         st.markdown("")
+    else:
+        st.markdown("""
+        <div style="background:#fff8e1;border-left:4px solid #f9a825;border-radius:10px;
+                    padding:14px 20px;color:#795548;font-size:0.92em">
+            ⚠️ <b>今日海况不佳，暂无推荐出钓点。</b><br>
+            <span style="font-size:0.88em;opacity:0.85">
+            涌浪或风速超出安全阈值，建议在家休息或改去内湾试试手气。
+            可查看明天/后天的预报，或调整侧边栏筛选条件。
+            </span>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown("---")
+    render_map_section(day_offset, all_spot_data)
 
     st.markdown("---")
     st.subheader(f"📍 匹配钓点（{len(filtered)} / {len(spots)} 个）")
@@ -468,38 +596,209 @@ def render_day_tab(day_offset: int) -> None:
         st.info("ℹ️ 当前筛选条件下没有匹配的钓点，请尝试减少筛选条件。")
 
 
-# ── 地图 Tab ──────────────────────────────────────────────────────────────
+# ── 加油站 HTML 片段 ──────────────────────────────────────────────────────
 
-def render_map_tab() -> None:
-    st.subheader("🗺️ 悉尼钓点地图总览（今日安全评估）")
-    st.caption("🟢 推荐 &nbsp; 🟠 谨慎 &nbsp; 🔴 危险/不建议 &nbsp;（点击标记查看钓点简介）")
-
-    m = folium.Map(
-        location=[-33.87, 151.21],
-        zoom_start=11,
-        tiles="CartoDB positron",
+def _fuel_html(spot: dict) -> str:
+    gas = spot.get("nearby_gas", "")
+    fuelcheck_url = "https://www.fuelcheck.nsw.gov.au/app"
+    link = (
+        f'<a href="{fuelcheck_url}" target="_blank" '
+        f'style="display:inline-block;margin-top:5px;background:#fff3e0;color:#e65100;'
+        f'padding:3px 10px;border-radius:8px;font-size:0.76em;font-weight:600;'
+        f'text-decoration:none">⛽ 查看实时油价 →</a>'
+    )
+    if gas:
+        return (
+            f'<div style="border-top:1px solid #f0f4f8;padding-top:8px;margin-top:4px;'
+            f'font-size:0.77em;color:#555">'
+            f'⛽ <b style="color:#e65100">加油站</b>&nbsp; {gas}<br>'
+            f'{link}'
+            f'</div>'
+        )
+    return (
+        f'<div style="border-top:1px solid #f0f4f8;padding-top:8px;margin-top:4px">'
+        f'{link}'
+        f'</div>'
     )
 
-    for spot in spots:
-        if not spot_matches(spot):
-            continue
-        w      = get_marine_forecast(spot["lat"], spot["lon"])
-        safety = assess_safety(spot, w["days"][0])
 
-        popup_html = (
-            f"<b>{spot['name']}</b><br>"
-            f"{safety['status']}<br>"
-            f"🐟 {spot['active_fish']}<br>"
-            f"⏱️ {spot['best_window']}"
+# ── 钓点详情（地图右侧内联）────────────────────────────────────────────────
+
+def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict) -> None:
+    c_border = {"green": "#2e7d32", "orange": "#e65100", "red": "#c62828"}
+    c_bg     = {"green": "#e8f5e9", "orange": "#fff3e0", "red": "#ffebee"}
+    border   = c_border.get(safety["color"], "#888")
+    badge_bg = c_bg.get(safety["color"], "#f5f5f5")
+
+    swell    = weather.get("swell_height") or 0
+    wind     = weather.get("wind") or 0
+    sw_color = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
+    wi_color = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
+
+    fish_html = "".join(
+        f'<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;'
+        f'font-size:0.76em;margin:2px 2px 0;display:inline-block">{f}</span>'
+        for f in spot["fish_tags"]
+    )
+    method_html = "".join(
+        f'<span style="background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;'
+        f'font-size:0.75em;margin:2px 2px 0;display:inline-block">{m}</span>'
+        for m in spot["supported_methods"][:4]
+    )
+    tides_html = " &nbsp;|&nbsp; ".join(
+        f"{t['label']} <b>{t['time'].strftime('%H:%M')}</b>" for t in tides
+    )
+
+    first_method = spot["supported_methods"][0] if spot["supported_methods"] else ""
+    tip_raw      = spot["method_tips"].get(first_method, "")
+    tip_text     = tip_raw[:100] + "…" if len(tip_raw) > 100 else tip_raw
+    tip_block    = (
+        f'<div style="background:#f9f9f9;border-radius:8px;padding:8px 10px;'
+        f'font-size:0.78em;color:#555;margin-bottom:10px">💡 {tip_text}</div>'
+        if tip_text else ""
+    )
+
+    st.html(f"""
+    <div style="background:white;border-radius:14px;border-top:4px solid {border};
+                box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:16px 18px;
+                max-height:430px;overflow-y:auto;font-family:sans-serif">
+
+        <div style="font-size:1.02em;font-weight:700;color:#1a1a2e;
+                    margin-bottom:8px;line-height:1.4">{spot['name']}</div>
+
+        <span style="background:{badge_bg};color:{border};padding:2px 12px;
+                     border-radius:16px;font-size:0.8em;font-weight:600">
+            {safety['status']}
+        </span>
+
+        <div style="background:{badge_bg};border-left:3px solid {border};border-radius:6px;
+                    padding:8px 12px;margin:10px 0;font-size:0.81em;color:{border}">
+            {safety['advice']}
+        </div>
+
+        <div style="font-size:0.79em;color:#888;margin-bottom:8px">
+            📍 {spot['region']} &nbsp;·&nbsp; {spot['type']}
+        </div>
+
+        <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:10px;
+                    font-size:0.88em">
+            🌊 <b style="color:{sw_color}">{swell}m</b>
+            &emsp; 💨 <b style="color:{wi_color}">{wind}km/h</b>
+            &emsp; 👨‍👩‍👧‍👦 {spot['family_friendly'].split()[0]}
+        </div>
+
+        <div style="font-size:0.79em;color:#555;margin-bottom:4px">
+            ⏱️ <b>最佳时段</b>&nbsp; {spot['best_window']}
+            <span style="background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;
+                         font-size:0.9em;margin-left:6px;font-weight:600">
+                今日 {_best_window_times(spot['best_window'], tides)}
+            </span>
+        </div>
+        <div style="font-size:0.79em;color:#555;margin-bottom:10px">
+            🌊 <b>专属潮汐</b>&nbsp; {tides_html}
+        </div>
+
+        <div style="font-size:0.8em;color:#444;margin-bottom:4px">🐟 目标鱼种</div>
+        <div style="margin-bottom:10px">{fish_html}</div>
+
+        <div style="font-size:0.8em;color:#444;margin-bottom:4px">🎣 推荐钓法</div>
+        <div style="margin-bottom:8px">{method_html}</div>
+
+        {tip_block}
+
+        <div style="border-top:1px solid #f0f4f8;padding-top:10px;
+                    font-size:0.77em;color:#888;line-height:1.7">
+            🚗 {spot['route']}<br>
+            🅿️ {spot['parking']}
+        </div>
+        {_fuel_html(spot)}
+    </div>
+    """)
+
+
+# ── 地图 + 点击详情 ───────────────────────────────────────────────────────
+
+def render_map_section(day_offset: int, all_spot_data: list) -> None:
+    day_label = ["今天", "明天", "后天"][day_offset]
+
+    st.markdown(
+        f"**🗺️ 钓点地图** &nbsp;<span style='font-size:0.8em;color:#aaa'>"
+        f"{day_label}安全评估 · 点击标记查看详情</span>",
+        unsafe_allow_html=True,
+    )
+    leg_a, leg_b, leg_c, _ = st.columns([1, 1, 1, 4])
+    leg_a.markdown("⭐ **推荐**")
+    leg_b.markdown("🟠 **谨慎**")
+    leg_c.markdown("🔴 **危险**")
+
+    col_map, col_detail = st.columns([3, 2])
+
+    with col_map:
+        m = folium.Map(location=[-33.87, 151.21], zoom_start=11, tiles="CartoDB positron")
+
+        for spot, safety, _, _ in all_spot_data:
+            is_rec = safety["safe"] and safety["color"] == "green"
+            tooltip = (
+                f"⭐ {day_label}推荐 | {spot['name']}"
+                if is_rec else
+                f"{spot['name']} ({safety['status']})"
+            )
+            if is_rec:
+                # 固定尺寸 DivIcon，anchor 精确对准圆心，不含可变宽度文字
+                icon_html = (
+                    '<div style="width:26px;height:26px;background:#2e7d32;border-radius:50%;'
+                    'border:3px solid white;box-shadow:0 0 0 3px rgba(46,125,50,0.4),'
+                    '0 2px 8px rgba(46,125,50,0.5);display:flex;align-items:center;'
+                    'justify-content:center;color:white;font-size:14px">⭐</div>'
+                )
+                icon = folium.DivIcon(html=icon_html, icon_size=(26, 26), icon_anchor=(13, 13))
+                folium.Marker(
+                    location=[spot["lat"], spot["lon"]],
+                    tooltip=tooltip,
+                    icon=icon,
+                ).add_to(m)
+            else:
+                # CircleMarker：纯矢量，缩放永不漂移
+                hex_c = {"orange": "#ef6c00", "red": "#c62828"}.get(safety["color"], "#888")
+                folium.CircleMarker(
+                    location=[spot["lat"], spot["lon"]],
+                    radius=7,
+                    color="white",
+                    weight=2,
+                    fill=True,
+                    fill_color=hex_c,
+                    fill_opacity=0.9,
+                    tooltip=tooltip,
+                ).add_to(m)
+
+        map_data = st_folium(
+            m, width=None, height=430,
+            returned_objects=["last_object_clicked"],
+            key=f"map_{day_offset}",
         )
-        folium.Marker(
-            location=[spot["lat"], spot["lon"]],
-            popup=folium.Popup(popup_html, max_width=280),
-            tooltip=f"{spot['name']} ({safety['status']})",
-            icon=folium.Icon(color=safety["color"], icon="info-sign"),
-        ).add_to(m)
 
-    st_folium(m, width=None, height=620, returned_objects=[])
+    with col_detail:
+        clicked = (map_data or {}).get("last_object_clicked")
+
+        if not clicked:
+            st.html("""
+            <div style="height:430px;display:flex;flex-direction:column;
+                        align-items:center;justify-content:center;
+                        background:white;border-radius:14px;
+                        box-shadow:0 2px 12px rgba(0,0,0,0.07);
+                        color:#ccc;text-align:center;padding:20px">
+                <div style="font-size:2.4em;margin-bottom:14px">🗺️</div>
+                <div style="font-size:0.95em;font-weight:600;color:#bbb">点击地图标记</div>
+                <div style="font-size:0.82em;margin-top:6px;color:#ccc">查看钓点详细信息</div>
+            </div>
+            """)
+        else:
+            clat, clng = clicked["lat"], clicked["lng"]
+            spot, safety, tides, weather = min(
+                all_spot_data,
+                key=lambda x: abs(x[0]["lat"] - clat) + abs(x[0]["lon"] - clng),
+            )
+            _render_map_spot_detail(spot, safety, tides, weather)
 
 
 # ── 页面主标题 ────────────────────────────────────────────────────────────
@@ -522,22 +821,18 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Tab 布局 ──────────────────────────────────────────────────────────────
+# ── Tab 布局（仅日期分析）────────────────────────────────────────────────
 today = datetime.now()
 tab_labels = [
     f"📅 今天（{today.strftime('%m/%d')}）",
     f"📅 明天（{(today + timedelta(days=1)).strftime('%m/%d')}）",
     f"📅 后天（{(today + timedelta(days=2)).strftime('%m/%d')}）",
-    "🗺️ 地图总览",
 ]
 tabs = st.tabs(tab_labels)
 
-for i, tab in enumerate(tabs[:3]):
+for i, tab in enumerate(tabs):
     with tab:
         render_day_tab(i)
-
-with tabs[3]:
-    render_map_tab()
 
 # ── 页脚 ──────────────────────────────────────────────────────────────────
 st.markdown("---")
