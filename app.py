@@ -31,10 +31,8 @@ st.set_page_config(
 spots = load_spots()
 
 st.markdown("""
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
 :root {
   --bg:#f1f4f7; --surface:#ffffff; --surface2:#f7f9fb;
   --line:rgba(15,30,50,0.09); --line-strong:rgba(15,30,50,0.18);
@@ -996,28 +994,6 @@ st.markdown(
     f'</div>',
     unsafe_allow_html=True,
 )
-
-c1, c2, c3 = st.columns(3)
-for col, n, zh, en, is_muted in zip(
-    [c1, c2, c3],
-    [str(len(spots)), "3", "30"],
-    ["数据库钓点", "天气预报", "今日评估"],
-    ["Spots indexed", "Days forecast", "Spots assessed"],
-    [False, True, False],
-):
-    n_color = "#fff" if is_muted else "#c69230"
-    col.markdown(
-        f'<div style="padding:14px 18px;background:rgba(255,255,255,0.10);'
-        f'border:1px solid rgba(255,255,255,0.16);border-radius:12px;'
-        f'backdrop-filter:blur(6px);margin-bottom:16px">'
-        f'<div style="font-family:Source Serif 4,Georgia,serif;font-size:36px;'
-        f'font-weight:400;line-height:1;color:{n_color}">{n}</div>'
-        f'<div style="font-size:13px;margin-top:4px;color:rgba(255,255,255,0.9)">{zh}</div>'
-        f'<div style="font-size:10.5px;letter-spacing:0.6px;text-transform:uppercase;'
-        f'color:rgba(255,255,255,0.6);margin-top:2px">{en}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
 
 today_obj = datetime.now()
 tab1, tab2, tab3 = st.tabs([
