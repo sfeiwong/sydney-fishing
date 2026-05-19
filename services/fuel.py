@@ -1,32 +1,36 @@
 # ============================================================
 # services/fuel.py — NSW FuelCheck 实时油价服务
 # ============================================================
-# OAuth 2.0 client_credentials flow:
-#   POST /api/oauth2/token  (Basic base64(key:secret))  → access_token
-#   GET  /api/fuelpricecheck/v2/fuel/prices/all  (Bearer token)
-# 凭证存放在 .streamlit/secrets.toml:
-#   [fuelcheck]
-#   consumer_key    = "..."
-#   consumer_secret = "..."
+# Step 1: GET /oauth/client_credential/accesstoken?grant_type=client_credentials
+#         Header: Authorization: Basic base64(key:secret)
+# Step 2: GET /FuelPriceCheck/v1/fuel/prices
+#         Headers: Authorization: Bearer <token>
+#                  apikey: <key>
+#                  transactionid: <uuid>
+#                  requesttimestamp: DD/MM/YYYY HH:MM:SS
 # ============================================================
 
 import math
 import time
+import uuid
 import base64
+from datetime import datetime
 from typing import Optional
 import requests
 import streamlit as st
 
 _BASE      = "https://api.onegov.nsw.gov.au"
-_TOKEN_URL = f"{_BASE}/api/oauth2/token"
-_PRICES_V2 = f"{_BASE}/api/fuelpricecheck/v2/fuel/prices/all"
+_TOKEN_URL = f"{_BASE}/oauth/client_credential/accesstoken"
+_PRICES_URL = f"{_BASE}/FuelPriceCheck/v1/fuel/prices"
 
-# 模块级 token 缓存（每次 Streamlit 启动重置；token 有效期 ~12h）
 _token_cache: dict = {}
+_prices_cache: dict = {}
+
+_FUEL_PRIORITY = ["P95", "P98", "E10", "U91", "PDL", "DL", "B20", "LPG"]
+_EXCLUDE_FUEL  = {"EV", "H2"}  # 跳过电动/氢燃料
 
 
 def _get_credentials() -> Optional[tuple]:
-    """从 st.secrets 读取凭证，不存在则返回 None。"""
     try:
         fc = st.secrets.get("fuelcheck", {})
         key    = fc.get("consumer_key", "")
@@ -39,27 +43,22 @@ def _get_credentials() -> Optional[tuple]:
 
 
 def _fetch_token(key: str, secret: str) -> Optional[str]:
-    """用 Basic Auth 换取 Bearer access_token，失败返回 None。"""
     now = time.time()
-    cached = _token_cache.get("token")
-    if cached and now < _token_cache.get("expires_at", 0):
-        return cached
+    if _token_cache.get("token") and now < _token_cache.get("expires_at", 0):
+        return _token_cache["token"]
 
     auth = base64.b64encode(f"{key}:{secret}".encode()).decode()
     try:
-        r = requests.post(
+        r = requests.get(
             _TOKEN_URL,
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": f"Basic {auth}",
-            },
-            data={"grant_type": "client_credentials"},
+            params={"grant_type": "client_credentials"},
+            headers={"Authorization": f"Basic {auth}"},
             timeout=10,
         )
         if r.status_code == 200:
             data = r.json()
             token = data.get("access_token")
-            expires_in = int(data.get("expires_in", 43200))
+            expires_in = int(data.get("expires_in", 43199))
             _token_cache["token"] = token
             _token_cache["expires_at"] = now + expires_in - 60
             return token
@@ -68,44 +67,62 @@ def _fetch_token(key: str, secret: str) -> Optional[str]:
     return None
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
-def _fetch_all_prices_cached(token: str) -> list[dict]:
-    """获取全NSW油价列表，以 token 为缓存键（30分钟）。"""
+def _fetch_all_prices(key: str, token: str) -> tuple[list, dict]:
+    """返回 (stations_list, prices_by_code)，缓存30分钟。"""
+    now = time.time()
+    if _prices_cache.get("data") and now < _prices_cache.get("expires_at", 0):
+        return _prices_cache["data"]
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "apikey": key,
+        "Content-Type": "application/json; charset=utf-8",
+        "transactionid": str(uuid.uuid4()),
+        "requesttimestamp": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+    }
     try:
-        r = requests.get(
-            _PRICES_V2,
-            headers={
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            timeout=15,
-        )
+        r = requests.get(_PRICES_URL, headers=headers, timeout=15)
         if r.status_code == 200:
-            return r.json().get("prices", [])
+            data = r.json()
+            stations = data.get("stations", [])
+            prices = data.get("prices", [])
+
+            # 建立 stationcode → station 映射
+            station_map = {s["code"]: s for s in stations}
+            # 建立 stationcode → {fueltype: price} 映射
+            price_map: dict = {}
+            for p in prices:
+                code = p.get("stationcode", "")
+                ft   = p.get("fueltype", "")
+                pr   = p.get("price", 0)
+                if code not in price_map:
+                    price_map[code] = {}
+                price_map[code][ft] = pr
+
+            result = (station_map, price_map)
+            _prices_cache["data"] = result
+            _prices_cache["expires_at"] = now + 1800
+            return result
     except Exception:
         pass
-    return []
+    return {}, {}
 
 
-def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+def _haversine_km(lat1, lon1, lat2, lon2):
     R = 6371.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    a = (math.sin(dlat / 2) ** 2
+         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
+         * math.sin(dlon / 2) ** 2)
     return R * 2 * math.asin(math.sqrt(a))
 
 
-# 常用燃油类型优先级（钓鱼爱好者常用 95/98）
-_FUEL_PRIORITY = ["P95", "P98", "E10", "U91"]
-
-
-def get_nearby_fuel(lat: float, lon: float, radius_km: float = 5.0) -> list[dict]:
+def get_nearby_fuel(lat: float, lon: float, radius_km: float = 5.0) -> list:
     """
-    返回钓点附近最近的 3 个加油站（含油价）。
-    每项格式：
-        {"name": str, "brand": str, "address": str,
-         "dist_km": float, "fuel_type": str, "price_cents": int}
+    返回钓点附近最近的3个加油站（含最优油价）。
+    每项：{"brand": str, "name": str, "address": str,
+           "dist_km": float, "fuel_type": str, "price": float}
     API 不可用时返回空列表。
     """
     creds = _get_credentials()
@@ -117,44 +134,46 @@ def get_nearby_fuel(lat: float, lon: float, radius_km: float = 5.0) -> list[dict
     if not token:
         return []
 
-    prices = _fetch_all_prices_cached(token)
-    if not prices:
+    station_map, price_map = _fetch_all_prices(key, token)
+    if not station_map:
         return []
 
-    nearby: list[dict] = []
-    for p in prices:
-        try:
-            slat = float(p.get("lat", 0) or 0)
-            slon = float(p.get("lng", 0) or 0)
-            if slat == 0 and slon == 0:
-                continue
-            dist = _haversine_km(lat, lon, slat, slon)
-            if dist > radius_km:
-                continue
-            nearby.append({
-                "name":         p.get("stationname", ""),
-                "brand":        p.get("brand", ""),
-                "address":      p.get("address", ""),
-                "dist_km":      round(dist, 1),
-                "fuel_type":    p.get("fueltype", ""),
-                "price_cents":  int(p.get("price", 0) or 0),
-            })
-        except Exception:
+    nearby = []
+    for code, station in station_map.items():
+        loc = station.get("location", {})
+        slat = loc.get("latitude", 0)
+        slon = loc.get("longitude", 0)
+        if not slat or not slon:
+            continue
+        dist = _haversine_km(lat, lon, slat, slon)
+        if dist > radius_km:
             continue
 
-    # 每个加油站只保留优先级最高的燃油
-    by_station: dict[str, dict] = {}
-    for item in nearby:
-        key_s = (item["name"], item["address"])
-        existing = by_station.get(key_s)
-        if existing is None:
-            by_station[key_s] = item
-        else:
-            # 优先级更高或价格相同时替换
-            cur_pri = next((i for i, f in enumerate(_FUEL_PRIORITY) if f == existing["fuel_type"]), 99)
-            new_pri = next((i for i, f in enumerate(_FUEL_PRIORITY) if f == item["fuel_type"]), 99)
-            if new_pri < cur_pri:
-                by_station[key_s] = item
+        # 选优先级最高的燃油（排除 EV/H2，要求价格 > 0）
+        fuels = price_map.get(code, {})
+        best_ft = best_pr = None
+        for ft in _FUEL_PRIORITY:
+            if ft in fuels and fuels[ft] > 0:
+                best_ft = ft
+                best_pr = fuels[ft]
+                break
+        if best_ft is None:
+            for ft, pr in fuels.items():
+                if ft not in _EXCLUDE_FUEL and pr > 0:
+                    best_ft = ft
+                    best_pr = pr
+                    break
+        if best_ft is None:
+            continue  # 纯 EV 站跳过
 
-    result = sorted(by_station.values(), key=lambda x: x["dist_km"])[:3]
-    return result
+        nearby.append({
+            "brand":    station.get("brand", ""),
+            "name":     station.get("name", ""),
+            "address":  station.get("address", ""),
+            "dist_km":  round(dist, 1),
+            "fuel_type": best_ft or "—",
+            "price":    best_pr or 0,
+        })
+
+    nearby.sort(key=lambda x: x["dist_km"])
+    return nearby[:3]
