@@ -142,7 +142,7 @@ def get_tides_for_date(target_date: datetime, delay_minutes: int = 0) -> list[di
 
 **`ALL_FISH`（鱼种标签）：**
 `Bream (鳊鱼)` · `Flathead (牛鳅)` · `Whiting (沙尖)` · `Squid (鱿鱼)` · `Kingfish (黄尾师)` · `Tailor (蓝鱼)` · `Salmon (三文鱼)` · `Drummer (黑毛)` · `Jewfish (皇冠鲊)` · `Leatherjacket (剥皮鱼)` · `Blue Groper (蓝唇鱼)`
-· `Australian Bass (澳洲鲈鱼)` · `Golden Perch (黄金鲈)` · `Carp (锦鲤)` · `Catfish (鲶鱼)`
+· `Australian Bass (澳洲鲈鱼)` · `Golden Perch (黄金鲈)` · `Carp (鲤鱼)` · `Catfish (鲶鱼)`
 
 **`ALL_METHODS`（钓法）：**
 `无铅漂钓` · `Running Sinker (活铅沉底)` · `路亚大物` · `软饵路亚 (Soft Bait)` · `木虾抽鱿鱼` · `重铅沉底` · `全游动` · `半游动` · `活饵放流`

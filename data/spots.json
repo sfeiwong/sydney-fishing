@@ -1155,11 +1155,11 @@
     "lon": 150.6929,
     "sheltered": true,
     "tide_delay": 0,
-    "active_fish": "Australian Bass (澳洲鲈鱼)、Golden Perch (黄金鲈)、Carp (锦鲤)",
+    "active_fish": "Australian Bass (澳洲鲈鱼)、Golden Perch (黄金鲈)、Carp (鲤鱼)",
     "fish_tags": [
       "Australian Bass (澳洲鲈鱼)",
       "Golden Perch (黄金鲈)",
-      "Carp (锦鲤)"
+      "Carp (鲤鱼)"
     ],
     "best_window": "🌅 破晓至上午 9 点 Bass 最活跃，以及黄昏后 1-2 小时。气温适中的秋冬季节渔获最佳。",
     "family_friendly": "⭐⭐⭐⭐ (大城市旁的清澈大河) 河边 Tench Reserve 公园草坪宽阔，配有 BBQ 炉和洗手间。河岸平缓，孩子可以安全戏水，观察原生植被。",
@@ -1171,7 +1171,7 @@
     "method_tips": {
       "软饵路亚 (Soft Bait)": "🎯 顶级推荐！用 3 寸 GULP 虾形或鳌虾形软饵配 1/8oz 倒钩钩柄，沿着礁石缓坡缓落慢收，澳洲鲈鱼 Bass 极易出击，每年 4-9 月爆口期！",
       "路亚大物": "👍 推荐！使用中型硬饵（Shallow Crank 或 Bibless Minnow），在湍急激流和深潭交界处横穿抛投，有望斩获体形更大的金鲈 Golden Perch。",
-      "Running Sinker (活铅沉底)": "👍 推荐！挂大颗甜玉米或面团配 2 号活铅沉入深坑，守钓肥大银镜锦鲤（Carp），挂鲜虾则可兼顾 Catfish 鲶鱼。"
+      "Running Sinker (活铅沉底)": "👍 推荐！挂大颗甜玉米或面团配 2 号活铅沉入深坑，守钓肥大银镜鲤鱼（Carp），挂鲜虾则可兼顾 Catfish 鲶鱼。"
     },
     "route": "走 M4 高速向西，在 Penrith 出口下高速，沿 Mulgoa Road 向南过大桥，左转进入 River Road 到达 Tench Reserve 沿河公园。",
     "parking": "公园自带大型全免费公共停车场，车位充裕，下车步行 2 分钟即达河边。",
@@ -1186,11 +1186,11 @@
     "lon": 150.6245,
     "sheltered": true,
     "tide_delay": 0,
-    "active_fish": "Australian Bass (澳洲鲈鱼)、Catfish (鲶鱼)、Carp (锦鲤)、Golden Perch (黄金鲈)",
+    "active_fish": "Australian Bass (澳洲鲈鱼)、Catfish (鲶鱼)、Carp (鲤鱼)、Golden Perch (黄金鲈)",
     "fish_tags": [
       "Australian Bass (澳洲鲈鱼)",
       "Catfish (鲶鱼)",
-      "Carp (锦鲤)",
+      "Carp (鲤鱼)",
       "Golden Perch (黄金鲈)"
     ],
     "best_window": "🌅 清晨至上午 10 点。大坝泄水期间水流湍急，大 Bass 在激流与缓流交界的回水湾中蹲守捕食。",
@@ -1218,10 +1218,10 @@
     "lon": 150.9873,
     "sheltered": true,
     "tide_delay": 0,
-    "active_fish": "Australian Bass (澳洲鲈鱼)、Carp (锦鲤)、Catfish (鲶鱼)",
+    "active_fish": "Australian Bass (澳洲鲈鱼)、Carp (鲤鱼)、Catfish (鲶鱼)",
     "fish_tags": [
       "Australian Bass (澳洲鲈鱼)",
-      "Carp (锦鲤)",
+      "Carp (鲤鱼)",
       "Catfish (鲶鱼)"
     ],
     "best_window": "🌅 清晨首缕阳光至上午 8:30（黄金时段），以及黄昏日落前后 1 小时。湖水宁静，鱼群聚集在倒木和水生植物边缘。",
@@ -1234,7 +1234,7 @@
     "method_tips": {
       "软饵路亚 (Soft Bait)": "🎯 顶级推荐！帕拉马塔湖的 Bass 种群密度极高且异常精明。用 2.5 寸小型 Paddle Tail 软饵配轻 Jig Head，沿湖边倒木和沉枝边缘慢落，是最稳定的爆口手法。",
       "无铅漂钓": "👍 推荐！在湖岸与草床交界处，无铅漂单钩挂整只活河虾，轻抛入水后静待 Bass 出击，也常在夜间引发 Catfish 大咬。",
-      "Running Sinker (活铅沉底)": "👍 推荐！挂甜玉米或面团配 2 号轻铅沉入湖底，守钓肥大的锦鲤（Carp）；夜间换上整只大活虾可截获深水巨型 Catfish。"
+      "Running Sinker (活铅沉底)": "👍 推荐！挂甜玉米或面团配 2 号轻铅沉入湖底，守钓肥大的鲤鱼（Carp）；夜间换上整只大活虾可截获深水巨型 Catfish。"
     },
     "route": "从 Parramatta CBD 沿 Macquarie St 向北，左转 Lake Parramatta Road，沿路开至保护区入口。注意：保护区在特定时间关闭（建议提前查询开放时间）。",
     "parking": "保护区入口处有专属停车场（收费约 $5/天），车位充裕。步行 5 分钟即可到达湖边最佳钓点。",
@@ -1306,7 +1306,7 @@
       "软饵路亚 (Soft Bait)": "👍 推荐！用 3-4 寸软塑 Paddletail 在崖壁边缘缓慢落底后提竿，Flathead 牛鳅在峡湾深处底层极其密集。",
       "无铅漂钓": "👍 推荐！靠近码头一侧的平静水域，无铅漂挂整只大活虾，让诱饵在礁石阴影边缘自然飘移，深夜 Bream 群攻极爽。"
     },
-    "route": "走 Pacific Highway 转 Berowra Road，沿山路蜿蜒下山至 Berowra Waters Road 尽头，乘渡船或驾船抵达钓点。注意：道路极其狭窄，车辆汇车困难。",
+    "route": "走 Pacific Highway 转 Berowra Road，沿山路蜿蜒下山至 Berowra Waters Road 尽头，乘渡船或驾船抵达钓点。注意：道路极其狭窄，车辆会车困难。",
     "parking": "Berowra Waters 渡船码头旁有小型免费停车场，位置有限，节假日早去。",
     "nearby_gas": "⛽ Ampol Berowra（Pacific Hwy，约 5km，回程必经）；备选：7-Eleven Hornsby（Pacific Hwy，约 12km，24h）"
   },
@@ -1523,11 +1523,11 @@
     "water_type": "freshwater",
     "sheltered": true,
     "tide_delay": 0,
-    "active_fish": "Australian Bass (澳洲鲈鱼)、Golden Perch (黄金鲈)、Carp (锦鲤)、Catfish (鲶鱼)",
+    "active_fish": "Australian Bass (澳洲鲈鱼)、Golden Perch (黄金鲈)、Carp (鲤鱼)、Catfish (鲶鱼)",
     "fish_tags": [
       "Australian Bass (澳洲鲈鱼)",
       "Golden Perch (黄金鲈)",
-      "Carp (锦鲤)",
+      "Carp (鲤鱼)",
       "Catfish (鲶鱼)"
     ],
     "best_window": "🌅 破晓至上午 9 点，以及黄昏日落前 1 小时。秋冬季（4-10 月）为 Bass 和 Golden Perch 最旺季节。",
@@ -1540,7 +1540,7 @@
     "method_tips": {
       "软饵路亚 (Soft Bait)": "🎯 顶级推荐！Windsor 是 Hawkesbury 上游淡水大河，秋冬季 Bass 密度极高。用 3 寸 GULP 小虾软饵配 1/8oz 倒钩头，沿着对岸倒木和礁石缓落，Bass 必出！",
       "路亚大物": "🎯 顶级推荐！用浅水硬饵（Shallow Diver）或旋转片（Spinnerbait）沿着河道边缘杂草床边缘横扫，有望斩获大型 Golden Perch 黄金鲈。",
-      "Running Sinker (活铅沉底)": "👍 推荐！用 2 号铅配甜玉米或蚯蚓钓大块头锦鲤 Carp；夜间换大活虾可守深水区 Catfish 和大型 Bass。"
+      "Running Sinker (活铅沉底)": "👍 推荐！用 2 号铅配甜玉米或蚯蚓钓大块头鲤鱼 Carp；夜间换大活虾可守深水区 Catfish 和大型 Bass。"
     },
     "route": "走 Windsor Road（M7 → Blacktown → Windsor），进入 Windsor 镇后沿 Thompson Square 指示牌行驶至 Hawkesbury River 河边公园。",
     "parking": "Thompson Square 河边公园有大型全免费公共停车场，空间极充裕。",

@@ -50,7 +50,7 @@ FISH_LEGAL_SIZE = {
     "Blue Groper (蓝唇鱼)":        {"size": None, "bag": 0,   "note": "⚠️ 受保护·禁捕"},
     "Australian Bass (澳洲鲈鱼)":  {"size": 25,   "bag": 2,   "note": ""},
     "Golden Perch (黄金鲈)":       {"size": 30,   "bag": 5,   "note": ""},
-    "Carp (锦鲤)":                 {"size": None, "bag": None,"note": "有害物种·须就地处理"},
+    "Carp (鲤鱼)":                 {"size": None, "bag": None,"note": "有害物种·须就地处理"},
     "Catfish (鲶鱼)":              {"size": 20,   "bag": None,"note": ""},
     "Snapper (真鲷)":              {"size": 30,   "bag": 10,  "note": ""},
     "Trevally (鲹鱼)":             {"size": None, "bag": 20,  "note": "无最小尺寸"},
@@ -75,7 +75,7 @@ FISH_COOKING = {
     "Blue Groper (蓝唇鱼)": "受保护物种，不建议烹饪",
     "Australian Bass (澳洲鲈鱼)": "香煎 / 纸包烤",
     "Golden Perch (黄金鲈)": "清蒸 / 豆豉蒸",
-    "Carp (锦鲤)": "不建议食用",
+    "Carp (鲤鱼)": "不建议食用",
     "Catfish (鲶鱼)": "香煎 / 咖喱炖",
     "Snapper (真鲷)": "清蒸 / 烤箱整鱼",
     "Trevally (鲹鱼)": "刺身 / 盐烤",
@@ -113,7 +113,7 @@ ALL_FISH = [
     # 淡水鱼种
     "Australian Bass (澳洲鲈鱼)",
     "Golden Perch (黄金鲈)",
-    "Carp (锦鲤)",
+    "Carp (鲤鱼)",
     "Catfish (鲶鱼)",
     # 扩展常见海鱼
     "Snapper (真鲷)",
