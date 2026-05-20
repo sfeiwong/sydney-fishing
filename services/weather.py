@@ -8,8 +8,25 @@ from datetime import datetime, timedelta
 from config import WEATHER_CACHE_TTL
 
 
-def _round_coord(val: float, precision: float = 0.5) -> float:
+def _round_coord(val: float, precision: float = 0.05) -> float:
     return round(val / precision) * precision
+
+
+def _get_json(url: str) -> dict:
+    response = requests.get(url, timeout=10)
+    response.raise_for_status()
+    data = response.json()
+    if data.get("error"):
+        raise RuntimeError(data.get("reason") or "Open-Meteo returned an error")
+    return data
+
+
+def _series(values, default=None, length: int = 3) -> list:
+    values = values or []
+    return [
+        values[i] if i < len(values) and values[i] is not None else default
+        for i in range(length)
+    ]
 
 
 @st.cache_data(ttl=WEATHER_CACHE_TTL, show_spinner=False)
@@ -30,8 +47,8 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
             f"swell_wave_direction_dominant,swell_wave_period_max"
             f"&timezone=Australia%2FSydney"
         )
-        w = requests.get(weather_url, timeout=10).json()
-        m = requests.get(marine_url, timeout=10).json()
+        w = _get_json(weather_url)
+        m = _get_json(marine_url)
 
         marine_daily = m.get("daily", {})
         if not any(v for v in (marine_daily.get("swell_wave_height_max") or [])):
@@ -42,10 +59,21 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
                 "swell_wave_direction_dominant,swell_wave_period_max"
                 "&timezone=Australia%2FSydney"
             )
-            m = requests.get(fallback_url, timeout=10).json()
+            m = _get_json(fallback_url)
             marine_daily = m.get("daily", {})
 
         wd = w["daily"]
+        if len(wd.get("time", [])) < 3:
+            raise RuntimeError("Open-Meteo returned fewer than 3 forecast days")
+
+        wind_dir = _series(wd.get("wind_direction_10m_dominant"))
+        rain_prob = _series(wd.get("precipitation_probability_max"), 0)
+        precipitation = _series(wd.get("precipitation_sum"), 0.0)
+        wave = _series(marine_daily.get("wave_height_max"))
+        swell_height = _series(marine_daily.get("swell_wave_height_max"))
+        swell_direction = _series(marine_daily.get("swell_wave_direction_dominant"))
+        swell_period = _series(marine_daily.get("swell_wave_period_max"))
+
         days = []
         for i in range(3):
             days.append({
@@ -53,13 +81,13 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
                 "temp":           wd["temperature_2m_max"][i],
                 "temp_min":       wd["temperature_2m_min"][i],
                 "wind":           wd["wind_speed_10m_max"][i],
-                "wind_direction": (wd.get("wind_direction_10m_dominant") or [None]*3)[i],
-                "rain_prob":      (wd.get("precipitation_probability_max") or [0]*3)[i] or 0,
-                "precipitation":  (wd.get("precipitation_sum") or [0]*3)[i] or 0,
-                "wave":           (marine_daily.get("wave_height_max") or [None]*3)[i],
-                "swell_height":   (marine_daily.get("swell_wave_height_max") or [None]*3)[i],
-                "swell_direction":(marine_daily.get("swell_wave_direction_dominant") or [None]*3)[i],
-                "swell_period":   (marine_daily.get("swell_wave_period_max") or [None]*3)[i],
+                "wind_direction": wind_dir[i],
+                "rain_prob":      rain_prob[i] or 0,
+                "precipitation":  precipitation[i] or 0,
+                "wave":           wave[i],
+                "swell_height":   swell_height[i],
+                "swell_direction":swell_direction[i],
+                "swell_period":   swell_period[i],
             })
         return {"success": True, "days": days}
 

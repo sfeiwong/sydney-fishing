@@ -1,9 +1,11 @@
 # ============================================================
-# app.py — 悉尼钓鱼助手 Pro+ 主程序
+# app.py — 上鱼啦 主程序
 # ============================================================
 
 import math
 import re
+import base64
+from pathlib import Path
 import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
@@ -16,126 +18,54 @@ from config import (
     ALL_METHODS, ALL_FISH,
     OCEAN_SWELL_DANGER, OCEAN_WIND_DANGER,
     SHELTERED_SWELL_WARN, SHELTERED_WIND_WARN,
-    REGION_FILTER_MAP, FISH_LEGAL_SIZE,
+    REGION_FILTER_MAP, FISH_LEGAL_SIZE, FISH_COOKING,
 )
 from services.weather import get_marine_forecast
-from services.tides import get_tides_for_date
+from services.tides import get_tides_for_date, get_tide_accuracy_hint
 from services.fuel import get_nearby_fuel
 from data.loader import load_spots
+from domain.safety import assess_safety
 
 st.set_page_config(
-    page_title="悉尼钓鱼助手 Pro+",
-    page_icon="🎣",
+    page_title="上鱼啦",
+    page_icon="🐟",
     layout="wide",
 )
 
 spots = load_spots()
+MAP_MARKER_LIMIT = 120
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;500;600&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-:root {
-  --bg:#f1f4f7; --surface:#ffffff; --surface2:#f7f9fb;
-  --line:rgba(15,30,50,0.09); --line-strong:rgba(15,30,50,0.18);
-  --text:#0f2240; --muted:#5b6e87; --subtle:#8a9cb2;
-  --text-on-dark:#eaf1f8; --muted-on-dark:rgba(234,241,248,0.65);
-  --primary:#2a5fb0; --primary-dk:#1f4a8d;
-  --gold:#c69230; --coral:#cc5e54; --amber:#d99540; --sage:#4f9b76;
-  --serif-zh:'Noto Serif SC','Songti SC',serif;
-  --serif-en:'Source Serif 4',Georgia,serif;
-  --ui-zh:'Noto Sans SC','PingFang SC',sans-serif;
-  --ui:'Inter',-apple-system,sans-serif;
-  --mono:'IBM Plex Mono',monospace;
-}
-.stApp { background:var(--bg); }
-body,.stApp * { font-family:var(--ui-zh),var(--ui); color:var(--text); }
-header[data-testid="stHeader"] { background:transparent; }
-.block-container { padding-top:1.2rem; padding-bottom:3rem; }
-h1,h2,h3 { font-family:var(--serif-zh)!important; font-weight:600!important; color:var(--text); }
-h2 { font-size:22px!important; }
+_CSS_PATH = Path(__file__).with_name("styles.css")
+st.markdown(f"<style>{_CSS_PATH.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
 
-/* Sidebar */
-section[data-testid="stSidebar"] { background:linear-gradient(180deg,#0e253f 0%,#163a60 100%); }
-section[data-testid="stSidebar"] * { color:var(--text-on-dark); }
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] .stSelectbox label,
-section[data-testid="stSidebar"] .stMultiSelect label {
-  color:var(--text-on-dark)!important; font-size:12px!important; font-weight:500;
-}
-section[data-testid="stSidebar"] [data-baseweb="select"]>div,
-section[data-testid="stSidebar"] [data-baseweb="input"]>div {
-  background:rgba(255,255,255,0.06)!important; border:1px solid rgba(255,255,255,0.12)!important;
-  border-radius:8px!important; color:var(--text-on-dark)!important;
-}
-section[data-testid="stSidebar"] [data-baseweb="select"] input { color:var(--text-on-dark)!important; }
-section[data-testid="stSidebar"] [data-baseweb="tag"] { background:rgba(198,146,48,0.25)!important; color:var(--gold)!important; border-radius:999px!important; }
-section[data-testid="stSidebar"] [data-testid="stCheckbox"] label { font-size:13px!important; }
-
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] { gap:8px; border-bottom:1px solid var(--line); background:transparent; padding:0; border-radius:0; box-shadow:none; }
-.stTabs [data-baseweb="tab"] { background:transparent!important; border:none!important; border-bottom:2px solid transparent!important; border-radius:0!important; padding:12px 20px!important; color:var(--muted)!important; font-size:15px!important; }
-.stTabs [aria-selected="true"] { border-bottom:2px solid var(--primary)!important; color:var(--text)!important; font-weight:600!important; background:transparent!important; }
-
-/* Buttons */
-.stButton>button { border-radius:8px; border:1px solid var(--line-strong); background:var(--surface); color:var(--text); font-size:13px; padding:7px 14px; transition:all 120ms ease; }
-.stButton>button:hover { background:var(--surface2); border-color:var(--muted); }
-
-/* Metrics */
-[data-testid="stMetric"] { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:14px 16px; box-shadow:0 2px 6px rgba(15,30,50,0.025); }
-[data-testid="stMetricLabel"] { font-size:12.5px!important; font-weight:500; }
-[data-testid="stMetricValue"] { font-family:var(--serif-en)!important; font-size:30px!important; font-weight:400!important; letter-spacing:-0.5px; line-height:1!important; }
-[data-testid="stMetricDelta"] { font-family:var(--mono)!important; font-size:12px!important; }
-.metric-sage [data-testid="stMetricValue"] { color:var(--sage)!important; }
-.metric-coral [data-testid="stMetricValue"] { color:var(--coral)!important; }
-.metric-amber [data-testid="stMetricValue"] { color:var(--amber)!important; }
-.metric-blue [data-testid="stMetricValue"] { color:var(--primary)!important; }
-
-/* Containers */
-div[data-testid="stVerticalBlockBorderWrapper"] { background:var(--surface); border:1px solid var(--line)!important; border-radius:14px!important; box-shadow:0 2px 6px rgba(15,30,50,0.025); }
-
-/* Info/alert */
-[data-testid="stAlert"] { border-radius:12px!important; border:none!important; }
-
-/* 展开详情 toggle button — pill chip */
-.main .stButton button[kind="secondary"] {
-    background:var(--surface2)!important;
-    border:1px solid var(--line)!important;
-    border-radius:999px!important;
-    box-shadow:none!important;
-    color:var(--muted)!important;
-    font-size:11.5px!important;
-    padding:3px 14px!important;
-    min-height:auto!important;
-    height:auto!important;
-    line-height:1.5!important;
-    transition:all 100ms ease!important;
-}
-.main .stButton button[kind="secondary"]:hover {
-    background:var(--line)!important;
-    border-color:var(--muted)!important;
-    color:var(--text)!important;
-}
-
-/* hr */
-hr { border:none; border-top:1px solid var(--line); margin:1.2rem 0; }
-</style>
-""", unsafe_allow_html=True)
+_MASCOT_PATH = Path(__file__).with_name("assets").joinpath("logo-duckfish-transparent.png")
+if _MASCOT_PATH.exists():
+    _MASCOT_B64 = base64.b64encode(_MASCOT_PATH.read_bytes()).decode("ascii")
+    _MASCOT_DATA_URL = f"data:image/png;base64,{_MASCOT_B64}"
+else:
+    _MASCOT_DATA_URL = ""
 
 
 # ── 侧边栏 ────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown(
         '<div style="display:flex;gap:12px;align-items:center;padding:20px 0 16px">'
-        '<div style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.08);'
-        'border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;'
-        'justify-content:center;font-size:22px">🎣</div>'
-        '<div><div style="font-family:var(--serif-zh);font-size:18px;font-weight:600;'
-        'color:var(--text-on-dark)">悉尼钓鱼助手</div>'
+        + (
+            f'<div style="width:52px;height:52px;border-radius:50%;background:transparent;'
+            f'border:none;display:flex;align-items:center;justify-content:center;overflow:hidden">'
+            f'<img src="{_MASCOT_DATA_URL}" style="width:100%;height:100%;object-fit:contain" alt="logo"/></div>'
+            if _MASCOT_DATA_URL else
+            '<div style="width:42px;height:42px;border-radius:10px;background:rgba(255,255,255,0.08);'
+            'border:1px solid rgba(255,255,255,0.12);display:flex;align-items:center;'
+            'justify-content:center;font-size:22px">🐟</div>'
+        )
+        +
+        '<div><div class="brand-q" style="font-size:20px;font-weight:400;'
+        'color:var(--text-on-dark);line-height:1.05">上鱼啦</div>'
         '<div style="margin-top:4px">'
         '<span style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
         'color:var(--gold);background:rgba(198,146,48,0.18);padding:2px 7px;border-radius:4px">'
-        'PRO+</span> '
-        '<span style="font-size:11px;color:var(--muted-on-dark)">v3.0</span>'
+        'Sydney</span>'
         '</div></div></div>',
         unsafe_allow_html=True,
     )
@@ -150,10 +80,9 @@ with st.sidebar:
         "地理区域",
         ["全部 · All Sydney"] + list(REGION_FILTER_MAP.keys()),
     )
-    water_type       = st.selectbox("水域类型", ["全部 · All", "🌊 外海 Ocean", "⚓ 内湾 Harbour", "🔀 咸淡水 Brackish", "🏞️ 淡水 Freshwater"])
+    water_type       = st.selectbox("水域类型", ["全部 · All", "🌊 外海 Ocean", "🚤 船钓 Boat", "⚓ 内湾 Harbour", "🔀 咸淡水 Brackish", "🏞️ 淡水 Freshwater"])
     safe_only        = st.checkbox("隐藏危险钓点 ⚠", value=False)
     family_only      = st.checkbox("仅看家庭友好 👨‍👩‍👧 (⭐⭐⭐⭐+)", value=False)
-
     if st.button("↺ 重置所有筛选", use_container_width=True):
         st.session_state["sel_methods"] = []
         st.session_state["sel_fish"] = []
@@ -164,9 +93,9 @@ with st.sidebar:
         '<div style="border:1px solid rgba(255,255,255,0.1);border-radius:10px;'
         'padding:10px 12px;font-size:11.5px;color:var(--muted-on-dark);line-height:1.7">'
         '🎫 <b style="color:var(--text-on-dark)">NSW 钓鱼执照</b><br>'
-        '16 岁以上须持有免费<br>休闲钓鱼凭证（RFL）<br>'
+        '多数人在 NSW 淡水/海水<br>作钓需付费并携带收据<br>'
         '<a href="https://www.dpi.nsw.gov.au/fishing/recreational/fishing-rules-and-regulations/recreational-fishing-fee" '
-        'target="_blank" style="color:var(--gold)">立即免费登记 →</a>'
+        'target="_blank" style="color:var(--gold)">查看官方费用与豁免 →</a>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -182,17 +111,6 @@ with st.sidebar:
         '<span style="opacity:0.6;font-size:11px"> (动态获取)</span><br>'
         '⏱ <b style="color:var(--text-on-dark)">潮汐</b> · 天文推算'
         '<span style="opacity:0.6;font-size:11px"> (±30–60 min)</span>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div style="border:1px dashed rgba(198,146,48,0.35);border-radius:10px;'
-        'padding:12px 14px;font-size:12px;color:var(--muted-on-dark)">'
-        '升级潮汐精度 →<br>'
-        '<a href="https://www.worldtides.info/api" target="_blank" '
-        'style="color:var(--gold);text-decoration:none">WorldTides API ↗</a>'
-        '<span style="font-size:11px;opacity:0.6"> (±5 分钟)</span>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -234,6 +152,92 @@ def _pill(text: str, tone: str = "blue", sm: bool = True) -> str:
             f'{text}</span>')
 
 
+def _status_text(safety: dict) -> str:
+    return {"sage": "推荐", "amber": "谨慎", "coral": "危险"}.get(safety.get("color"), "参考")
+
+
+def _status_badge(safety: dict) -> str:
+    tone = safety.get("color", "sage")
+    text = _status_text(safety)
+    colors = {
+        "sage": ("#e7f3ec", "#3a7f5d", "#4f9b76"),
+        "amber": ("#fcf2e0", "#a06c20", "#d99540"),
+        "coral": ("#fbeae8", "#b1453b", "#cc5e54"),
+    }
+    bg, fg, border = colors.get(tone, colors["sage"])
+    return (
+        f'<span style="background:{bg};color:{fg};border:1px solid {border};'
+        f'padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">'
+        f'{text}</span>'
+    )
+
+
+def _limited_pills(items: list, tone: str, limit: int = 3) -> str:
+    visible = items[:limit]
+    rest = len(items) - len(visible)
+    html = "".join(_pill(item, tone) for item in visible)
+    if rest > 0:
+        html += _pill(f"+{rest}", "gold")
+    return html
+
+
+def _mini_stat(label: str, value: str, tone: str = "text") -> str:
+    colors = {
+        "text": "var(--text)",
+        "sage": "var(--sage)",
+        "amber": "var(--amber)",
+        "coral": "var(--coral)",
+        "blue": "var(--primary)",
+    }
+    color = colors.get(tone, colors["text"])
+    return (
+        '<div style="background:#f7fafc;border-radius:8px;padding:8px 10px;'
+        'border:1px solid #edf3f8;min-width:84px">'
+        f'<div style="color:#8fa3b1;font-size:0.68em;margin-bottom:3px">{label}</div>'
+        f'<div style="font-family:var(--serif-en);font-size:1.05em;font-weight:600;'
+        f'color:{color};line-height:1.05">{value}</div>'
+        '</div>'
+    )
+
+
+def _hero_stat_tile(value: str, label: str, sublabel: str, tone: str = "light", hint: str = "") -> str:
+    value_color = "#c69230" if tone == "gold" else "#ffffff"
+    return (
+        f'<div style="background:rgba(255,255,255,0.12);'
+        'border:1px solid rgba(255,255,255,0.18);border-radius:12px;'
+        'padding:12px 16px;min-width:118px;backdrop-filter:blur(6px)">'
+        f'<div style="font-family:var(--serif-en);font-size:32px;line-height:1;'
+        f'font-weight:500;color:{value_color}">{value}</div>'
+        f'<div style="font-size:12.5px;color:rgba(255,255,255,0.88);margin-top:5px">{label}</div>'
+        f'<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:1px;'
+        f'text-transform:uppercase;color:rgba(255,255,255,0.58);margin-top:2px">{sublabel}</div>'
+        '</div>'
+    )
+
+
+def _fishing_coords(spot: dict) -> tuple[float, float]:
+    return spot.get("fishing_lat", spot["lat"]), spot.get("fishing_lon", spot["lon"])
+
+
+def _weather_coords(spot: dict) -> tuple[float, float]:
+    fish_lat, fish_lon = _fishing_coords(spot)
+    return spot.get("weather_lat", fish_lat), spot.get("weather_lon", fish_lon)
+
+
+def _nav_coords(spot: dict) -> tuple[float, float]:
+    fish_lat, fish_lon = _fishing_coords(spot)
+    return spot.get("nav_lat", fish_lat), spot.get("nav_lon", fish_lon)
+
+
+def _map_coords(spot: dict) -> tuple[float, float]:
+    fish_lat, fish_lon = _fishing_coords(spot)
+    return spot.get("map_lat", fish_lat), spot.get("map_lon", fish_lon)
+
+
+def _forecast_key(lat: float, lon: float) -> tuple[float, float]:
+    return (round(lat, 4), round(lon, 4))
+
+
 def _deg_to_swell_dir(deg) -> str:
     try:
         d = float(deg) % 360
@@ -271,9 +275,9 @@ def _parse_tag(tag: str) -> tuple:
     return tag, ""
 
 
-_WT_LABEL = {"ocean": "🌊 外海", "harbour": "⚓ 内湾", "brackish": "🔀 咸淡水", "freshwater": "🏞️ 淡水"}
-_WT_PILL  = {"ocean": "blue", "harbour": "blue", "brackish": "violet", "freshwater": "sage"}
-_WT_EMOJI = {"ocean": "🌊", "harbour": "⚓", "brackish": "🔀", "freshwater": "🏞️"}
+_WT_LABEL = {"ocean": "🌊 外海", "boat": "🚤 船钓", "harbour": "⚓ 内湾", "brackish": "🔀 咸淡水", "freshwater": "🏞️ 淡水"}
+_WT_PILL  = {"ocean": "blue", "boat": "blue", "harbour": "blue", "brackish": "violet", "freshwater": "sage"}
+_WT_EMOJI = {"ocean": "🌊", "boat": "🚤", "harbour": "⚓", "brackish": "🔀", "freshwater": "🏞️"}
 
 
 def _wt_pill(spot: dict, sm: bool = True) -> str:
@@ -368,90 +372,135 @@ def _legal_sizes_html(fish_tags: list) -> str:
     return "".join(rows)
 
 
-def spot_matches(spot: dict) -> bool:
-    if selected_methods and not any(m in spot["supported_methods"] for m in selected_methods):
+def _cooking_guide_html(fish_tags: list, max_items: int = 4) -> str:
+    rows = []
+    for tag in fish_tags[:max_items]:
+        en, cn = _parse_tag(tag)
+        name = cn or en
+        cook = FISH_COOKING.get(tag, "清蒸 / 香煎 / 炙烤")
+        rows.append(
+            f'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;'
+            f'padding:5px 0;border-bottom:1px solid var(--line)">'
+            f'<span style="font-size:11.5px;color:var(--text)">{name}</span>'
+            f'<span style="font-size:11.5px;color:#5c6f84;text-align:right">{cook}</span>'
+            f'</div>'
+        )
+    return "".join(rows)
+
+
+def _fish_rules_cook_html(fish_tags: list, max_items: int = 5) -> str:
+    rows = []
+    for tag in fish_tags[:max_items]:
+        info = FISH_LEGAL_SIZE.get(tag, {})
+        size = info.get("size")
+        bag = info.get("bag")
+        note = info.get("note", "")
+        _, cn = _parse_tag(tag)
+        name = cn or tag
+        cook = FISH_COOKING.get(tag, "清蒸 / 香煎 / 炙烤")
+
+        if "禁捕" in note or "保护" in note:
+            size_str = "禁捕"
+        elif "有害" in note:
+            size_str = "须就地处理"
+        elif size:
+            size_str = f"≥ {size} cm"
+        else:
+            size_str = "无限制"
+
+        if bag is not None and bag > 0:
+            size_str += f" · 袋限 {bag} 条"
+
+        rows.append(
+            f'<div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(120px,0.85fr) minmax(0,1.25fr);'
+            f'gap:8px;align-items:start;padding:6px 0;border-bottom:1px solid var(--line)">'
+            f'<span style="font-size:11.5px;color:var(--text)">{name}</span>'
+            f'<span style="font-size:11.5px;color:#2a5fb0">{size_str}</span>'
+            f'<span style="font-size:11.5px;color:#5c6f84">{cook}</span>'
+            f'</div>'
+        )
+    return "".join(rows)
+
+
+def _spot_matches_with_filters(
+    spot: dict,
+    methods: tuple[str, ...],
+    fish: tuple[str, ...],
+    region: str,
+    wt_filter: str,
+    family: bool,
+) -> bool:
+    if methods and not any(m in spot["supported_methods"] for m in methods):
         return False
-    if selected_fish and not any(f in spot["fish_tags"] for f in selected_fish):
+    if fish and not any(f in spot["fish_tags"] for f in fish):
         return False
-    if selected_region and selected_region != "全部 · All Sydney":
-        keywords = REGION_FILTER_MAP.get(selected_region, [selected_region])
+    if region and region != "全部 · All Sydney":
+        keywords = REGION_FILTER_MAP.get(region, [region])
         if not any(kw in spot["region"] for kw in keywords):
             return False
     wt_map = {
         "🌊 外海 Ocean":       "ocean",
+        "🚤 船钓 Boat":       "boat",
         "⚓ 内湾 Harbour":     "harbour",
         "🔀 咸淡水 Brackish":  "brackish",
         "🏞️ 淡水 Freshwater": "freshwater",
     }
-    if water_type in wt_map and spot.get("water_type") != wt_map[water_type]:
+    if wt_filter in wt_map and spot.get("water_type") != wt_map[wt_filter]:
         return False
-    if family_only:
+    if family:
         stars = spot["family_friendly"].count("⭐")
         if stars < 4:
             return False
     return True
 
 
-def assess_safety(spot: dict, day_weather: dict) -> dict:
-    wt   = spot.get("water_type", "harbour")
-    wind = day_weather.get("wind") or 0.0
+def spot_matches(spot: dict) -> bool:
+    return _spot_matches_with_filters(
+        spot,
+        tuple(selected_methods),
+        tuple(selected_fish),
+        selected_region,
+        water_type,
+        family_only,
+    )
 
-    if wt == "freshwater":
-        if wind > SHELTERED_WIND_WARN:
-            return {
-                "status": "⚠️ 谨慎前往",
-                "score":  "⭐⭐⭐",
-                "safe":   True,
-                "color":  "amber",
-                "advice": (
-                    f"风速偏大（{wind}km/h），建议在河岸树林背风处作钓，"
-                    "浮漂容易飘偏，适当加重线组。"
-                ),
-            }
-        return {
-            "status": "✅ 极力推荐",
-            "score":  "⭐⭐⭐⭐⭐",
-            "safe":   True,
-            "color":  "sage",
-            "advice": "淡水河湖天气良好，非常适合出击，祝大鱼大获！🎉",
-        }
 
-    swell = day_weather.get("swell_height") or 0.0
+@st.cache_data(ttl=900, show_spinner=False)
+def _build_day_payload(
+    day_offset: int,
+    methods: tuple[str, ...],
+    fish: tuple[str, ...],
+    region: str,
+    wt_filter: str,
+    family: bool,
+) -> dict:
+    target_date = datetime.now() + timedelta(days=day_offset)
+    filtered = [
+        s for s in spots
+        if _spot_matches_with_filters(s, methods, fish, region, wt_filter, family)
+    ]
 
-    if wt == "ocean":
-        if swell > OCEAN_SWELL_DANGER or wind > OCEAN_WIND_DANGER:
-            return {
-                "status": "❌ 极度危险",
-                "score":  "⭐",
-                "safe":   False,
-                "color":  "coral",
-                "advice": (
-                    f"外海浪涌预计 {swell}m，风速 {wind}km/h，"
-                    "该点属于完全暴露的外海地形，极其危险！请转移到内湾避风钓点。"
-                ),
-            }
-    else:  # harbour or brackish
-        if swell > SHELTERED_SWELL_WARN or wind > SHELTERED_WIND_WARN:
-            advice_detail = (
-                "咸淡水区域受地形保护，但风浪仍偏大，抛投受影响，建议选背风岸边作钓。"
-                if wt == "brackish" else
-                "内湾虽可避浪，但顶风抛投体感较差，建议选背风位或大桥底部作钓。"
-            )
-            return {
-                "status": "⚠️ 谨慎前往",
-                "score":  "⭐⭐⭐",
-                "safe":   True,
-                "color":  "amber",
-                "advice": f"风速偏大（{wind}km/h），{advice_detail}",
-            }
+    forecast_by_spot = {}
+    forecast_by_coord = {}
+    for spot in filtered:
+        w_lat, w_lon = _weather_coords(spot)
+        key = _forecast_key(w_lat, w_lon)
+        if key not in forecast_by_coord:
+            forecast_by_coord[key] = get_marine_forecast(w_lat, w_lon)
+        forecast_by_spot[spot["name"]] = forecast_by_coord[key]
 
-    return {
-        "status": "✅ 极力推荐",
-        "score":  "⭐⭐⭐⭐⭐",
-        "safe":   True,
-        "color":  "sage",
-        "advice": "此日海况温和，非常适合出击，祝大鲫大鲈！🎉",
-    }
+    all_spot_data = []
+    for spot in filtered:
+        forecast = forecast_by_spot[spot["name"]]
+        spot_day_w = forecast["days"][day_offset]
+        safety = assess_safety(spot, spot_day_w)
+        f_lat, f_lon = _fishing_coords(spot)
+        tides = get_tides_for_date(target_date, spot["tide_delay"], lat=f_lat, lon=f_lon)
+        all_spot_data.append((spot, safety, tides, spot_day_w))
+
+    _safety_order = {"sage": 0, "amber": 1, "coral": 2}
+    all_spot_data.sort(key=lambda x: _safety_order.get(x[1]["color"], 3))
+    return {"filtered": filtered, "forecast_by_spot": forecast_by_spot, "all_spot_data": all_spot_data}
 
 
 def _val_color(value: float, warn: float, danger: float) -> str:
@@ -710,11 +759,22 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
             f'</div>',
             unsafe_allow_html=True,
         )
+    st.markdown(
+        f'<div style="margin-top:8px;font-size:11px;color:#8a9cb2">{get_tide_accuracy_hint()}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ── 精选推荐英雄卡 ────────────────────────────────────────────────────────
 
-def render_hero_card(col, spot: dict, safety: dict, day_weather: dict, tides: list = None) -> None:
+def render_hero_card(
+    col,
+    spot: dict,
+    safety: dict,
+    day_weather: dict,
+    tides: list = None,
+    forecast_days: list = None,
+) -> None:
     color_map = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     bg_map    = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
     bar_map   = {"sage": "linear-gradient(180deg,#6bc995,#4f9b76)",
@@ -734,19 +794,23 @@ def render_hero_card(col, spot: dict, safety: dict, day_weather: dict, tides: li
     swell_label    = "水域" if is_fw else "涌浪"
     time_window = _best_window_times(spot["best_window"], tides) if tides else "—"
 
-    fish_html   = "".join(_pill(f, "blue") for f in spot["fish_tags"][:4])
-    method_html = "".join(_pill(m, "violet") for m in spot["supported_methods"][:3])
+    fish_html   = _limited_pills(spot["fish_tags"], "blue", limit=3)
+    method_html = _limited_pills(spot["supported_methods"], "violet", limit=3)
     wt_html     = _wt_pill(spot)
     season_html = _freshwater_season_pill() if is_fw else _saltwater_season_pills(spot["fish_tags"])
 
     # 三天预报 dots
     _dc = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
-    _fc = get_marine_forecast(spot["lat"], spot["lon"])
+    if forecast_days is not None:
+        _fc_days = forecast_days
+    else:
+        w_lat, w_lon = _weather_coords(spot)
+        _fc_days = get_marine_forecast(w_lat, w_lon)["days"]
     _hero_dots = "".join(
         f'<div style="text-align:center;line-height:1.2">'
         f'<div style="font-size:9px;color:#aaa">{lb}</div>'
         f'<div style="width:8px;height:8px;border-radius:50%;'
-        f'background:{_dc[assess_safety(spot,_fc["days"][di])["color"]]};margin:2px auto"></div>'
+        f'background:{_dc[assess_safety(spot, _fc_days[di])["color"]]};margin:2px auto"></div>'
         f'</div>'
         for di, lb in enumerate(["今","明","后"])
     )
@@ -756,39 +820,27 @@ def render_hero_card(col, spot: dict, safety: dict, day_weather: dict, tides: li
     )
 
     col.markdown(f"""
-    <div style="background:white;border-radius:20px;padding:18px 20px 16px 24px;
-                box-shadow:0 4px 24px rgba(24,66,112,0.10),0 1px 4px rgba(0,0,0,0.04);
-                position:relative;overflow:hidden;min-height:230px;
+    <div style="background:white;border-radius:14px;padding:18px 20px 16px 24px;
+                box-shadow:0 2px 8px rgba(24,66,112,0.06);
+                position:relative;overflow:hidden;min-height:205px;
                 border:1px solid rgba(219,231,242,0.8)">
         <div style="position:absolute;left:0;top:0;bottom:0;width:5px;
-                    background:{bar_grad};border-radius:20px 0 0 20px"></div>
-        <div style="font-weight:800;font-size:1.0em;color:#102338;
+                    background:{border};border-radius:14px 0 0 14px"></div>
+        <div style="font-family:var(--serif-zh);font-weight:600;font-size:1.05em;color:#102338;
                     line-height:1.35;margin-bottom:8px">{spot['name']}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-            <span style="background:{badge_bg};color:{border};padding:3px 12px;
-                         border-radius:999px;font-size:0.78em;font-weight:700">
-                {safety['status']}
-            </span>
+            {_status_badge(safety)}
             {wt_html}{season_html}{hero_dots_html}
         </div>
         <div style="color:#60758a;font-size:0.78em;margin:4px 0 10px">
-            📍 {spot['region']} &nbsp;·&nbsp; {spot['type']}
+            {spot['region']} &nbsp;·&nbsp; {spot['type']}
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px">
-            <div style="background:#f7fafc;border-radius:12px;padding:8px 10px;border:1px solid #edf3f8">
-                <div style="color:#8fa3b1;font-size:0.66em;margin-bottom:3px">{swell_label}</div>
-                <div style="font-size:1.05em;font-weight:800;color:{sw_color}">{swell_val_html}</div>
-            </div>
-            <div style="background:#f7fafc;border-radius:12px;padding:8px 10px;border:1px solid #edf3f8">
-                <div style="color:#8fa3b1;font-size:0.66em;margin-bottom:3px">风速</div>
-                <div style="font-size:1.05em;font-weight:800;color:{wi_color}">{wind}km/h</div>
-            </div>
-            <div style="background:#f7fafc;border-radius:12px;padding:8px 10px;border:1px solid #edf3f8">
-                <div style="color:#8fa3b1;font-size:0.66em;margin-bottom:3px">最佳时段</div>
-                <div style="font-size:0.85em;font-weight:800;color:#1565c0">{time_window}</div>
-            </div>
+            {_mini_stat(swell_label, swell_val_html, "text" if is_fw else safety["color"])}
+            {_mini_stat("风速", f"{wind}km/h", safety["color"] if wi_color != "#4f9b76" else "text")}
+            {_mini_stat("最佳时段", time_window, "blue")}
         </div>
-        <div style="margin-bottom:6px">{fish_html}</div>
+        <div style="margin-bottom:5px">{fish_html}</div>
         <div>{method_html}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -796,7 +848,14 @@ def render_hero_card(col, spot: dict, safety: dict, day_weather: dict, tides: li
 
 # ── 钓点详情卡片 ──────────────────────────────────────────────────────────
 
-def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: dict, day_offset: int) -> None:
+def render_spot_card(
+    spot: dict,
+    safety: dict,
+    spot_tides: list,
+    spot_weather: dict,
+    day_offset: int,
+    forecast_days: list = None,
+) -> None:
     color_map = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     bg_map    = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
     bar_map   = {"sage": "linear-gradient(180deg,#6bc995,#4f9b76)",
@@ -818,18 +877,22 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
     swell_label_str = "🏞️ 水域" if is_fw else "🌊 浪涌"
     time_window = _best_window_times(spot["best_window"], spot_tides)
 
-    fish_chips   = "".join(_pill(f, "blue") for f in spot["fish_tags"])
-    method_chips = "".join(_pill(m, "violet") for m in spot["supported_methods"][:5])
+    fish_chips   = _limited_pills(spot["fish_tags"], "blue", limit=3)
+    method_chips = _limited_pills(spot["supported_methods"], "violet", limit=3)
     wt_badge     = _wt_pill(spot)
     season_badge = _freshwater_season_pill() if is_fw else _saltwater_season_pills(spot["fish_tags"])
 
     # 三天安全预报小圆点
     _dot_c = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
-    _day_fc = get_marine_forecast(spot["lat"], spot["lon"])
+    if forecast_days is not None:
+        _fc_days = forecast_days
+    else:
+        w_lat, w_lon = _weather_coords(spot)
+        _fc_days = get_marine_forecast(w_lat, w_lon)["days"]
     _day_labels = ["今", "明", "后"]
     _dots_parts = []
     for _di, _lbl in enumerate(_day_labels):
-        _ds = assess_safety(spot, _day_fc["days"][_di])
+        _ds = assess_safety(spot, _fc_days[_di])
         _c  = _dot_c[_ds["color"]]
         _dots_parts.append(
             f'<div style="text-align:center;line-height:1.2">'
@@ -854,48 +917,42 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
             f'</div>'
         )
 
+    family_stars = spot["family_friendly"].count("⭐")
+    family_display = "⭐" * family_stars if family_stars else "—"
+    stat_tone = safety["color"] if safety["color"] != "sage" else "text"
+
     st.markdown(
-        f'<div style="position:relative;background:white;border-radius:16px;'
-        f'box-shadow:0 2px 14px rgba(24,66,112,0.07),0 1px 3px rgba(0,0,0,0.04);'
+        f'<div style="position:relative;background:white;border-radius:14px;'
+        f'box-shadow:0 2px 8px rgba(24,66,112,0.05);'
         f'border:1px solid rgba(219,231,242,0.85);'
-        f'margin-bottom:4px;padding:16px 18px 14px 24px;overflow:hidden">'
+        f'margin-bottom:6px;padding:16px 18px 14px 24px;overflow:hidden">'
 
         f'<div style="position:absolute;left:0;top:0;bottom:0;width:5px;'
-        f'background:{bar_grad};border-radius:16px 0 0 16px"></div>'
+        f'background:{border};border-radius:14px 0 0 14px"></div>'
 
-        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
-        f'<div style="font-size:1.02em;font-weight:800;color:#102338">{spot["name"]}</div>'
-        f'<span style="background:{badge_bg};color:{badge_txt};border:1px solid {border};'
-        f'padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">'
-        f'{safety["status"]}</span>'
-        f'{wt_badge}{season_badge}'
-        f'{three_day_dots}'
-        f'<span style="color:#9ab0c0;font-size:0.78em">{spot["region"]} · {spot["type"]}</span>'
-        f'</div>'
+        f'<div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);'
+        f'gap:18px;align-items:start">'
 
-        f'<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
-        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">'
-        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">{swell_label_str}</div>'
-        f'<div style="font-size:1.08em;font-weight:800;color:{sw_color}">{swell_val_html}</div>'
+        f'<div>'
+        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
+        f'<div style="font-family:var(--serif-zh);font-size:1.08em;font-weight:600;'
+        f'color:#102338;line-height:1.35">{spot["name"]}</div>'
+        f'{_status_badge(safety)}{wt_badge}{season_badge}{three_day_dots}'
         f'</div>'
-        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">'
-        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">💨 风速</div>'
-        f'<div style="font-size:1.08em;font-weight:800;color:{wi_color}">{wind}km/h</div>'
-        f'</div>'
-        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:110px">'
-        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">⏱️ 黄金时段</div>'
-        f'<div style="font-size:0.98em;font-weight:800;color:#1565C0">{time_window}</div>'
-        f'</div>'
-        f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:72px">'
-        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">👨‍👩‍👧 家庭</div>'
-        f'<div style="font-size:0.9em;font-weight:700;color:#555">{spot["family_friendly"][:2]}</div>'
-        f'</div>'
-        f'</div>'
-
+        f'<div style="color:#6f8196;font-size:0.8em;line-height:1.5;margin-bottom:10px">'
+        f'{spot["region"]} · {spot["type"]}</div>'
         f'{advice_html}'
-
         f'<div style="margin-bottom:4px">{fish_chips}</div>'
         f'<div>{method_chips}</div>'
+        f'</div>'
+
+        f'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">'
+        f'{_mini_stat("浪涌" if not is_fw else "水域", swell_val_html, stat_tone if not is_fw else "text")}'
+        f'{_mini_stat("风速", f"{wind}km/h", stat_tone if wi_color != "#4f9b76" else "text")}'
+        f'{_mini_stat("黄金时段", time_window, "blue")}'
+        f'{_mini_stat("家庭", family_display, "text")}'
+        f'</div>'
+        f'</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -908,7 +965,7 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
         st.session_state[toggle_key] = False
     is_open = st.session_state[toggle_key]
 
-    if st.button("▴ 收起详情" if is_open else "▾ 展开详情", key=toggle_key + "_btn"):
+    if st.button("收起详情" if is_open else "展开详情", key=toggle_key + "_btn"):
         st.session_state[toggle_key] = not is_open
         st.rerun()
 
@@ -923,7 +980,7 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
         if wt == "freshwater":
             tide_rows = (
                 '<div style="display:flex;flex-direction:column;justify-content:center;'
-                'height:100%;text-align:center;padding:12px 0;gap:6px">'
+                'min-height:116px;text-align:center;padding:12px 0;gap:6px">'
                 '<div style="font-size:20px">🏞️</div>'
                 '<div style="font-size:11px;color:var(--muted);line-height:1.6">'
                 '淡水钓点<br>无潮汐影响</div>'
@@ -935,12 +992,14 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
                 dot = "#c69230" if td["is_high"] else "#8a9cb2"
                 lbl = "满潮" if td["is_high"] else "干潮"
                 tide_rows += (
-                    f'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'
-                    f'border-bottom:1px solid var(--line)">'
+                    f'<div style="display:flex;align-items:center;justify-content:space-between;'
+                    f'gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">'
+                    f'<div style="display:flex;align-items:center;gap:8px">'
                     f'<div style="width:7px;height:7px;border-radius:50%;background:{dot};flex-shrink:0"></div>'
+                    f'<span style="font-size:11.5px;color:var(--muted)">{lbl}</span>'
+                    f'</div>'
                     f'<span style="font-family:var(--mono);font-size:12px;color:{dot};font-weight:600">'
                     f'{td["time"].strftime("%H:%M")}</span>'
-                    f'<span style="font-size:11.5px;color:var(--muted)">{lbl}</span>'
                     f'</div>'
                 )
             if wt == "brackish":
@@ -951,7 +1010,7 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
                 )
 
         # ── Legal sizes ──────────────────────────────────────
-        legal_html = _legal_sizes_html(spot["fish_tags"])
+        fish_rules_cook_html = _fish_rules_cook_html(spot["fish_tags"], max_items=5)
 
         # ── Method rows ───────────────────────────────────────
         method_rows = ""
@@ -961,61 +1020,89 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
             icon_color = next((c for k, c in tip_icons.items() if k in tip), "#8a9cb2")
             short_name = method.split("(")[0].strip()
             method_rows += (
-                f'<div style="padding:8px 0;border-bottom:1px solid var(--line)">'
-                f'<div style="font-size:12px;font-weight:700;color:{icon_color};margin-bottom:3px">'
-                f'{short_name}</div>'
-                f'<div style="font-size:12px;color:var(--muted);line-height:1.55">{tip}</div>'
+                f'<div style="padding:8px 0 10px;border-bottom:1px dashed #e6edf4">'
+                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+                f'<div style="width:7px;height:7px;border-radius:50%;background:{icon_color}"></div>'
+                f'<div style="font-size:12.5px;font-weight:700;color:#1f3147;">{short_name}</div>'
+                f'</div>'
+                f'<div style="font-size:12px;color:#5c6f84;line-height:1.58;padding-left:15px">{tip}</div>'
                 f'</div>'
             )
+        key_points_html = (
+            f'<div style="margin-top:10px;background:#f8fbff;border:1px solid #e3edf7;'
+            f'border-radius:10px;padding:10px 11px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.3px;color:#7f95ab;'
+            f'text-transform:uppercase;margin-bottom:6px">Quick Notes · 现场要点</div>'
+            f'<div style="font-size:11.5px;color:#4c6278;line-height:1.62">'
+            f'👨‍👩‍👧‍👦 家庭友好：{spot["family_friendly"]}<br>'
+            f'⏱️ 建议窗口：{spot["best_window"]}<br>'
+            f'🐟 当前鱼情：{spot.get("active_fish", "以现场鱼讯为准")}'
+            f'</div>'
+            f'</div>'
+        )
 
         st.markdown(
-            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
-            f'border-top:3px solid {border};margin-top:4px;overflow:hidden">'
+            f'<div style="background:linear-gradient(180deg,#e7f1ff 0%,#ffffff 100%);'
+            f'border:1px solid #d3e3f2;border-radius:12px;border-left:5px solid {border};'
+            f'margin-top:8px;padding:12px 14px 14px;overflow:hidden">'
+            f'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;'
+            f'padding:8px 10px;border:1px solid #c4dbf5;background:#e9f3ff;'
+            f'border-radius:10px;margin-bottom:12px">'
+            f'<div style="display:flex;align-items:center;gap:8px">'
+            f'<div style="width:9px;height:9px;border-radius:50%;background:{border}"></div>'
+            f'<div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;'
+            f'color:#5f7690;text-transform:uppercase">Details Panel</div>'
+            f'</div>'
+            f'<div style="font-size:11.5px;color:#5f7690;font-weight:600">展开详情</div>'
+            f'</div>'
 
-            f'<div style="display:grid;grid-template-columns:1fr 1.6fr;gap:0">'
-
-            f'<div style="padding:14px 16px;border-right:1px solid var(--line)">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
-            f'color:var(--subtle);text-transform:uppercase;margin-bottom:8px">专属潮汐</div>'
+            f'<div style="display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,1.45fr);gap:12px;align-items:stretch">'
+            f'<div style="background:white;border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+            f'text-transform:uppercase;margin-bottom:8px">Tide · 专属潮汐</div>'
             f'{tide_rows}'
+            f'<div style="height:1px;background:#edf3f8;margin:10px 0"></div>'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+            f'text-transform:uppercase;margin-bottom:6px">Rules & Cook · 法规与烹饪</div>'
+            f'<div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(120px,0.85fr) minmax(0,1.25fr);'
+            f'gap:8px;padding:0 0 5px;border-bottom:1px solid var(--line);margin-bottom:2px">'
+            f'<span style="font-size:10.5px;color:#7f95ab">鱼种</span>'
+            f'<span style="font-size:10.5px;color:#7f95ab">法定尺寸</span>'
+            f'<span style="font-size:10.5px;color:#7f95ab">推荐做法</span>'
+            f'</div>'
+            f'{fish_rules_cook_html}'
             f'</div>'
 
-            f'<div style="padding:14px 16px">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
-            f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">钓法攻略</div>'
+            f'<div style="background:white;border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px;display:flex;flex-direction:column">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+            f'text-transform:uppercase;margin-bottom:8px">Methods · 钓法攻略</div>'
             f'{method_rows}'
-            f'</div>'
-
-            f'</div>'
-
-            f'<div style="border-top:1px solid var(--line);padding:10px 16px">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
-            f'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">'
-            f'⚖️ NSW 法定尺寸 · Legal Size</div>'
-            f'{legal_html}'
-            f'</div>'
-
-            f'<div style="border-top:1px solid var(--line);padding:12px 18px;'
-            f'background:var(--surface2);display:grid;grid-template-columns:1fr 1fr;gap:12px">'
-            f'<div>'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
-            f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">🚗 自驾路线</div>'
-            f'<div style="font-size:12px;color:var(--text);line-height:1.55">{spot["route"]}</div>'
-            f'<a href="https://www.google.com/maps?q={spot["lat"]},{spot["lon"]}" target="_blank" '
-            f'style="display:inline-block;margin-top:6px;font-size:11.5px;color:#2a5fb0;'
-            f'text-decoration:none;font-weight:600">📍 Google Maps 导航 →</a>'
-            f'</div>'
-            f'<div>'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
-            f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">🅿️ 停车方案</div>'
-            f'<div style="font-size:12px;color:var(--text);line-height:1.55">{spot["parking"]}</div>'
+            f'{key_points_html}'
             f'</div>'
             f'</div>'
 
+            f'<div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.05fr);'
+            f'gap:10px;margin-top:12px">'
+            f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+            f'text-transform:uppercase;margin-bottom:6px">Route · 自驾路线</div>'
+            f'<div style="font-size:12px;color:#213447;line-height:1.62">{spot["route"]}</div>'
+            f'<a href="https://www.google.com/maps?q={_nav_coords(spot)[0]},{_nav_coords(spot)[1]}" target="_blank" '
+            f'style="display:inline-block;margin-top:8px;font-size:11.5px;color:#2a5fb0;text-decoration:none;font-weight:600">'
+            f'Google Maps 导航 →</a>'
+            f'</div>'
+            f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+            f'text-transform:uppercase;margin-bottom:6px">Parking · 停车方案</div>'
+            f'<div style="font-size:12px;color:#213447;line-height:1.62">{spot["parking"]}</div>'
+            f'</div>'
+            f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
+            f'{_fuel_html(spot, compact=True)}'
+            f'</div>'
+            f'</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
-        st.markdown(_fuel_html(spot), unsafe_allow_html=True)
 
 
 # ── 今日决策面板 ──────────────────────────────────────────────────────────
@@ -1037,31 +1124,29 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
         v1_band, v1_kicker = "var(--coral)", "⊘ NO-GO · OVERALL"
         v1_title, v1_body  = "暂不建议出行", "浪涌与风速均超安全阈值，建议改期"
 
-    protected_ok   = sum(1 for s, sa, _, _ in all_spot_data if s.get("water_type") != "ocean" and sa["color"] != "coral")
-    protected_best = sum(1 for s, sa, _, _ in all_spot_data if s.get("water_type") != "ocean" and sa["color"] == "sage")
-    ocean_safe     = sum(1 for s, sa, _, _ in all_spot_data if s.get("water_type") == "ocean" and sa["color"] == "sage")
+    protected_ok = sum(
+        1 for s, sa, _, _ in all_spot_data
+        if s.get("water_type") not in {"ocean", "boat"} and sa["color"] != "coral"
+    )
+    exposed_danger = sum(
+        1 for s, sa, _, _ in all_spot_data
+        if s.get("water_type") in {"ocean", "boat"} and sa["color"] == "coral"
+    )
+    go_now = green_n
+    caution_now = orange_n
+    no_go_now = red_n
+
     swell_val = day_w.get("swell_height") or 0
     wind_val  = day_w.get("wind") or 0
     ocean_danger = swell_val > OCEAN_SWELL_DANGER or wind_val > OCEAN_WIND_DANGER
-    if ocean_danger:
-        v2_band, v2_kicker = "var(--coral)", "SPOT TYPE · ADVICE"
-        v2_title = "避开外海"
-        if protected_ok > 0:
-            v2_body = f"外海危险，{protected_ok} 个内湾/咸淡水点可前往（{protected_best} 个极佳）"
-        else:
-            v2_body = "今日海况全面恶化，建议改期或极轻装置内湾试探"
-    elif protected_ok + ocean_safe == 0:
-        v2_band, v2_kicker = "var(--coral)", "SPOT TYPE · ADVICE"
-        v2_title = "暂缓出行"
-        v2_body  = "当前海况超安全阈值，建议改期"
-    elif ocean_safe >= protected_ok:
-        v2_band, v2_kicker = "var(--sage)", "SPOT TYPE · ADVICE"
-        v2_title = "内外均可"
-        v2_body  = f"外海 {ocean_safe} 点 · 内湾/咸淡水 {protected_ok} 点均可前往"
+    if ocean_danger and protected_ok > 0:
+        action_text = "优先走内湾/咸淡水，尽量避开高暴露海域。"
+    elif ocean_danger:
+        action_text = "今日整体风险高，建议改期或仅短时试钓。"
+    elif green_n > 0:
+        action_text = "按黄金时段出发，优先执行下方推荐点和钓法。"
     else:
-        v2_band, v2_kicker = "var(--amber)", "SPOT TYPE · ADVICE"
-        v2_title = "优先内湾"
-        v2_body  = f"内湾/咸淡水 {protected_ok} 点可前往，外海 {ocean_safe} 点可选"
+        action_text = "暂无稳妥窗口，建议切换到明天/后天查看。"
 
     sorted_tides = sorted(base_tides, key=lambda t: t["time"])
     highs        = [t for t in sorted_tides if t["is_high"]]
@@ -1076,27 +1161,11 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
     sea_n = len(all_spot_data) - fw_n
     month = datetime.now().month
 
-    if green_n > 0:
-        if fw_n > 0 and sea_n == 0:
-            season_tip = "旺季（4–10月）Bass 活跃度极高" if 4 <= month <= 10 else "淡季，建议早晚时段出击"
-            v4_text = f"今日淡水出钓：{season_tip}，携带软饵路亚或活铅沉底线组最为稳妥。"
-        elif fw_n > 0:
-            v4_text = (
-                f"今日海水与淡水点均可出击。{v3_win} 黄金时段优先；"
-                "海水点带 Running Sinker，淡水点带软饵路亚。"
-            )
-        elif ocean_danger:
-            v4_text = (
-                f"外海今日危险，优先内湾或咸淡水钓点；"
-                f"{v3_win} 黄金时段出击，建议携带无铅漂或 Running Sinker 线组。"
-            )
-        else:
-            v4_text = f"今日最佳：{v3_win} 黄金时段出击，外海/内湾均可；建议携带 Running Sinker 或路亚线组。"
+    if green_n > 0 and fw_n > 0 and sea_n == 0:
+        season_tip = "旺季（4–10月）Bass 活跃度高" if 4 <= month <= 10 else "淡季优先早晚窗口"
+        v4_text = f"{action_text} {season_tip}。"
     else:
-        if fw_n > 0:
-            v4_text = "淡水点风速偏大，建议在背风河岸处作钓，或等待风速回落后再出发。"
-        else:
-            v4_text = "建议等待明日或后天预报窗口，或前往内湾避风点以极轻线组试探。"
+        v4_text = action_text
 
     def _verdict_card(band_color, kicker_text, big, body, big_style=""):
         return f"""
@@ -1122,62 +1191,92 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
             <div style="font-size:12.5px;color:var(--muted);line-height:1.5">{body}</div>
         </div>"""
 
-    v1, v2, v3, v4 = st.columns([1.2, 1, 1, 1.4])
+    def _metric_card() -> str:
+        return f"""
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;
+                    border-left:4px solid var(--primary);padding:18px 18px 16px;height:100%;
+                    box-shadow:0 2px 6px rgba(15,30,50,0.025)">
+            <div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+                        color:var(--subtle);text-transform:uppercase;margin-bottom:8px">RISK · SNAPSHOT</div>
+            <div style="font-size:12.5px;color:var(--text);line-height:1.65">
+                ✅ 可直接出发 <b>{go_now}</b> 点<br>
+                ⚠️ 谨慎可去 <b>{caution_now}</b> 点<br>
+                ❌ 暂不建议 <b>{no_go_now}</b> 点<br>
+                🌊 外海/船钓高风险 <b>{exposed_danger}</b> 点
+            </div>
+        </div>"""
+
+    def _plan_card() -> str:
+        return f"""
+        <div style="background:var(--surface2);border:1px solid var(--line);border-radius:14px;
+                    padding:18px 18px 16px;height:100%;box-shadow:0 2px 6px rgba(15,30,50,0.025)">
+            <div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;
+                        color:var(--subtle);text-transform:uppercase;margin-bottom:8px">PLAN · ACTION</div>
+            <div style="font-family:var(--serif-zh);font-size:17px;font-weight:600;color:var(--text);
+                        line-height:1.35;margin-bottom:6px">执行要点</div>
+            <div style="font-size:12.5px;color:var(--muted);line-height:1.55">{v4_text}</div>
+        </div>"""
+
+    v1, v2, v3, v4 = st.columns([1.2, 1, 1, 1.3])
     v1.markdown(_verdict_card(v1_band, v1_kicker, v1_title, v1_body), unsafe_allow_html=True)
-    v2.markdown(_verdict_card(v2_band, v2_kicker, v2_title, v2_body), unsafe_allow_html=True)
+    v2.markdown(_metric_card(), unsafe_allow_html=True)
     v3.markdown(_window_card("var(--primary)", "WINDOW · BEST TIME", v3_win, v3_sub), unsafe_allow_html=True)
-    v4.markdown(
-        f'<div style="background:var(--surface2);border:1px solid var(--line);border-radius:14px;'
-        f'padding:18px 18px 16px;height:100%;box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
-        f'<div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;'
-        f'color:var(--subtle);text-transform:uppercase;margin-bottom:8px">AI MATE · ADVICE</div>'
-        f'<div style="font-size:13px;color:var(--text);line-height:1.6">{v4_text}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+    v4.markdown(_plan_card(), unsafe_allow_html=True)
 
 
 # ── 加油站 HTML 片段 ──────────────────────────────────────────────────────
 
-def _fuel_html(spot: dict) -> str:
-    stations = get_nearby_fuel(spot["lat"], spot["lon"])
+def _fuel_html(spot: dict, compact: bool = False) -> str:
+    n_lat, n_lon = _nav_coords(spot)
+    stations = get_nearby_fuel(n_lat, n_lon)
     fuelcheck_url = "https://www.fuelcheck.nsw.gov.au/app"
     link = (
         f'<a href="{fuelcheck_url}" target="_blank" '
-        f'style="display:inline-block;margin-top:6px;background:#fff3e0;color:#e65100;'
+        f'style="display:inline-flex;align-items:center;gap:4px;margin-top:8px;background:#fff3e0;color:#e65100;'
         f'padding:3px 10px;border-radius:8px;font-size:0.74em;font-weight:600;'
-        f'text-decoration:none">⛽ 更多油价 →</a>'
+        f'text-decoration:none">更多油价 →</a>'
     )
     if stations:
         rows = ""
+        row_style = (
+            'display:flex;justify-content:space-between;gap:10px;align-items:flex-start;'
+            'padding:8px 10px;margin-bottom:8px;background:#f8fafc;'
+            'border:1px solid #edf3f8;border-radius:10px;font-size:0.77em'
+            if compact
+            else
+            'display:flex;justify-content:space-between;gap:10px;align-items:flex-start;'
+            'padding:6px 0;border-bottom:1px solid #f3f4f6;font-size:0.77em'
+        )
         for s in stations:
             price_str = f"{s['price']:.1f}¢/L" if s["price"] else "—"
             rows += (
-                f'<div style="display:flex;justify-content:space-between;align-items:center;'
-                f'padding:4px 0;border-bottom:1px solid #f5f5f5;font-size:0.77em">'
-                f'<div>'
-                f'<span style="font-weight:600;color:#333">{s["brand"] or s["name"]}</span>'
-                f'<span style="color:#aaa;margin-left:5px">{s["dist_km"]}km</span>'
+                f'<div style="{row_style}">'
+                f'<div style="min-width:0">'
+                f'<div style="font-weight:600;color:#233244;line-height:1.25">{s["brand"] or s["name"]}</div>'
+                f'<div style="color:#8a9cb2;margin-top:2px">{s["dist_km"]} km</div>'
                 f'</div>'
-                f'<div>'
-                f'<span style="background:#fff3e0;color:#e65100;padding:1px 6px;'
-                f'border-radius:6px;font-size:0.9em;font-weight:700">{s["fuel_type"]}</span>'
-                f'&nbsp;<span style="color:#1f8f53;font-weight:800">{price_str}</span>'
+                f'<div style="text-align:right;flex-shrink:0">'
+                f'<span style="display:inline-block;background:#fff3e0;color:#e65100;padding:1px 6px;'
+                f'border-radius:6px;font-size:0.9em;font-weight:700;margin-bottom:3px">{s["fuel_type"]}</span>'
+                f'<div style="color:#1f8f53;font-weight:800;line-height:1.1">{price_str}</div>'
                 f'</div>'
                 f'</div>'
             )
+        top_margin = "margin-top:0" if compact else "margin-top:6px"
+        title_margin = "margin-bottom:4px" if compact else "margin-bottom:5px"
         return (
-            f'<div style="border-top:1px solid #f0f4f8;padding-top:8px;margin-top:6px">'
-            f'<div style="font-size:0.74em;font-weight:700;color:#888;margin-bottom:5px">'
-            f'⛽ 附近加油站（实时）</div>'
+            f'<div style="{top_margin}">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
+            f'color:var(--subtle);text-transform:uppercase;{title_margin}">'
+            f'FUEL · 附近加油站（实时）</div>'
             f'{rows}'
             f'{link}'
             f'</div>'
         )
     gas = spot.get("nearby_gas", "")
     return (
-        f'<div style="border-top:1px solid #f0f4f8;padding-top:8px;margin-top:6px;'
-        f'font-size:0.77em;color:#555">'
+        f'<div style="{ "margin-top:0" if compact else "margin-top:6px" };'
+        f'font-size:0.77em;color:#555;line-height:1.5">'
         + (f'⛽ {gas}<br>' if gas else "")
         + link
         + '</div>'
@@ -1191,7 +1290,6 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
     c_bg     = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
     border   = c_border.get(safety["color"], "#888")
     badge_bg = c_bg.get(safety["color"], "#f5f5f5")
-
     wt       = spot.get("water_type", "harbour")
     is_fw    = wt == "freshwater"
     swell    = weather.get("swell_height") or 0
@@ -1214,6 +1312,7 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
         f'font-size:0.75em;margin:2px 2px 0;display:inline-block">{m}</span>'
         for m in spot["supported_methods"][:4]
     )
+    fish_rules_cook_html = _fish_rules_cook_html(spot["fish_tags"], max_items=4)
     if wt == "freshwater":
         tides_html = "🏞️ 淡水钓点 · 无潮汐影响"
     else:
@@ -1223,74 +1322,105 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
         if wt == "brackish":
             tides_html += ' &nbsp;<span style="color:#d99540;font-size:0.88em">⚠ 咸淡水·时间仅供参考</span>'
 
-    maps_url = f"https://www.google.com/maps?q={spot['lat']},{spot['lon']}"
+    nav_lat, nav_lon = _nav_coords(spot)
+    maps_url = f"https://www.google.com/maps?q={nav_lat},{nav_lon}"
 
     first_method = spot["supported_methods"][0] if spot["supported_methods"] else ""
     tip_raw      = spot["method_tips"].get(first_method, "")
     tip_text     = tip_raw[:100] + "…" if len(tip_raw) > 100 else tip_raw
     tip_block    = (
-        f'<div style="background:#f9f9f9;border-radius:8px;padding:8px 10px;'
-        f'font-size:0.78em;color:#555;margin-bottom:10px">💡 {tip_text}</div>'
+        f'<div style="background:#f7fafc;border:1px solid #edf3f8;border-radius:10px;'
+        f'padding:10px 12px;font-size:0.78em;color:#496174;margin-bottom:12px;'
+        f'line-height:1.55">💡 {tip_text}</div>'
         if tip_text else ""
     )
 
     st.html(f"""
-    <div style="background:white;border-radius:14px;border-top:4px solid {border};
-                box-shadow:0 2px 12px rgba(0,0,0,0.08);padding:16px 18px;
-                max-height:430px;overflow-y:auto;font-family:sans-serif">
-
-        <div style="font-size:1.02em;font-weight:700;color:#1a1a2e;
-                    margin-bottom:8px;line-height:1.4">{spot['name']}</div>
-
-        <span style="background:{badge_bg};color:{border};padding:2px 12px;
-                     border-radius:16px;font-size:0.8em;font-weight:600">
-            {safety['status']}
-        </span>
-
-        <div style="background:{badge_bg};border-left:3px solid {border};border-radius:6px;
-                    padding:8px 12px;margin:10px 0;font-size:0.81em;color:{border}">
-            {safety['advice']}
+    <div style="background:linear-gradient(180deg,#ffffff 0%,#f7f9fb 100%);
+                border:1px solid var(--line);border-top:4px solid {border};
+                border-radius:14px;box-shadow:0 2px 12px rgba(15,30,50,0.08);
+                padding:14px 16px;max-height:430px;overflow-y:auto;font-family:var(--ui-zh)">
+        <div style="background:linear-gradient(135deg,#f8fbff,#eef5ff);border:1px solid #d9e7f6;
+                    border-radius:12px;padding:10px 12px;margin-bottom:10px">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                <div style="font-family:var(--serif-zh);font-size:1.06em;font-weight:700;
+                            color:#102338;line-height:1.35">{spot['name']}</div>
+                <span style="background:{badge_bg};color:{border};padding:3px 10px;
+                             border-radius:999px;font-size:0.76em;font-weight:700;white-space:nowrap">
+                    {safety['status']}
+                </span>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
+                <span style="background:#eef4fb;color:#516579;padding:2px 10px;
+                             border-radius:999px;font-size:0.74em;font-weight:600">
+                    {spot['region']}
+                </span>
+                {_wt_pill(spot)}
+            </div>
         </div>
 
-        <div style="font-size:0.79em;color:#888;margin-bottom:8px">
-            📍 {spot['region']} &nbsp;·&nbsp; {spot['type']}
+        <div style="background:white;border:1px solid var(--line);border-radius:12px;
+                    padding:12px 14px;margin-bottom:12px">
+            <div style="color:{border};font-size:12px;font-weight:700;line-height:1.55">
+                {safety['advice']}
+            </div>
         </div>
 
-        <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:10px;
-                    font-size:0.88em">
-            {swell_icon_html}
-            &emsp; 💨 <b style="color:{wi_color}">{wind}km/h</b>
-            &emsp; 👨‍👩‍👧‍👦 {spot['family_friendly'].split()[0]}
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px">
+            <div style="background:#f8fafc;border:1px solid #edf3f8;border-radius:10px;padding:8px 10px">
+                <div style="font-size:10px;letter-spacing:1px;color:#8a9cb2;text-transform:uppercase;margin-bottom:3px">Weather</div>
+                <div style="font-size:12px;color:{sw_color};font-weight:700">{swell_icon_html}</div>
+                <div style="font-size:12px;color:{wi_color};font-weight:700;margin-top:3px">风速 {wind} km/h</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #edf3f8;border-radius:10px;padding:8px 10px">
+                <div style="font-size:10px;letter-spacing:1px;color:#8a9cb2;text-transform:uppercase;margin-bottom:3px">Timing</div>
+                <div style="font-size:12px;color:var(--text);line-height:1.45">今日 {_best_window_times(spot['best_window'], tides)}</div>
+                <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px">{tides_html}</div>
+            </div>
         </div>
 
-        <div style="font-size:0.79em;color:#555;margin-bottom:4px">
-            ⏱️ <b>最佳时段</b>&nbsp; {spot['best_window']}
-            <span style="background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;
-                         font-size:0.9em;margin-left:6px;font-weight:600">
-                今日 {_best_window_times(spot['best_window'], tides)}
-            </span>
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            {fish_html}
         </div>
-        <div style="font-size:0.79em;color:#555;margin-bottom:10px">
-            🌊 <b>专属潮汐</b>&nbsp; {tides_html}
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            {method_html}
         </div>
-
-        <div style="font-size:0.8em;color:#444;margin-bottom:4px">🐟 目标鱼种</div>
-        <div style="margin-bottom:10px">{fish_html}</div>
-
-        <div style="font-size:0.8em;color:#444;margin-bottom:4px">🎣 推荐钓法</div>
-        <div style="margin-bottom:8px">{method_html}</div>
 
         {tip_block}
 
-        <div style="border-top:1px solid #f0f4f8;padding-top:10px;
-                    font-size:0.77em;color:#888;line-height:1.7">
-            🚗 {spot['route']}<br>
-            🅿️ {spot['parking']}<br>
-            <a href="{maps_url}" target="_blank"
-               style="display:inline-block;margin-top:5px;color:#1565c0;font-weight:600;
-                      text-decoration:none;font-size:0.9em">📍 Google Maps 导航 →</a>
+        <div style="background:white;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+            <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;
+                        text-transform:uppercase;margin-bottom:6px">Rules & Cook · 法规与烹饪</div>
+            <div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(120px,0.85fr) minmax(0,1.25fr);
+                        gap:8px;padding:0 0 5px;border-bottom:1px solid var(--line);margin-bottom:2px">
+                <span style="font-size:10.5px;color:#7f95ab">鱼种</span>
+                <span style="font-size:10.5px;color:#7f95ab">法定尺寸</span>
+                <span style="font-size:10.5px;color:#7f95ab">推荐做法</span>
+            </div>
+            {fish_rules_cook_html}
         </div>
-        {_fuel_html(spot)}
+
+        <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.05fr);gap:10px">
+            <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--primary);
+                        border-radius:12px;padding:12px 14px">
+                <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+                            color:var(--subtle);text-transform:uppercase;margin-bottom:6px">ROUTE · 自驾路线</div>
+                <div style="font-size:12px;color:var(--text);line-height:1.6">{spot['route']}</div>
+                <a href="{maps_url}" target="_blank"
+                   style="display:inline-block;margin-top:8px;font-size:11.5px;color:#2a5fb0;
+                          text-decoration:none;font-weight:600">Google Maps 导航 →</a>
+            </div>
+            <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--sage);
+                        border-radius:12px;padding:12px 14px">
+                <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
+                            color:var(--subtle);text-transform:uppercase;margin-bottom:6px">PARKING · 停车方案</div>
+                <div style="font-size:12px;color:var(--text);line-height:1.6">{spot['parking']}</div>
+            </div>
+            <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--amber);
+                        border-radius:12px;padding:12px 14px">
+                {_fuel_html(spot, compact=True)}
+            </div>
+        </div>
     </div>
     """)
 
@@ -1298,9 +1428,17 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
 # ── 地图 + 点击详情 ───────────────────────────────────────────────────────
 
 def render_map_section(day_offset: int, all_spot_data: list) -> None:
-    STATUS_COLOR = {"sage": "#c69230", "amber": "#d99540", "coral": "#cc5e54"}
+    STATUS_COLOR = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
+    status_counts = {
+        "sage": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "sage"),
+        "amber": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "amber"),
+        "coral": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "coral"),
+    }
+    map_spot_data = all_spot_data[:MAP_MARKER_LIMIT]
 
     col_map, col_detail = st.columns([3, 2])
+    selected_key = f"map_selected_spot_{day_offset}"
+    selected_name = st.session_state.get(selected_key, "")
 
     with col_map:
         m = folium.Map(
@@ -1309,37 +1447,56 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
             attr="© OpenStreetMap · CARTO",
         )
 
-        for spot, safety, _, _ in all_spot_data:
-            bg    = STATUS_COLOR.get(safety["color"], "#8a9cb2")
-            emoji = _WT_EMOJI.get(spot.get("water_type", "harbour"), "📍")
-            icon  = folium.DivIcon(
+        for spot, safety, _, _ in map_spot_data:
+            bg = STATUS_COLOR.get(safety["color"], "#8a9cb2")
+            emoji = _WT_EMOJI.get(spot.get("water_type", "harbour"), "•")
+            map_lat, map_lon = _map_coords(spot)
+            is_selected = spot["name"] == selected_name
+            if is_selected:
+                border = "#ffe082"
+            elif spot.get("water_type") in {"ocean", "boat"}:
+                border = bg
+            else:
+                border = "#ffffff"
+            size = 24 if is_selected else 21
+            font_size = 13 if is_selected else 11
+            ring = (
+                "0 0 0 4px rgba(255,224,130,0.45),0 3px 8px rgba(0,0,0,0.34)"
+                if is_selected else
+                "0 3px 8px rgba(0,0,0,0.34)"
+            )
+            icon = folium.DivIcon(
                 html=(
-                    f'<div style="background:{bg};border:2px solid white;border-radius:50%;'
-                    f'width:24px;height:24px;display:flex;align-items:center;justify-content:center;'
-                    f'font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,0.35);cursor:pointer">'
+                    f'<div style="background:{bg};border:2.5px solid {border};border-radius:50%;'
+                    f'width:{size}px;height:{size}px;display:flex;align-items:center;justify-content:center;'
+                    f'font-size:{font_size}px;line-height:1;box-shadow:{ring};cursor:pointer;'
+                    f'transition:all 120ms ease">'
                     f'{emoji}</div>'
                 ),
-                icon_size=(24, 24),
-                icon_anchor=(12, 12),
+                icon_size=(size, size),
+                icon_anchor=(size // 2, size // 2),
             )
             folium.Marker(
-                location=[spot["lat"], spot["lon"]],
+                location=[map_lat, map_lon],
                 icon=icon,
                 tooltip=spot["name"],
                 popup=spot["name"],
             ).add_to(m)
 
-        legend_html = """
-        <div style="position:absolute;bottom:28px;right:10px;z-index:9999;
-                    background:white;border-radius:10px;padding:8px 12px;
-                    box-shadow:0 2px 8px rgba(0,0,0,0.18);font-size:11px;line-height:1.8">
-          <div style="font-weight:700;color:#333;margin-bottom:3px">图例 Legend</div>
-          <div>🌊 外海 &nbsp; ⚓ 内湾 &nbsp; 🔀 咸淡水 &nbsp; 🏞️ 淡水</div>
-          <div style="display:flex;gap:8px;margin-top:3px;align-items:center">
-            <span style="background:#4f9b76;width:10px;height:10px;border-radius:50%;display:inline-block"></span>推荐
-            <span style="background:#d99540;width:10px;height:10px;border-radius:50%;display:inline-block"></span>谨慎
-            <span style="background:#cc5e54;width:10px;height:10px;border-radius:50%;display:inline-block"></span>危险
+        legend_html = f"""
+        <div style="position:absolute;top:12px;right:12px;z-index:9999;
+                    background:rgba(255,255,255,0.94);border:1px solid rgba(15,30,50,0.10);
+                    border-radius:10px;padding:9px 12px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.12);font-size:11px;line-height:1.8">
+          <div style="font-family:IBM Plex Mono,monospace;font-size:9.5px;letter-spacing:1.2px;
+                      color:#8a9cb2;text-transform:uppercase;margin-bottom:2px">MAP STATUS</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <span><span style="background:#4f9b76;width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px"></span>推荐 {status_counts["sage"]}</span>
+            <span><span style="background:#d99540;width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px"></span>谨慎 {status_counts["amber"]}</span>
+            <span><span style="background:#cc5e54;width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px"></span>危险 {status_counts["coral"]}</span>
           </div>
+          <div style="color:#5b6e87;font-size:10.5px;border-top:1px solid rgba(15,30,50,0.08);
+                      margin-top:4px;padding-top:3px">🌊 外海 · ⚓ 内湾 · 🔀 咸淡水 · 🏞️ 淡水</div>
         </div>"""
         m.get_root().html.add_child(folium.Element(legend_html))
 
@@ -1348,6 +1505,8 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
             returned_objects=["last_object_clicked"],
             key=f"map_{day_offset}",
         )
+        if len(all_spot_data) > MAP_MARKER_LIMIT:
+            st.caption(f"地图已显示前 {MAP_MARKER_LIMIT} 个钓点以提升速度（列表仍显示全部）。")
 
     with col_detail:
         clicked = (map_data or {}).get("last_object_clicked")
@@ -1356,20 +1515,33 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
             st.html("""
             <div style="height:430px;display:flex;flex-direction:column;
                         align-items:center;justify-content:center;
-                        background:white;border-radius:14px;
-                        box-shadow:0 2px 12px rgba(0,0,0,0.07);
-                        color:#ccc;text-align:center;padding:20px">
-                <div style="font-size:2.4em;margin-bottom:14px">🗺️</div>
-                <div style="font-size:0.95em;font-weight:600;color:#bbb">点击地图标记</div>
-                <div style="font-size:0.82em;margin-top:6px;color:#ccc">查看钓点详细信息</div>
+                        background:linear-gradient(180deg,#ffffff 0%,#f7f9fb 100%);
+                        border:1px solid var(--line);border-radius:14px;
+                        box-shadow:0 2px 12px rgba(15,30,50,0.08);
+                        color:#6f8196;text-align:center;padding:20px">
+                <div style="width:104px;height:104px;border-radius:50%;
+                            border:1px solid #e3ecf5;background:#eef4fb;
+                            display:flex;align-items:center;justify-content:center;
+                            margin-bottom:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.8)">
+                    <div style="font-size:56px;line-height:1">🗺️</div>
+                </div>
+                <div style="font-family:var(--serif-zh);font-size:1.04em;font-weight:600;color:#2a3e55">
+                    点击地图标记
+                </div>
+                <div style="font-size:0.84em;margin-top:6px;color:#8a9cb2">
+                    查看钓点详细信息
+                </div>
             </div>
             """)
         else:
             clat, clng = clicked["lat"], clicked["lng"]
             spot, safety, tides, weather = min(
-                all_spot_data,
-                key=lambda x: abs(x[0]["lat"] - clat) + abs(x[0]["lon"] - clng),
+                map_spot_data,
+                key=lambda x: abs(_map_coords(x[0])[0] - clat) + abs(_map_coords(x[0])[1] - clng),
             )
+            if st.session_state.get(selected_key) != spot["name"]:
+                st.session_state[selected_key] = spot["name"]
+                st.rerun()
             _render_map_spot_detail(spot, safety, tides, weather)
 
 
@@ -1413,18 +1585,17 @@ def render_day_tab(day_offset: int) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
-    filtered = [s for s in spots if spot_matches(s)]
-    all_spot_data = []
-    for spot in filtered:
-        forecast   = get_marine_forecast(spot["lat"], spot["lon"])
-        spot_day_w = forecast["days"][day_offset]
-        safety     = assess_safety(spot, spot_day_w)
-        tides      = get_tides_for_date(target_date, spot["tide_delay"])
-        all_spot_data.append((spot, safety, tides, spot_day_w))
-
-    # 按安全状态排序：推荐 → 谨慎 → 危险
-    _safety_order = {"sage": 0, "amber": 1, "coral": 2}
-    all_spot_data.sort(key=lambda x: _safety_order.get(x[1]["color"], 3))
+    payload = _build_day_payload(
+        day_offset,
+        tuple(selected_methods),
+        tuple(selected_fish),
+        selected_region,
+        water_type,
+        family_only,
+    )
+    filtered = payload["filtered"]
+    forecast_by_spot = payload["forecast_by_spot"]
+    all_spot_data = payload["all_spot_data"]
 
     section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
     render_decision_panel(all_spot_data, day_w, base_tides, label)
@@ -1434,7 +1605,7 @@ def render_day_tab(day_offset: int) -> None:
     for _di in range(3):
         _cnt = sum(
             1 for spot in filtered
-            if assess_safety(spot, get_marine_forecast(spot["lat"], spot["lon"])["days"][_di])["color"] == "sage"
+            if assess_safety(spot, forecast_by_spot[spot["name"]]["days"][_di])["color"] == "sage"
         )
         day_safe_counts.append(_cnt)
     best_di   = day_safe_counts.index(max(day_safe_counts))
@@ -1476,7 +1647,14 @@ def render_day_tab(day_offset: int) -> None:
         top3 = top_safe[:3]
         cols = st.columns(len(top3))
         for col, (spot, safety, tides, dw) in zip(cols, top3):
-            render_hero_card(col, spot, safety, dw, tides)
+            render_hero_card(
+                col,
+                spot,
+                safety,
+                dw,
+                tides,
+                forecast_days=forecast_by_spot[spot["name"]]["days"],
+            )
         if is_amber_fallback:
             st.markdown(
                 '<div style="background:#fcf2e0;border-radius:10px;padding:10px 16px;'
@@ -1511,7 +1689,14 @@ def render_day_tab(day_offset: int) -> None:
     )
     visible = 0
     for spot, safety, spot_tides, spot_day_w in visible_list:
-        render_spot_card(spot, safety, spot_tides, spot_day_w, day_offset)
+        render_spot_card(
+            spot,
+            safety,
+            spot_tides,
+            spot_day_w,
+            day_offset,
+            forecast_days=forecast_by_spot[spot["name"]]["days"],
+        )
         visible += 1
     if visible == 0:
         active_filters = []
@@ -1531,33 +1716,62 @@ today = datetime.now()
 date_str = f"{today.year} 年 {today.month} 月 {today.day} 日"
 weekdays = ["周一","周二","周三","周四","周五","周六","周日"]
 weekday  = weekdays[today.weekday()]
+hero_spots = [spot for spot in spots if spot_matches(spot)]
+hero_safe = 0
+hero_ocean_danger = 0
+hero_forecast_by_coord = {}
+for _spot in hero_spots:
+    _w_lat, _w_lon = _weather_coords(_spot)
+    _key = _forecast_key(_w_lat, _w_lon)
+    if _key not in hero_forecast_by_coord:
+        hero_forecast_by_coord[_key] = get_marine_forecast(_w_lat, _w_lon)
+    _today_weather = hero_forecast_by_coord[_key]["days"][0]
+    _safety = assess_safety(_spot, _today_weather)
+    if _safety["color"] == "sage":
+        hero_safe += 1
+    if _spot.get("water_type") in {"ocean", "boat"} and _safety["color"] == "coral":
+        hero_ocean_danger += 1
 
 st.markdown(
     f'<div class="hero" style="position:relative;border-radius:14px;overflow:hidden;'
     f'padding:28px 32px;background:linear-gradient(110deg,#1f4a8d 0%,#2a5fb0 55%,#3479c9 100%);'
-    f'color:#fff;margin-bottom:16px">'
+    f'color:#fff;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">'
+    f'<div style="min-width:280px;flex:1">'
     f'<div style="font-family:IBM Plex Mono;font-size:11px;letter-spacing:2px;'
     f'color:rgba(255,255,255,0.7);text-transform:uppercase;margin-bottom:8px">'
     f'实时海况 · 潮汐推算 · 智能推荐</div>'
-    f'<h1 style="font-family:Noto Serif SC,serif;font-size:32px;font-weight:600;'
-    f'color:#fff;margin:0 0 6px">悉尼钓鱼助手 '
-    f'<span style="font-family:Source Serif 4,Georgia,serif;font-style:italic;'
-    f'color:#c69230;font-weight:400">Pro+</span></h1>'
+    f'<h1 class="brand-q" style="font-size:38px;font-weight:400;'
+    f'color:#fff;margin:0 0 6px;display:flex;align-items:center;gap:10px">上鱼啦'
+    + (
+        f'<span class="brand-mascot-wrap">'
+        f'<img src="{_MASCOT_DATA_URL}" class="brand-mascot" alt="mascot"/>'
+        f'<span class="brand-bubble b1"></span>'
+        f'<span class="brand-bubble b2"></span>'
+        f'</span>'
+        if _MASCOT_DATA_URL else ''
+    )
+    + '</h1>'
     f'<div style="font-size:14px;color:rgba(255,255,255,0.8)">'
     f'{date_str} · {weekday} · 悉尼</div>'
+    f'</div>'
+    f'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
+    f'{_hero_stat_tile(str(len(hero_spots)), "匹配钓点", "Spots indexed", hint="当前筛选后纳入评估的钓点数量。")}'
+    f'{_hero_stat_tile(str(hero_safe), "今日推荐", "Recommend now", "gold", hint="根据当天风浪阈值评估为“推荐”的钓点数量。")}'
+    f'{_hero_stat_tile(f"{hero_ocean_danger} 个", "高风险点（外海/船钓）", "High-risk spots", hint="外海或船钓点中，今日安全评估为危险的数量。")}'
+    f'</div>'
     f'</div>',
     unsafe_allow_html=True,
 )
 
 today_obj = datetime.now()
-tab1, tab2, tab3 = st.tabs([
+day_options = [
     f"今天  {today_obj.strftime('%m/%d')}  Today",
     f"明天  {(today_obj + timedelta(days=1)).strftime('%m/%d')}  Tomorrow",
     f"后天  {(today_obj + timedelta(days=2)).strftime('%m/%d')}  Day after",
-])
-with tab1: render_day_tab(0)
-with tab2: render_day_tab(1)
-with tab3: render_day_tab(2)
+]
+selected_day_label = st.radio("选择日期", day_options, horizontal=True, label_visibility="collapsed")
+selected_day_offset = day_options.index(selected_day_label)
+render_day_tab(selected_day_offset)
 
 st.markdown("---")
 st.markdown("""

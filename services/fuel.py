@@ -25,24 +25,29 @@ _PRICES_URL = f"{_BASE}/FuelPriceCheck/v1/fuel/prices"
 
 _token_cache: dict = {}
 _prices_cache: dict = {}
+_last_error: str = ""
 
 _FUEL_PRIORITY = ["P95", "P98", "E10", "U91", "PDL", "DL", "B20", "LPG"]
 _EXCLUDE_FUEL  = {"EV", "H2"}  # 跳过电动/氢燃料
 
 
 def _get_credentials() -> Optional[tuple]:
+    global _last_error
     try:
         fc = st.secrets.get("fuelcheck", {})
         key    = fc.get("consumer_key", "")
         secret = fc.get("consumer_secret", "")
         if key and secret:
+            _last_error = ""
             return key, secret
-    except Exception:
-        pass
+        _last_error = "FuelCheck credentials are not configured"
+    except Exception as exc:
+        _last_error = f"Unable to read FuelCheck credentials: {exc}"
     return None
 
 
 def _fetch_token(key: str, secret: str) -> Optional[str]:
+    global _last_error
     now = time.time()
     if _token_cache.get("token") and now < _token_cache.get("expires_at", 0):
         return _token_cache["token"]
@@ -58,17 +63,23 @@ def _fetch_token(key: str, secret: str) -> Optional[str]:
         if r.status_code == 200:
             data = r.json()
             token = data.get("access_token")
+            if not token:
+                _last_error = "FuelCheck token response did not include access_token"
+                return None
             expires_in = int(data.get("expires_in", 43199))
             _token_cache["token"] = token
             _token_cache["expires_at"] = now + expires_in - 60
+            _last_error = ""
             return token
-    except Exception:
-        pass
+        _last_error = f"FuelCheck token request failed with HTTP {r.status_code}"
+    except Exception as exc:
+        _last_error = f"FuelCheck token request failed: {exc}"
     return None
 
 
 def _fetch_all_prices(key: str, token: str) -> tuple[list, dict]:
     """返回 (stations_list, prices_by_code)，缓存30分钟。"""
+    global _last_error
     now = time.time()
     if _prices_cache.get("data") and now < _prices_cache.get("expires_at", 0):
         return _prices_cache["data"]
@@ -102,10 +113,16 @@ def _fetch_all_prices(key: str, token: str) -> tuple[list, dict]:
             result = (station_map, price_map)
             _prices_cache["data"] = result
             _prices_cache["expires_at"] = now + 1800
+            _last_error = ""
             return result
-    except Exception:
-        pass
+        _last_error = f"FuelCheck price request failed with HTTP {r.status_code}"
+    except Exception as exc:
+        _last_error = f"FuelCheck price request failed: {exc}"
     return {}, {}
+
+
+def get_last_fuel_error() -> str:
+    return _last_error
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):

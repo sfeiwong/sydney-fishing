@@ -52,6 +52,37 @@ FISH_LEGAL_SIZE = {
     "Golden Perch (黄金鲈)":       {"size": 30,   "bag": 5,   "note": ""},
     "Carp (锦鲤)":                 {"size": None, "bag": None,"note": "有害物种·须就地处理"},
     "Catfish (鲶鱼)":              {"size": 20,   "bag": None,"note": ""},
+    "Snapper (真鲷)":              {"size": 30,   "bag": 10,  "note": ""},
+    "Trevally (鲹鱼)":             {"size": None, "bag": 20,  "note": "无最小尺寸"},
+    "Bonito (鲣鱼)":               {"size": None, "bag": None,"note": "无限制"},
+    "Mackerel (鲭鱼)":             {"size": None, "bag": None,"note": "无限制"},
+    "Tuna (金枪鱼)":               {"size": None, "bag": None,"note": "无限制"},
+    "Garfish (针鱼)":              {"size": None, "bag": 40,  "note": "无最小尺寸"},
+}
+
+# 鱼种烹饪建议（按家庭实用口味）
+FISH_COOKING = {
+    "Bream (鳊鱼)": "清蒸 / 盐烤整鱼",
+    "Flathead (牛鳅)": "香煎鱼柳 / 炸鱼薯条",
+    "Whiting (沙尖)": "薄粉酥炸 / 黄油煎",
+    "Squid (鱿鱼)": "蒜香快炒 / 椒盐圈",
+    "Kingfish (黄尾师)": "刺身 / 柚子胡椒炙烤",
+    "Tailor (蓝鱼)": "烟熏 / 香料烤",
+    "Salmon (三文鱼)": "香煎 / 味噌烤",
+    "Drummer (黑毛)": "姜葱清蒸 / 红烧",
+    "Jewfish (皇冠鲊)": "鱼排香煎 / 黄油烤",
+    "Leatherjacket (剥皮鱼)": "奶油煎 / 清蒸",
+    "Blue Groper (蓝唇鱼)": "受保护物种，不建议烹饪",
+    "Australian Bass (澳洲鲈鱼)": "香煎 / 纸包烤",
+    "Golden Perch (黄金鲈)": "清蒸 / 豆豉蒸",
+    "Carp (锦鲤)": "不建议食用",
+    "Catfish (鲶鱼)": "香煎 / 咖喱炖",
+    "Snapper (真鲷)": "清蒸 / 烤箱整鱼",
+    "Trevally (鲹鱼)": "刺身 / 盐烤",
+    "Bonito (鲣鱼)": "炙烧 / 烟熏",
+    "Mackerel (鲭鱼)": "味噌煮 / 香煎",
+    "Tuna (金枪鱼)": "刺身 / 低温煎封",
+    "Garfish (针鱼)": "香煎 / 炸制",
 }
 
 # 筛选下拉框选项
@@ -84,4 +115,11 @@ ALL_FISH = [
     "Golden Perch (黄金鲈)",
     "Carp (锦鲤)",
     "Catfish (鲶鱼)",
+    # 扩展常见海鱼
+    "Snapper (真鲷)",
+    "Trevally (鲹鱼)",
+    "Bonito (鲣鱼)",
+    "Mackerel (鲭鱼)",
+    "Tuna (金枪鱼)",
+    "Garfish (针鱼)",
 ]

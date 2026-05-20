@@ -1,0 +1,37 @@
+name: Spot Audit
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+  schedule:
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+
+jobs:
+  integrity-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fast integrity checks
+        run: python -m unittest tests.test_loader tests.test_coordinates tests.test_spot_integrity
+
+      - name: Weekly/full audit
+        run: python scripts/spot_audit.py
+
+      - name: Upload audit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spot-audit-report
+          path: reports/spot_audit_latest.json
