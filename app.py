@@ -1,5 +1,5 @@
 # ============================================================
-# app.py — 上鱼啦 主程序
+# app.py — 上鱼啦 Beta 主程序
 # ============================================================
 
 import math
@@ -27,7 +27,7 @@ from data.loader import load_spots
 from domain.safety import assess_safety
 
 st.set_page_config(
-    page_title="上鱼啦",
+    page_title="上鱼啦 Beta",
     page_icon="🐟",
     layout="wide",
 )
@@ -61,7 +61,9 @@ with st.sidebar:
         )
         +
         '<div><div class="brand-q" style="font-size:20px;font-weight:400;'
-        'color:var(--text-on-dark);line-height:1.05">上鱼啦</div>'
+        'color:var(--text-on-dark);line-height:1.05">上鱼啦'
+        '<span style="font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:1.2px;'
+        'opacity:0.78;margin-left:6px;vertical-align:middle">BETA</span></div>'
         '<div style="margin-top:4px">'
         '<span style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
         'color:var(--gold);background:rgba(198,146,48,0.18);padding:2px 7px;border-radius:4px">'
@@ -1742,6 +1744,8 @@ st.markdown(
     f'实时海况 · 潮汐推算 · 智能推荐</div>'
     f'<h1 class="brand-q" style="font-size:38px;font-weight:400;'
     f'color:#fff;margin:0 0 6px;display:flex;align-items:center;gap:10px">上鱼啦'
+    f'<span style="font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:1.4px;'
+    f'opacity:0.82;margin-left:2px">BETA</span>'
     + (
         f'<span class="brand-mascot-wrap">'
         f'<img src="{_MASCOT_DATA_URL}" class="brand-mascot" alt="mascot"/>'
