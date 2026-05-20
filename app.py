@@ -984,10 +984,10 @@ def render_spot_card(
     stat_tone = safety["color"] if safety["color"] != "sage" else "text"
 
     st.markdown(
-        f'<div style="position:relative;background:white;border-radius:14px;'
+        f'<div style="position:relative;background:white;border-radius:14px 14px 0 0;'
         f'box-shadow:0 2px 8px rgba(24,66,112,0.05);'
-        f'border:1px solid rgba(219,231,242,0.85);'
-        f'margin-bottom:6px;padding:16px 18px 14px 24px;overflow:hidden">'
+        f'border:1px solid rgba(219,231,242,0.85);border-bottom:none;'
+        f'margin-bottom:0;padding:16px 18px 14px 24px;overflow:hidden">'
 
         f'<div style="position:absolute;left:0;top:0;bottom:0;width:5px;'
         f'background:{border};border-radius:14px 0 0 14px"></div>'
@@ -1026,7 +1026,7 @@ def render_spot_card(
         st.session_state[toggle_key] = False
     is_open = st.session_state[toggle_key]
 
-    if st.button("收起详情" if is_open else "展开详情", key=toggle_key + "_btn"):
+    if st.button("↑ 收起" if is_open else "↓ 展开详情", key=toggle_key + "_btn", use_container_width=True):
         st.session_state[toggle_key] = not is_open
         st.rerun()
 
