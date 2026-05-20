@@ -16,6 +16,7 @@ from config import (
     ALL_METHODS, ALL_FISH,
     OCEAN_SWELL_DANGER, OCEAN_WIND_DANGER,
     SHELTERED_SWELL_WARN, SHELTERED_WIND_WARN,
+    REGION_FILTER_MAP, FISH_LEGAL_SIZE,
 )
 from services.weather import get_marine_forecast
 from services.tides import get_tides_for_date
@@ -143,10 +144,32 @@ with st.sidebar:
         'color:var(--gold);opacity:0.8;margin-bottom:8px">智能筛选</div>',
         unsafe_allow_html=True,
     )
-    selected_methods = st.multiselect("钓法", ALL_METHODS, placeholder="选择钓法 · Method")
-    selected_fish    = st.multiselect("目标鱼种", ALL_FISH, placeholder="选择鱼种 · Species")
-    selected_region  = st.selectbox("区域", ["全部 · All Sydney", "内湾", "外海", "北区", "东区", "南区"])
+    selected_methods = st.multiselect("钓法", ALL_METHODS, key="sel_methods", placeholder="选择钓法 · Method")
+    selected_fish    = st.multiselect("目标鱼种", ALL_FISH, key="sel_fish", placeholder="选择鱼种 · Species")
+    selected_region  = st.selectbox(
+        "地理区域",
+        ["全部 · All Sydney"] + list(REGION_FILTER_MAP.keys()),
+    )
+    water_type       = st.selectbox("水域类型", ["全部 · All", "🌊 外海 Ocean", "⚓ 内湾 Harbour", "🔀 咸淡水 Brackish", "🏞️ 淡水 Freshwater"])
     safe_only        = st.checkbox("隐藏危险钓点 ⚠", value=False)
+    family_only      = st.checkbox("仅看家庭友好 👨‍👩‍👧 (⭐⭐⭐⭐+)", value=False)
+
+    if st.button("↺ 重置所有筛选", use_container_width=True):
+        st.session_state["sel_methods"] = []
+        st.session_state["sel_fish"] = []
+        st.rerun()
+
+    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div style="border:1px solid rgba(255,255,255,0.1);border-radius:10px;'
+        'padding:10px 12px;font-size:11.5px;color:var(--muted-on-dark);line-height:1.7">'
+        '🎫 <b style="color:var(--text-on-dark)">NSW 钓鱼执照</b><br>'
+        '16 岁以上须持有免费<br>休闲钓鱼凭证（RFL）<br>'
+        '<a href="https://www.dpi.nsw.gov.au/fishing/recreational/fishing-rules-and-regulations/recreational-fishing-fee" '
+        'target="_blank" style="color:var(--gold)">立即免费登记 →</a>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
     st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
     st.markdown(
@@ -248,44 +271,180 @@ def _parse_tag(tag: str) -> tuple:
     return tag, ""
 
 
+_WT_LABEL = {"ocean": "🌊 外海", "harbour": "⚓ 内湾", "brackish": "🔀 咸淡水", "freshwater": "🏞️ 淡水"}
+_WT_PILL  = {"ocean": "blue", "harbour": "blue", "brackish": "violet", "freshwater": "sage"}
+_WT_EMOJI = {"ocean": "🌊", "harbour": "⚓", "brackish": "🔀", "freshwater": "🏞️"}
+
+
+def _wt_pill(spot: dict, sm: bool = True) -> str:
+    wt = spot.get("water_type", "harbour")
+    return _pill(_WT_LABEL.get(wt, wt), _WT_PILL.get(wt, "blue"), sm=sm)
+
+
+def _freshwater_season_pill() -> str:
+    month = datetime.now().month
+    if 4 <= month <= 10:
+        return _pill("🎯 旺季", "sage")
+    return _pill("☀️ 淡季", "amber")
+
+
+# 咸水鱼种旺季（月份列表）
+_FISH_PEAK_MONTHS = {
+    "Kingfish (黄尾师)":   [10, 11, 12, 1, 2, 3],   # 夏季回游
+    "Tailor (蓝鱼)":       [3, 4, 5, 6, 7, 8, 9],    # 秋冬
+    "Salmon (三文鱼)":     [3, 4, 5, 6, 7, 8],        # 秋冬
+    "Drummer (黑毛)":      [4, 5, 6, 7, 8, 9, 10],    # 凉季
+    "Jewfish (皇冠鲊)":    [10, 11, 12, 1, 2],        # 夏季
+    "Squid (鱿鱼)":        [3, 4, 5, 6, 7, 8, 9, 10], # 秋冬春
+    "Australian Bass (澳洲鲈鱼)": [4, 5, 6, 7, 8, 9, 10],
+    "Golden Perch (黄金鲈)": [4, 5, 6, 7, 8, 9],
+}
+
+def _saltwater_season_pills(fish_tags: list) -> str:
+    month = datetime.now().month
+    in_season = [t for t in fish_tags if month in _FISH_PEAK_MONTHS.get(t, [])]
+    if not in_season:
+        return ""
+    en_names = [_parse_tag(t)[0] for t in in_season[:2]]
+    label = "·".join(en_names) + " 旺季"
+    return _pill(f"🎯 {label}", "sage")
+
+
+def _moon_phase(target_date: datetime) -> tuple:
+    """Return (emoji, name_zh, fishing_tip) for the moon phase on target_date."""
+    # Synodic period ≈ 29.53 days; reference new moon: 2000-01-06
+    ref = datetime(2000, 1, 6)
+    days = (target_date.replace(tzinfo=None) - ref).days % 29.53
+    if days < 1.85:
+        return "🌑", "新月", "潮差最大·鱼类进食最活跃"
+    elif days < 7.38:
+        return "🌒", "上弦前", "潮汐渐强·适合出击"
+    elif days < 9.22:
+        return "🌓", "上弦月", "潮汐适中"
+    elif days < 14.77:
+        return "🌔", "渐盈凸月", "潮汐渐强"
+    elif days < 16.61:
+        return "🌕", "满月", "潮差最大·夜钓黄金期"
+    elif days < 22.15:
+        return "🌖", "渐亏凸月", "潮汐渐弱"
+    elif days < 23.99:
+        return "🌗", "下弦月", "潮汐适中"
+    else:
+        return "🌘", "残月", "潮汐偏弱·选内湾佳"
+
+
+def _legal_sizes_html(fish_tags: list) -> str:
+    rows = []
+    for tag in fish_tags:
+        info = FISH_LEGAL_SIZE.get(tag, {})
+        size = info.get("size")
+        bag  = info.get("bag")
+        note = info.get("note", "")
+        _, cn = _parse_tag(tag)
+        label = cn or tag
+
+        if "禁捕" in note or "保护" in note:
+            size_str = '<span style="color:#cc5e54;font-weight:700">⚠️ 禁捕</span>'
+        elif "有害" in note:
+            size_str = '<span style="color:#d99540;font-weight:700">须就地处理</span>'
+        elif size:
+            size_str = f'<span style="color:#2a5fb0;font-weight:700">≥ {size} cm</span>'
+        else:
+            size_str = '<span style="color:#8a9cb2">无限制</span>'
+
+        bag_str = ""
+        if bag is not None and bag > 0:
+            bag_str = f' <span style="color:#8a9cb2;font-size:10px">袋限 {bag} 条</span>'
+        elif bag == 0:
+            bag_str = ""
+
+        rows.append(
+            f'<div style="display:flex;align-items:center;justify-content:space-between;'
+            f'padding:4px 0;border-bottom:1px solid var(--line)">'
+            f'<span style="font-size:11.5px;color:var(--text)">{label}</span>'
+            f'<span style="font-size:11.5px">{size_str}{bag_str}</span>'
+            f'</div>'
+        )
+    return "".join(rows)
+
+
 def spot_matches(spot: dict) -> bool:
     if selected_methods and not any(m in spot["supported_methods"] for m in selected_methods):
         return False
     if selected_fish and not any(f in spot["fish_tags"] for f in selected_fish):
         return False
     if selected_region and selected_region != "全部 · All Sydney":
-        key = selected_region.split(" · ")[0] if " · " in selected_region else selected_region
-        if key not in spot["region"]:
+        keywords = REGION_FILTER_MAP.get(selected_region, [selected_region])
+        if not any(kw in spot["region"] for kw in keywords):
+            return False
+    wt_map = {
+        "🌊 外海 Ocean":       "ocean",
+        "⚓ 内湾 Harbour":     "harbour",
+        "🔀 咸淡水 Brackish":  "brackish",
+        "🏞️ 淡水 Freshwater": "freshwater",
+    }
+    if water_type in wt_map and spot.get("water_type") != wt_map[water_type]:
+        return False
+    if family_only:
+        stars = spot["family_friendly"].count("⭐")
+        if stars < 4:
             return False
     return True
 
 
 def assess_safety(spot: dict, day_weather: dict) -> dict:
-    swell = day_weather.get("swell_height") or 0.0
-    wind  = day_weather.get("wind") or 0.0
+    wt   = spot.get("water_type", "harbour")
+    wind = day_weather.get("wind") or 0.0
 
-    if not spot["sheltered"] and (swell > OCEAN_SWELL_DANGER or wind > OCEAN_WIND_DANGER):
+    if wt == "freshwater":
+        if wind > SHELTERED_WIND_WARN:
+            return {
+                "status": "⚠️ 谨慎前往",
+                "score":  "⭐⭐⭐",
+                "safe":   True,
+                "color":  "amber",
+                "advice": (
+                    f"风速偏大（{wind}km/h），建议在河岸树林背风处作钓，"
+                    "浮漂容易飘偏，适当加重线组。"
+                ),
+            }
         return {
-            "status": "❌ 极度危险",
-            "score":  "⭐",
-            "safe":   False,
-            "color":  "coral",
-            "advice": (
-                f"外海浪涌预计 {swell}m，风速 {wind}km/h，"
-                "该点属于完全暴露的外海地形，极其危险！请转移到内湾避风钓点。"
-            ),
-        }
-    if spot["sheltered"] and (swell > SHELTERED_SWELL_WARN or wind > SHELTERED_WIND_WARN):
-        return {
-            "status": "⚠️ 谨慎前往",
-            "score":  "⭐⭐⭐",
+            "status": "✅ 极力推荐",
+            "score":  "⭐⭐⭐⭐⭐",
             "safe":   True,
-            "color":  "amber",
-            "advice": (
-                f"风速偏大（{wind}km/h），内湾虽可避浪，但顶风抛投体感较差，"
-                "建议选背风位或大桥底部作钓。"
-            ),
+            "color":  "sage",
+            "advice": "淡水河湖天气良好，非常适合出击，祝大鱼大获！🎉",
         }
+
+    swell = day_weather.get("swell_height") or 0.0
+
+    if wt == "ocean":
+        if swell > OCEAN_SWELL_DANGER or wind > OCEAN_WIND_DANGER:
+            return {
+                "status": "❌ 极度危险",
+                "score":  "⭐",
+                "safe":   False,
+                "color":  "coral",
+                "advice": (
+                    f"外海浪涌预计 {swell}m，风速 {wind}km/h，"
+                    "该点属于完全暴露的外海地形，极其危险！请转移到内湾避风钓点。"
+                ),
+            }
+    else:  # harbour or brackish
+        if swell > SHELTERED_SWELL_WARN or wind > SHELTERED_WIND_WARN:
+            advice_detail = (
+                "咸淡水区域受地形保护，但风浪仍偏大，抛投受影响，建议选背风岸边作钓。"
+                if wt == "brackish" else
+                "内湾虽可避浪，但顶风抛投体感较差，建议选背风位或大桥底部作钓。"
+            )
+            return {
+                "status": "⚠️ 谨慎前往",
+                "score":  "⭐⭐⭐",
+                "safe":   True,
+                "color":  "amber",
+                "advice": f"风速偏大（{wind}km/h），{advice_detail}",
+            }
+
     return {
         "status": "✅ 极力推荐",
         "score":  "⭐⭐⭐⭐⭐",
@@ -303,7 +462,7 @@ def _val_color(value: float, warn: float, danger: float) -> str:
 
 # ── 天气面板 ──────────────────────────────────────────────────────────────
 
-def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
+def render_weather_panel(day_weather: dict, data_ok: bool, next_day: dict = None) -> None:
     if not data_ok:
         st.warning("⚠️ 天气数据加载失败，以下为估算值。")
 
@@ -327,6 +486,20 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
     r_col = "#cc5e54" if rain_prob >= 60 else ("#d99540" if rain_prob >= 25 else "#4f9b76")
     w_col = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
     s_col = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
+
+    def _trend(cur, nxt, label="明天"):
+        if nxt is None: return ""
+        ratio = nxt / cur if cur > 0 else 1
+        if ratio < 0.85:
+            return f'<span style="font-size:11px;color:#4f9b76;font-weight:600">↓ {label}改善</span>'
+        if ratio > 1.15:
+            return f'<span style="font-size:11px;color:#cc5e54;font-weight:600">↑ {label}恶化</span>'
+        return f'<span style="font-size:11px;color:#8a9cb2">→ {label}持平</span>'
+
+    nd_wind  = (next_day.get("wind") or 0)  if next_day else None
+    nd_swell = (next_day.get("swell_height") or 0) if next_day else None
+    wind_trend  = _trend(wind,  nd_wind)
+    swell_trend = _trend(swell, nd_swell)
 
     def _card(label, body_html):
         return (
@@ -372,10 +545,13 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
     """), unsafe_allow_html=True)
 
     row2_c1.markdown(_card("风 · WIND", f"""
-        <div style="margin-bottom:10px">
-            <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
-                        color:{w_col};line-height:1">{wind}</div>
-            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">风速 km/h</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+                <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                            color:{w_col};line-height:1">{wind}</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:4px">风速 km/h</div>
+            </div>
+            <div style="text-align:right;padding-top:4px">{wind_trend}</div>
         </div>
         <div style="font-size:12.5px;color:var(--muted);line-height:1.8">
             <span style="color:var(--text);font-weight:500">{wind_dir_text}</span>
@@ -385,10 +561,13 @@ def render_weather_panel(day_weather: dict, data_ok: bool) -> None:
     """), unsafe_allow_html=True)
 
     row2_c2.markdown(_card("浪涌 · SWELL", f"""
-        <div style="margin-bottom:10px">
-            <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
-                        color:{s_col};line-height:1">{swell}</div>
-            <div style="font-size:11.5px;color:var(--muted);margin-top:4px">浪高 m</div>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+            <div>
+                <div style="font-family:var(--serif-en);font-size:36px;font-weight:400;
+                            color:{s_col};line-height:1">{swell}</div>
+                <div style="font-size:11.5px;color:var(--muted);margin-top:4px">浪高 m</div>
+            </div>
+            <div style="text-align:right;padding-top:4px">{swell_trend}</div>
         </div>
         <div style="font-size:12.5px;color:var(--muted);line-height:1.8">
             <span style="color:var(--text);font-weight:500">{swell_dir_text}</span>
@@ -546,14 +725,35 @@ def render_hero_card(col, spot: dict, safety: dict, day_weather: dict, tides: li
     badge_bg = bg_map.get(safety["color"], "#e7f3ec")
     bar_grad = bar_map.get(safety["color"], bar_map["sage"])
 
-    swell = day_weather.get("swell_height") or 0
-    wind  = day_weather.get("wind") or 0
-    sw_color = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
-    wi_color = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
+    is_fw    = spot.get("water_type") == "freshwater"
+    swell    = day_weather.get("swell_height") or 0
+    wind     = day_weather.get("wind") or 0
+    sw_color = "#8a9cb2" if is_fw else _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
+    wi_color = _val_color(wind, SHELTERED_WIND_WARN, OCEAN_WIND_DANGER)
+    swell_val_html = "淡水" if is_fw else f"{swell}m"
+    swell_label    = "水域" if is_fw else "涌浪"
     time_window = _best_window_times(spot["best_window"], tides) if tides else "—"
 
     fish_html   = "".join(_pill(f, "blue") for f in spot["fish_tags"][:4])
     method_html = "".join(_pill(m, "violet") for m in spot["supported_methods"][:3])
+    wt_html     = _wt_pill(spot)
+    season_html = _freshwater_season_pill() if is_fw else _saltwater_season_pills(spot["fish_tags"])
+
+    # 三天预报 dots
+    _dc = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
+    _fc = get_marine_forecast(spot["lat"], spot["lon"])
+    _hero_dots = "".join(
+        f'<div style="text-align:center;line-height:1.2">'
+        f'<div style="font-size:9px;color:#aaa">{lb}</div>'
+        f'<div style="width:8px;height:8px;border-radius:50%;'
+        f'background:{_dc[assess_safety(spot,_fc["days"][di])["color"]]};margin:2px auto"></div>'
+        f'</div>'
+        for di, lb in enumerate(["今","明","后"])
+    )
+    hero_dots_html = (
+        f'<div style="display:flex;gap:3px;align-items:center;'
+        f'background:#f4f8fc;border-radius:7px;padding:3px 7px">{_hero_dots}</div>'
+    )
 
     col.markdown(f"""
     <div style="background:white;border-radius:20px;padding:18px 20px 16px 24px;
@@ -564,17 +764,20 @@ def render_hero_card(col, spot: dict, safety: dict, day_weather: dict, tides: li
                     background:{bar_grad};border-radius:20px 0 0 20px"></div>
         <div style="font-weight:800;font-size:1.0em;color:#102338;
                     line-height:1.35;margin-bottom:8px">{spot['name']}</div>
-        <span style="background:{badge_bg};color:{border};padding:3px 12px;
-                     border-radius:999px;font-size:0.78em;font-weight:700">
-            {safety['status']}
-        </span>
-        <div style="color:#60758a;font-size:0.78em;margin:8px 0 10px">
+        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+            <span style="background:{badge_bg};color:{border};padding:3px 12px;
+                         border-radius:999px;font-size:0.78em;font-weight:700">
+                {safety['status']}
+            </span>
+            {wt_html}{season_html}{hero_dots_html}
+        </div>
+        <div style="color:#60758a;font-size:0.78em;margin:4px 0 10px">
             📍 {spot['region']} &nbsp;·&nbsp; {spot['type']}
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px">
             <div style="background:#f7fafc;border-radius:12px;padding:8px 10px;border:1px solid #edf3f8">
-                <div style="color:#8fa3b1;font-size:0.66em;margin-bottom:3px">涌浪</div>
-                <div style="font-size:1.05em;font-weight:800;color:{sw_color}">{swell}m</div>
+                <div style="color:#8fa3b1;font-size:0.66em;margin-bottom:3px">{swell_label}</div>
+                <div style="font-size:1.05em;font-weight:800;color:{sw_color}">{swell_val_html}</div>
             </div>
             <div style="background:#f7fafc;border-radius:12px;padding:8px 10px;border:1px solid #edf3f8">
                 <div style="color:#8fa3b1;font-size:0.66em;margin-bottom:3px">风速</div>
@@ -606,14 +809,39 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
     bar_grad  = bar_map.get(safety["color"], bar_map["sage"])
     badge_txt = text_map.get(safety["color"], "#3a7f5d")
 
+    is_fw = spot.get("water_type") == "freshwater"
     swell = spot_weather.get("swell_height") or 0
     wind  = spot_weather.get("wind") or 0
-    sw_color    = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
+    sw_color    = "#8a9cb2" if is_fw else _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
     wi_color    = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
+    swell_val_html  = "淡水" if is_fw else f"{swell}m"
+    swell_label_str = "🏞️ 水域" if is_fw else "🌊 浪涌"
     time_window = _best_window_times(spot["best_window"], spot_tides)
 
     fish_chips   = "".join(_pill(f, "blue") for f in spot["fish_tags"])
     method_chips = "".join(_pill(m, "violet") for m in spot["supported_methods"][:5])
+    wt_badge     = _wt_pill(spot)
+    season_badge = _freshwater_season_pill() if is_fw else _saltwater_season_pills(spot["fish_tags"])
+
+    # 三天安全预报小圆点
+    _dot_c = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
+    _day_fc = get_marine_forecast(spot["lat"], spot["lon"])
+    _day_labels = ["今", "明", "后"]
+    _dots_parts = []
+    for _di, _lbl in enumerate(_day_labels):
+        _ds = assess_safety(spot, _day_fc["days"][_di])
+        _c  = _dot_c[_ds["color"]]
+        _dots_parts.append(
+            f'<div style="text-align:center;line-height:1.2">'
+            f'<div style="font-size:9px;color:#aaa">{_lbl}</div>'
+            f'<div style="width:9px;height:9px;border-radius:50%;background:{_c};margin:1px auto"></div>'
+            f'</div>'
+        )
+    three_day_dots = (
+        '<div style="display:flex;gap:4px;align-items:center;'
+        'background:#f4f8fc;border-radius:8px;padding:4px 7px">'
+        + "".join(_dots_parts) + "</div>"
+    )
 
     # Safety advice — only shown inline for amber/coral; sage is self-explanatory
     advice_html = ""
@@ -635,18 +863,20 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
         f'<div style="position:absolute;left:0;top:0;bottom:0;width:5px;'
         f'background:{bar_grad};border-radius:16px 0 0 16px"></div>'
 
-        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
+        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
         f'<div style="font-size:1.02em;font-weight:800;color:#102338">{spot["name"]}</div>'
         f'<span style="background:{badge_bg};color:{badge_txt};border:1px solid {border};'
         f'padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">'
         f'{safety["status"]}</span>'
+        f'{wt_badge}{season_badge}'
+        f'{three_day_dots}'
         f'<span style="color:#9ab0c0;font-size:0.78em">{spot["region"]} · {spot["type"]}</span>'
         f'</div>'
 
         f'<div style="display:flex;gap:10px;margin-bottom:10px;flex-wrap:wrap">'
         f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">'
-        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">🌊 浪涌</div>'
-        f'<div style="font-size:1.08em;font-weight:800;color:{sw_color}">{swell}m</div>'
+        f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">{swell_label_str}</div>'
+        f'<div style="font-size:1.08em;font-weight:800;color:{sw_color}">{swell_val_html}</div>'
         f'</div>'
         f'<div style="background:#f4f8fc;border-radius:10px;padding:7px 14px;text-align:center;min-width:76px">'
         f'<div style="font-size:0.66em;color:#bbb;margin-bottom:2px">💨 风速</div>'
@@ -689,19 +919,39 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
         )
 
         # ── Tide rows ────────────────────────────────────────
-        tide_rows = ""
-        for td in spot_tides:
-            dot = "#c69230" if td["is_high"] else "#8a9cb2"
-            lbl = "满潮" if td["is_high"] else "干潮"
-            tide_rows += (
-                f'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'
-                f'border-bottom:1px solid var(--line)">'
-                f'<div style="width:7px;height:7px;border-radius:50%;background:{dot};flex-shrink:0"></div>'
-                f'<span style="font-family:var(--mono);font-size:12px;color:{dot};font-weight:600">'
-                f'{td["time"].strftime("%H:%M")}</span>'
-                f'<span style="font-size:11.5px;color:var(--muted)">{lbl}</span>'
-                f'</div>'
+        wt = spot.get("water_type", "harbour")
+        if wt == "freshwater":
+            tide_rows = (
+                '<div style="display:flex;flex-direction:column;justify-content:center;'
+                'height:100%;text-align:center;padding:12px 0;gap:6px">'
+                '<div style="font-size:20px">🏞️</div>'
+                '<div style="font-size:11px;color:var(--muted);line-height:1.6">'
+                '淡水钓点<br>无潮汐影响</div>'
+                '</div>'
             )
+        else:
+            tide_rows = ""
+            for td in spot_tides:
+                dot = "#c69230" if td["is_high"] else "#8a9cb2"
+                lbl = "满潮" if td["is_high"] else "干潮"
+                tide_rows += (
+                    f'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;'
+                    f'border-bottom:1px solid var(--line)">'
+                    f'<div style="width:7px;height:7px;border-radius:50%;background:{dot};flex-shrink:0"></div>'
+                    f'<span style="font-family:var(--mono);font-size:12px;color:{dot};font-weight:600">'
+                    f'{td["time"].strftime("%H:%M")}</span>'
+                    f'<span style="font-size:11.5px;color:var(--muted)">{lbl}</span>'
+                    f'</div>'
+                )
+            if wt == "brackish":
+                tide_rows += (
+                    '<div style="margin-top:6px;font-size:10.5px;color:var(--amber);line-height:1.5">'
+                    '⚠️ 咸淡水区域受上游来水影响，实际潮时可能偏晚，仅供参考'
+                    '</div>'
+                )
+
+        # ── Legal sizes ──────────────────────────────────────
+        legal_html = _legal_sizes_html(spot["fish_tags"])
 
         # ── Method rows ───────────────────────────────────────
         method_rows = ""
@@ -738,12 +988,22 @@ def render_spot_card(spot: dict, safety: dict, spot_tides: list, spot_weather: d
 
             f'</div>'
 
+            f'<div style="border-top:1px solid var(--line);padding:10px 16px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">'
+            f'⚖️ NSW 法定尺寸 · Legal Size</div>'
+            f'{legal_html}'
+            f'</div>'
+
             f'<div style="border-top:1px solid var(--line);padding:12px 18px;'
             f'background:var(--surface2);display:grid;grid-template-columns:1fr 1fr;gap:12px">'
             f'<div>'
             f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
             f'color:var(--subtle);text-transform:uppercase;margin-bottom:4px">🚗 自驾路线</div>'
             f'<div style="font-size:12px;color:var(--text);line-height:1.55">{spot["route"]}</div>'
+            f'<a href="https://www.google.com/maps?q={spot["lat"]},{spot["lon"]}" target="_blank" '
+            f'style="display:inline-block;margin-top:6px;font-size:11.5px;color:#2a5fb0;'
+            f'text-decoration:none;font-weight:600">📍 Google Maps 导航 →</a>'
             f'</div>'
             f'<div>'
             f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;'
@@ -777,31 +1037,31 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
         v1_band, v1_kicker = "var(--coral)", "⊘ NO-GO · OVERALL"
         v1_title, v1_body  = "暂不建议出行", "浪涌与风速均超安全阈值，建议改期"
 
-    sheltered_ok   = sum(1 for s, sa, _, _ in all_spot_data if s["sheltered"] and sa["color"] != "coral")
-    sheltered_best = sum(1 for s, sa, _, _ in all_spot_data if s["sheltered"] and sa["color"] == "sage")
-    ocean_safe     = sum(1 for s, sa, _, _ in all_spot_data if not s["sheltered"] and sa["color"] == "sage")
+    protected_ok   = sum(1 for s, sa, _, _ in all_spot_data if s.get("water_type") != "ocean" and sa["color"] != "coral")
+    protected_best = sum(1 for s, sa, _, _ in all_spot_data if s.get("water_type") != "ocean" and sa["color"] == "sage")
+    ocean_safe     = sum(1 for s, sa, _, _ in all_spot_data if s.get("water_type") == "ocean" and sa["color"] == "sage")
     swell_val = day_w.get("swell_height") or 0
     wind_val  = day_w.get("wind") or 0
     ocean_danger = swell_val > OCEAN_SWELL_DANGER or wind_val > OCEAN_WIND_DANGER
     if ocean_danger:
         v2_band, v2_kicker = "var(--coral)", "SPOT TYPE · ADVICE"
-        v2_title = "优先内湾"
-        if sheltered_ok > 0:
-            v2_body = f"外海危险，{sheltered_ok} 个内湾钓点可前往（{sheltered_best} 个极佳）"
+        v2_title = "避开外海"
+        if protected_ok > 0:
+            v2_body = f"外海危险，{protected_ok} 个内湾/咸淡水点可前往（{protected_best} 个极佳）"
         else:
             v2_body = "今日海况全面恶化，建议改期或极轻装置内湾试探"
-    elif sheltered_ok + ocean_safe == 0:
+    elif protected_ok + ocean_safe == 0:
         v2_band, v2_kicker = "var(--coral)", "SPOT TYPE · ADVICE"
         v2_title = "暂缓出行"
         v2_body  = "当前海况超安全阈值，建议改期"
-    elif ocean_safe >= sheltered_ok:
+    elif ocean_safe >= protected_ok:
         v2_band, v2_kicker = "var(--sage)", "SPOT TYPE · ADVICE"
         v2_title = "内外均可"
-        v2_body  = f"外海 {ocean_safe} 点 · 内湾 {sheltered_ok} 点均可前往"
+        v2_body  = f"外海 {ocean_safe} 点 · 内湾/咸淡水 {protected_ok} 点均可前往"
     else:
         v2_band, v2_kicker = "var(--amber)", "SPOT TYPE · ADVICE"
         v2_title = "优先内湾"
-        v2_body  = f"内湾 {sheltered_ok} 点可前往，外海 {ocean_safe} 点可选"
+        v2_body  = f"内湾/咸淡水 {protected_ok} 点可前往，外海 {ocean_safe} 点可选"
 
     sorted_tides = sorted(base_tides, key=lambda t: t["time"])
     highs        = [t for t in sorted_tides if t["is_high"]]
@@ -812,10 +1072,31 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
     else:
         v3_win, v3_sub = "—", "参考各钓点潮汐"
 
+    fw_n  = sum(1 for s, _, _, _ in all_spot_data if s.get("water_type") == "freshwater")
+    sea_n = len(all_spot_data) - fw_n
+    month = datetime.now().month
+
     if green_n > 0:
-        v4_text = f"今日最佳选择：优先内湾或避风点，{v3_win} 黄金时段出击，建议携带 Running Sinker 线组。"
+        if fw_n > 0 and sea_n == 0:
+            season_tip = "旺季（4–10月）Bass 活跃度极高" if 4 <= month <= 10 else "淡季，建议早晚时段出击"
+            v4_text = f"今日淡水出钓：{season_tip}，携带软饵路亚或活铅沉底线组最为稳妥。"
+        elif fw_n > 0:
+            v4_text = (
+                f"今日海水与淡水点均可出击。{v3_win} 黄金时段优先；"
+                "海水点带 Running Sinker，淡水点带软饵路亚。"
+            )
+        elif ocean_danger:
+            v4_text = (
+                f"外海今日危险，优先内湾或咸淡水钓点；"
+                f"{v3_win} 黄金时段出击，建议携带无铅漂或 Running Sinker 线组。"
+            )
+        else:
+            v4_text = f"今日最佳：{v3_win} 黄金时段出击，外海/内湾均可；建议携带 Running Sinker 或路亚线组。"
     else:
-        v4_text = f"建议等待明日或后天的预报窗口，或前往内湾避风点以极轻线组试探。"
+        if fw_n > 0:
+            v4_text = "淡水点风速偏大，建议在背风河岸处作钓，或等待风速回落后再出发。"
+        else:
+            v4_text = "建议等待明日或后天预报窗口，或前往内湾避风点以极轻线组试探。"
 
     def _verdict_card(band_color, kicker_text, big, body, big_style=""):
         return f"""
@@ -911,10 +1192,17 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
     border   = c_border.get(safety["color"], "#888")
     badge_bg = c_bg.get(safety["color"], "#f5f5f5")
 
+    wt       = spot.get("water_type", "harbour")
+    is_fw    = wt == "freshwater"
     swell    = weather.get("swell_height") or 0
     wind     = weather.get("wind") or 0
-    sw_color = _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
+    sw_color = "#8a9cb2" if is_fw else _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
     wi_color = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
+    swell_icon_html = (
+        f'🏞️ <b style="color:{sw_color}">淡水</b>'
+        if is_fw else
+        f'🌊 <b style="color:{sw_color}">{swell}m</b>'
+    )
 
     fish_html = "".join(
         f'<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;'
@@ -926,9 +1214,16 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
         f'font-size:0.75em;margin:2px 2px 0;display:inline-block">{m}</span>'
         for m in spot["supported_methods"][:4]
     )
-    tides_html = " &nbsp;|&nbsp; ".join(
-        f"{t['label']} <b>{t['time'].strftime('%H:%M')}</b>" for t in tides
-    )
+    if wt == "freshwater":
+        tides_html = "🏞️ 淡水钓点 · 无潮汐影响"
+    else:
+        tides_html = " &nbsp;|&nbsp; ".join(
+            f"{t['label']} <b>{t['time'].strftime('%H:%M')}</b>" for t in tides
+        )
+        if wt == "brackish":
+            tides_html += ' &nbsp;<span style="color:#d99540;font-size:0.88em">⚠ 咸淡水·时间仅供参考</span>'
+
+    maps_url = f"https://www.google.com/maps?q={spot['lat']},{spot['lon']}"
 
     first_method = spot["supported_methods"][0] if spot["supported_methods"] else ""
     tip_raw      = spot["method_tips"].get(first_method, "")
@@ -963,7 +1258,7 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
 
         <div style="background:#f8fafc;border-radius:8px;padding:8px 12px;margin-bottom:10px;
                     font-size:0.88em">
-            🌊 <b style="color:{sw_color}">{swell}m</b>
+            {swell_icon_html}
             &emsp; 💨 <b style="color:{wi_color}">{wind}km/h</b>
             &emsp; 👨‍👩‍👧‍👦 {spot['family_friendly'].split()[0]}
         </div>
@@ -990,7 +1285,10 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
         <div style="border-top:1px solid #f0f4f8;padding-top:10px;
                     font-size:0.77em;color:#888;line-height:1.7">
             🚗 {spot['route']}<br>
-            🅿️ {spot['parking']}
+            🅿️ {spot['parking']}<br>
+            <a href="{maps_url}" target="_blank"
+               style="display:inline-block;margin-top:5px;color:#1565c0;font-weight:600;
+                      text-decoration:none;font-size:0.9em">📍 Google Maps 导航 →</a>
         </div>
         {_fuel_html(spot)}
     </div>
@@ -1012,14 +1310,38 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
         )
 
         for spot, safety, _, _ in all_spot_data:
-            color = STATUS_COLOR.get(safety["color"], "#8a9cb2")
-            folium.CircleMarker(
+            bg    = STATUS_COLOR.get(safety["color"], "#8a9cb2")
+            emoji = _WT_EMOJI.get(spot.get("water_type", "harbour"), "📍")
+            icon  = folium.DivIcon(
+                html=(
+                    f'<div style="background:{bg};border:2px solid white;border-radius:50%;'
+                    f'width:24px;height:24px;display:flex;align-items:center;justify-content:center;'
+                    f'font-size:11px;box-shadow:0 1px 5px rgba(0,0,0,0.35);cursor:pointer">'
+                    f'{emoji}</div>'
+                ),
+                icon_size=(24, 24),
+                icon_anchor=(12, 12),
+            )
+            folium.Marker(
                 location=[spot["lat"], spot["lon"]],
-                radius=7, color="#ffffff", weight=1.5,
-                fill=True, fill_color=color, fill_opacity=1.0,
+                icon=icon,
                 tooltip=spot["name"],
                 popup=spot["name"],
             ).add_to(m)
+
+        legend_html = """
+        <div style="position:absolute;bottom:28px;right:10px;z-index:9999;
+                    background:white;border-radius:10px;padding:8px 12px;
+                    box-shadow:0 2px 8px rgba(0,0,0,0.18);font-size:11px;line-height:1.8">
+          <div style="font-weight:700;color:#333;margin-bottom:3px">图例 Legend</div>
+          <div>🌊 外海 &nbsp; ⚓ 内湾 &nbsp; 🔀 咸淡水 &nbsp; 🏞️ 淡水</div>
+          <div style="display:flex;gap:8px;margin-top:3px;align-items:center">
+            <span style="background:#4f9b76;width:10px;height:10px;border-radius:50%;display:inline-block"></span>推荐
+            <span style="background:#d99540;width:10px;height:10px;border-radius:50%;display:inline-block"></span>谨慎
+            <span style="background:#cc5e54;width:10px;height:10px;border-radius:50%;display:inline-block"></span>危险
+          </div>
+        </div>"""
+        m.get_root().html.add_child(folium.Element(legend_html))
 
         map_data = st_folium(
             m, use_container_width=True, height=430,
@@ -1059,22 +1381,32 @@ def render_day_tab(day_offset: int) -> None:
 
     overview_weather = get_marine_forecast(-33.8688, 151.2093)
     day_w      = overview_weather["days"][day_offset]
+    next_day_w = overview_weather["days"][day_offset + 1] if day_offset < 2 else None
     base_tides = get_tides_for_date(target_date)
 
     section_head("OVERALL CONDITIONS · SYDNEY", "悉尼整体海况", "Open-Meteo · 缓存 1 小时")
     left_col, right_col = st.columns([1.6, 1])
     with left_col:
-        render_weather_panel(day_w, overview_weather["success"])
+        render_weather_panel(day_w, overview_weather["success"], next_day=next_day_w)
     with right_col:
         with st.container(border=True):
+            moon_emoji, moon_name, moon_tip = _moon_phase(target_date)
             st.markdown(
                 '<div style="font-family:var(--mono);font-size:11px;letter-spacing:2px;'
                 'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">'
                 '基准潮汐</div>'
-                '<div style="font-family:var(--serif-zh);font-size:18px;font-weight:600;'
-                'margin-bottom:8px">潮汐表 '
+                '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">'
+                '<div style="font-family:var(--serif-zh);font-size:18px;font-weight:600">潮汐表 '
                 '<span style="font-family:var(--serif-en);font-style:italic;color:var(--muted);'
-                'font-size:15px;font-weight:400">Tide curve</span></div>',
+                'font-size:15px;font-weight:400">Tide curve</span></div>'
+                f'<div style="display:flex;align-items:center;gap:5px;'
+                f'background:var(--surface2);border:1px solid var(--line);border-radius:999px;'
+                f'padding:2px 10px">'
+                f'<span style="font-size:16px">{moon_emoji}</span>'
+                f'<div><div style="font-size:11px;font-weight:600;color:var(--text)">{moon_name}</div>'
+                f'<div style="font-size:10px;color:var(--muted)">{moon_tip}</div>'
+                f'</div></div>'
+                '</div>',
                 unsafe_allow_html=True,
             )
             render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
@@ -1090,8 +1422,47 @@ def render_day_tab(day_offset: int) -> None:
         tides      = get_tides_for_date(target_date, spot["tide_delay"])
         all_spot_data.append((spot, safety, tides, spot_day_w))
 
+    # 按安全状态排序：推荐 → 谨慎 → 危险
+    _safety_order = {"sage": 0, "amber": 1, "coral": 2}
+    all_spot_data.sort(key=lambda x: _safety_order.get(x[1]["color"], 3))
+
     section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
     render_decision_panel(all_spot_data, day_w, base_tides, label)
+
+    # ── 三天最佳出钓日横幅 ──────────────────────────────────────────────────
+    day_safe_counts = []
+    for _di in range(3):
+        _cnt = sum(
+            1 for spot in filtered
+            if assess_safety(spot, get_marine_forecast(spot["lat"], spot["lon"])["days"][_di])["color"] == "sage"
+        )
+        day_safe_counts.append(_cnt)
+    best_di   = day_safe_counts.index(max(day_safe_counts))
+    day_names = ["今天", "明天", "后天"]
+    if best_di != day_offset:
+        diff = day_safe_counts[best_di] - day_safe_counts[day_offset]
+        st.markdown(
+            f'<div style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);'
+            f'border-radius:12px;padding:10px 18px;border-left:4px solid #4f9b76;'
+            f'display:flex;align-items:center;gap:12px;margin-bottom:8px">'
+            f'<span style="font-size:20px">💡</span>'
+            f'<div><span style="font-size:13px;color:#2e7d32;font-weight:600">'
+            f'{day_names[best_di]}出钓更佳</span>'
+            f'<span style="font-size:12px;color:#555;margin-left:8px">'
+            f'比{label}多 {diff} 个推荐钓点（共 {day_safe_counts[best_di]} 个✅）'
+            f' → 切换到「{day_names[best_di]}」标签查看</span></div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f'<div style="background:#e8f5e9;border-radius:12px;padding:8px 18px;'
+            f'border-left:4px solid #4f9b76;font-size:12.5px;color:#2e7d32;'
+            f'font-weight:600;margin-bottom:8px">'
+            f'✅ {label}是未来三天最佳出钓日（{day_safe_counts[day_offset]} 个推荐钓点）'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
@@ -1128,22 +1499,30 @@ def render_day_tab(day_offset: int) -> None:
         )
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
-    section_head("MAP · 30 SPOTS", "钓点地图", "点击标记查看详情")
+    section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
     render_map_section(day_offset, all_spot_data)
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
+    visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
+                    if not (safe_only and not sa["safe"])]
     section_head(
-        f"MATCHED SPOTS · {len(filtered)} / {len(spots)}",
+        f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
         "匹配钓点", "按当日海况评分排序"
     )
     visible = 0
-    for spot, safety, spot_tides, spot_day_w in all_spot_data:
-        if safe_only and not safety["safe"]:
-            continue
+    for spot, safety, spot_tides, spot_day_w in visible_list:
         render_spot_card(spot, safety, spot_tides, spot_day_w, day_offset)
         visible += 1
     if visible == 0:
-        st.info("ℹ️ 当前筛选条件下没有匹配的钓点，请尝试减少筛选条件。")
+        active_filters = []
+        if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
+        if selected_fish:    active_filters.append(f"鱼种 ({len(selected_fish)} 种)")
+        if selected_region != "全部 · All Sydney": active_filters.append(f"区域「{selected_region}」")
+        if water_type != "全部 · All": active_filters.append(f"水域「{water_type}」")
+        if safe_only:   active_filters.append("隐藏危险钓点")
+        if family_only: active_filters.append("仅家庭友好")
+        hint = "、".join(active_filters) if active_filters else "未知条件"
+        st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
 
 
 # ── 主页面 ────────────────────────────────────────────────────────────────
