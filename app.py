@@ -252,6 +252,15 @@ def _now_sydney() -> datetime:
     return datetime.now(SYD_TZ).replace(tzinfo=None)
 
 
+def _is_mobile_user_agent() -> bool:
+    try:
+        headers = getattr(st.context, "headers", {}) or {}
+        ua = str(headers.get("user-agent", "")).lower()
+        return any(k in ua for k in ("iphone", "android", "mobile", "ipad"))
+    except Exception:
+        return False
+
+
 def _deg_to_swell_dir(deg) -> str:
     try:
         d = float(deg) % 360

@@ -1758,5 +1758,41 @@
     "route": "建议从 Cronulla 或 Gunnamatta 附近船坡道出发，进 Port Hacking 主航道后沿边坡做短程漂流。",
     "parking": "热门时段拖车位紧张，建议清晨提早下水。",
     "nearby_gas": "⛽ Ampol Cronulla（Cronulla St，约 2km）；备选：BP Miranda（Kingsway，约 6km，24h）"
+  },
+  {
+    "name": "McIlwaine Park (Drummoyne 湾内公园)",
+    "region": "Inner Harbour (Drummoyne / Iron Cove)",
+    "type": "内港湾内护岸 / 公园步道岸钓点",
+    "lat": -33.8498,
+    "lon": 151.1498,
+    "map_lat": -33.8501,
+    "map_lon": 151.1493,
+    "nav_lat": -33.8504,
+    "nav_lon": 151.1496,
+    "water_type": "harbour",
+    "sheltered": true,
+    "tide_delay": 14,
+    "active_fish": "Bream (鳊鱼)、Flathead (牛鳅)、Whiting (沙尖)、Squid (鱿鱼)",
+    "fish_tags": [
+      "Bream (鳊鱼)",
+      "Flathead (牛鳅)",
+      "Whiting (沙尖)",
+      "Squid (鱿鱼)"
+    ],
+    "best_window": "🌇 黄昏前后 + 满潮前 1.5 小时。护岸边缘和浅深交界口点位更集中。",
+    "family_friendly": "⭐⭐⭐⭐⭐ (家庭友好) 草地与步道条件好，遛娃和岸钓都方便，注意看护儿童远离护岸边。",
+    "supported_methods": [
+      "Running Sinker (活铅沉底)",
+      "无铅漂钓",
+      "木虾抽鱿鱼"
+    ],
+    "method_tips": {
+      "Running Sinker (活铅沉底)": "🎯 顶级推荐！轻铅挂虾肉沿岸缓慢拖底，Bream 和 Flathead 口稳。",
+      "无铅漂钓": "👍 推荐！在缓流时段贴岸无铅漂钓，沙尖和小型鳊鱼活跃。",
+      "木虾抽鱿鱼": "👍 推荐！傍晚在光照边界区域慢抽 2.0-2.5 号木虾，鱿鱼命中率更高。"
+    },
+    "route": "沿 Victoria Road 到 Drummoyne，转入 Henley Marine Dr 即可到达 McIlwaine Park 岸线步道。",
+    "parking": "公园周边路边停车位较多，周末傍晚高峰建议提早到。",
+    "nearby_gas": "⛽ Ampol Drummoyne（Victoria Rd，约 1.5km）；备选：BP Five Dock（Parramatta Rd，约 3km）"
   }
 ]
