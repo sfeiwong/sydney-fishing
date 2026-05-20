@@ -166,3 +166,23 @@ hr { border:none; border-top:1px solid var(--line); margin:1.2rem 0; }
   45% { opacity:.75; transform:translate(0,-8px) scale(1); }
   100% { opacity:0; transform:translate(-4px,-16px) scale(1.15); }
 }
+
+/* Mobile-first tuning */
+@media (max-width: 768px) {
+  .block-container { padding-top: .6rem; padding-left: .75rem; padding-right: .75rem; }
+  .hero { padding:16px 14px!important; gap:10px!important; }
+  .hero h1 { font-size:30px!important; line-height:1.05!important; margin-bottom:4px!important; flex-wrap:wrap!important; }
+  .hero [style*="Spots indexed"] { min-width:96px!important; padding:8px 10px!important; }
+  .hero [style*="Spots indexed"] div:last-child,
+  .hero [style*="Recommend now"] div:last-child,
+  .hero [style*="High-risk spots"] div:last-child { display:none!important; }
+  .hero [style*="实时海况 · 潮汐推算 · 智能推荐"] { font-size:10px!important; letter-spacing:1.2px!important; }
+  .brand-mascot-wrap { width:72px; height:72px; }
+  .brand-mascot { width:135%; height:135%; }
+  .stTabs [data-baseweb="tab"] { padding:10px 12px!important; font-size:13px!important; }
+  [data-testid="stMetricValue"] { font-size:24px!important; }
+  .stButton>button { min-height:44px!important; font-size:14px!important; }
+  div[data-testid="stVerticalBlockBorderWrapper"] { border-radius:12px!important; }
+  [data-testid="column"] { min-width:100%!important; }
+  h2 { font-size:20px!important; line-height:1.25!important; }
+}

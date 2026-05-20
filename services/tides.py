@@ -24,6 +24,7 @@ _REFERENCE_HIGH = datetime(
 
 _WORLDTIDES_URL = "https://www.worldtides.info/api/v3"
 _SYD_TZ = timezone(timedelta(hours=10))
+_MIN_EVENT_GAP_MINUTES = 300  # 5h, avoid near-duplicate extremes
 
 
 def _estimate_tides_for_date(target_date: datetime, delay_minutes: int = 0) -> list[dict]:
@@ -113,11 +114,23 @@ def _fetch_worldtides_extremes(lat: float, lon: float, date_key: str) -> list[di
     return parsed
 
 
-def _pick_four_events_for_date(all_events: list[dict], target_date: datetime) -> list[dict]:
+def _pick_events_for_date(all_events: list[dict], target_date: datetime) -> list[dict]:
     events = [e for e in all_events if e["time"].date() == target_date.date()]
-    if len(events) >= 4:
-        return events[:4]
-    return events
+    if not events:
+        return []
+
+    deduped = []
+    for ev in events:
+        if not deduped:
+            deduped.append(ev)
+            continue
+        prev = deduped[-1]
+        gap_min = (ev["time"] - prev["time"]).total_seconds() / 60.0
+        if gap_min < _MIN_EVENT_GAP_MINUTES and ev["is_high"] == prev["is_high"]:
+            # Keep earlier one for stability.
+            continue
+        deduped.append(ev)
+    return deduped
 
 
 def get_tides_for_date(
@@ -137,7 +150,7 @@ def get_tides_for_date(
     if lat is not None and lon is not None and _worldtides_key():
         try:
             all_events = _fetch_worldtides_extremes(float(lat), float(lon), target_date.strftime("%Y-%m-%d"))
-            picked = _pick_four_events_for_date(all_events, target_date)
+            picked = _pick_events_for_date(all_events, target_date)
             if len(picked) >= 2:
                 return picked
         except Exception:

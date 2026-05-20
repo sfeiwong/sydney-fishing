@@ -10,6 +10,7 @@ import numpy as np
 import streamlit as st
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 import folium
 from streamlit_folium import st_folium
@@ -40,6 +41,7 @@ st.set_page_config(
 spots = load_spots()
 MAP_MARKER_LIMIT = 120
 FAST_SPOT_LIMIT = 30
+SYD_TZ = ZoneInfo("Australia/Sydney")
 
 _CSS_PATH = Path(__file__).with_name("styles.css")
 st.markdown(f"<style>{_CSS_PATH.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
@@ -136,9 +138,9 @@ def section_head(kicker: str, title: str, accent: str = "") -> None:
         f'<div style="margin:4px 0 14px">'
         f'<div style="font-family:var(--mono);font-size:11px;color:var(--subtle);'
         f'letter-spacing:2px;text-transform:uppercase;margin-bottom:4px">{kicker}</div>'
-        f'<div style="display:flex;align-items:baseline;gap:10px">'
+        f'<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
         f'<h2 style="margin:0;font-family:var(--serif-zh);font-weight:600;font-size:22px;color:var(--text)">{title}</h2>'
-        f'<span style="font-size:13px;color:var(--muted)">{accent}</span>'
+        f'<span style="font-size:13px;color:var(--muted);line-height:1.4">{accent}</span>'
         f'</div></div>',
         unsafe_allow_html=True,
     )
@@ -244,6 +246,10 @@ def _map_coords(spot: dict) -> tuple[float, float]:
 
 def _forecast_key(lat: float, lon: float) -> tuple[float, float]:
     return (round(lat, 4), round(lon, 4))
+
+
+def _now_sydney() -> datetime:
+    return datetime.now(SYD_TZ).replace(tzinfo=None)
 
 
 def _deg_to_swell_dir(deg) -> str:
@@ -685,7 +691,7 @@ def _best_window_times(best_window: str, tides: list) -> str:
 # ── 潮汐面板（Plotly） ────────────────────────────────────────────────────
 
 def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: datetime = None) -> None:
-    now          = datetime.now()
+    now          = _now_sydney()
     sorted_tides = sorted(base_tides, key=lambda x: x["time"])
     is_today     = target_date is None or target_date.date() == now.date()
     HIGH_M, LOW_M = 1.85, 0.15
@@ -1525,8 +1531,23 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
 
     with col_detail:
         clicked = (map_data or {}).get("last_object_clicked")
+        spot = safety = tides = weather = None
 
-        if not clicked:
+        if clicked:
+            clat, clng = clicked["lat"], clicked["lng"]
+            spot, safety, tides, weather = min(
+                map_spot_data,
+                key=lambda x: abs(_map_coords(x[0])[0] - clat) + abs(_map_coords(x[0])[1] - clng),
+            )
+            st.session_state[selected_key] = spot["name"]
+            selected_name = spot["name"]
+        elif selected_name:
+            for s, sa, ti, we in map_spot_data:
+                if s["name"] == selected_name:
+                    spot, safety, tides, weather = s, sa, ti, we
+                    break
+
+        if spot is None:
             st.html("""
             <div style="height:430px;display:flex;flex-direction:column;
                         align-items:center;justify-content:center;
@@ -1549,21 +1570,13 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
             </div>
             """)
         else:
-            clat, clng = clicked["lat"], clicked["lng"]
-            spot, safety, tides, weather = min(
-                map_spot_data,
-                key=lambda x: abs(_map_coords(x[0])[0] - clat) + abs(_map_coords(x[0])[1] - clng),
-            )
-            if st.session_state.get(selected_key) != spot["name"]:
-                st.session_state[selected_key] = spot["name"]
-                st.rerun()
             _render_map_spot_detail(spot, safety, tides, weather)
 
 
 # ── 日期 Tab 渲染 ─────────────────────────────────────────────────────────
 
 def render_day_tab(day_offset: int) -> None:
-    target_date = datetime.now() + timedelta(days=day_offset)
+    target_date = _now_sydney() + timedelta(days=day_offset)
     label = "今天" if day_offset == 0 else ("明天" if day_offset == 1 else "后天")
 
     overview_weather = get_marine_forecast(-33.8688, 151.2093)
@@ -1600,11 +1613,6 @@ def render_day_tab(day_offset: int) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
-    detail_key = f"load_full_day_{day_offset}"
-    if detail_key not in st.session_state:
-        st.session_state[detail_key] = False
-    load_full = st.session_state[detail_key]
-
     payload = _build_day_payload(
         day_offset,
         tuple(selected_methods),
@@ -1612,12 +1620,24 @@ def render_day_tab(day_offset: int) -> None:
         selected_region,
         water_type,
         family_only,
-        0 if load_full else FAST_SPOT_LIMIT,
+        0,
     )
     filtered = payload["filtered"]
-    filtered_total = payload["filtered_total"]
     forecast_by_spot = payload["forecast_by_spot"]
     all_spot_data = payload["all_spot_data"]
+
+    if not all_spot_data:
+        section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
+        active_filters = []
+        if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
+        if selected_fish:    active_filters.append(f"鱼种 ({len(selected_fish)} 种)")
+        if selected_region != "全部 · All Sydney": active_filters.append(f"区域「{selected_region}」")
+        if water_type != "全部 · All": active_filters.append(f"水域「{water_type}」")
+        if safe_only:   active_filters.append("隐藏危险钓点")
+        if family_only: active_filters.append("仅家庭友好")
+        hint = "、".join(active_filters) if active_filters else "当前条件"
+        st.info(f"ℹ️ {hint} 下暂无匹配钓点。建议放宽筛选或点击「↺ 重置所有筛选」。")
+        return
 
     section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
     render_decision_panel(all_spot_data, day_w, base_tides, label)
@@ -1656,14 +1676,6 @@ def render_day_tab(day_offset: int) -> None:
             f'</div>',
             unsafe_allow_html=True,
         )
-
-    st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
-    if not load_full and filtered_total > FAST_SPOT_LIMIT:
-        st.info(f"⚡ 为提升首屏速度，当前先加载前 {FAST_SPOT_LIMIT} / {filtered_total} 个钓点。")
-        if st.button("加载全部钓点（地图+列表）", key=f"load_full_btn_{day_offset}"):
-            st.session_state[detail_key] = True
-            st.rerun()
-        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
@@ -1706,44 +1718,43 @@ def render_day_tab(day_offset: int) -> None:
             unsafe_allow_html=True,
         )
 
-    if load_full:
-        st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
-        section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
-        render_map_section(day_offset, all_spot_data)
+    st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
+    section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
+    render_map_section(day_offset, all_spot_data)
 
-        st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
-        visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
-                        if not (safe_only and not sa["safe"])]
-        section_head(
-            f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
-            "匹配钓点", "按当日海况评分排序"
+    st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
+    visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
+                    if not (safe_only and not sa["safe"])]
+    section_head(
+        f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
+        "匹配钓点", "按当日海况评分排序"
+    )
+    visible = 0
+    for spot, safety, spot_tides, spot_day_w in visible_list:
+        render_spot_card(
+            spot,
+            safety,
+            spot_tides,
+            spot_day_w,
+            day_offset,
+            forecast_days=forecast_by_spot[spot["name"]]["days"],
         )
-        visible = 0
-        for spot, safety, spot_tides, spot_day_w in visible_list:
-            render_spot_card(
-                spot,
-                safety,
-                spot_tides,
-                spot_day_w,
-                day_offset,
-                forecast_days=forecast_by_spot[spot["name"]]["days"],
-            )
-            visible += 1
-        if visible == 0:
-            active_filters = []
-            if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
-            if selected_fish:    active_filters.append(f"鱼种 ({len(selected_fish)} 种)")
-            if selected_region != "全部 · All Sydney": active_filters.append(f"区域「{selected_region}」")
-            if water_type != "全部 · All": active_filters.append(f"水域「{water_type}」")
-            if safe_only:   active_filters.append("隐藏危险钓点")
-            if family_only: active_filters.append("仅家庭友好")
-            hint = "、".join(active_filters) if active_filters else "未知条件"
-            st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
+        visible += 1
+    if visible == 0:
+        active_filters = []
+        if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
+        if selected_fish:    active_filters.append(f"鱼种 ({len(selected_fish)} 种)")
+        if selected_region != "全部 · All Sydney": active_filters.append(f"区域「{selected_region}」")
+        if water_type != "全部 · All": active_filters.append(f"水域「{water_type}」")
+        if safe_only:   active_filters.append("隐藏危险钓点")
+        if family_only: active_filters.append("仅家庭友好")
+        hint = "、".join(active_filters) if active_filters else "未知条件"
+        st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
 
 
 # ── 主页面 ────────────────────────────────────────────────────────────────
 
-today = datetime.now()
+today = _now_sydney()
 date_str = f"{today.year} 年 {today.month} 月 {today.day} 日"
 weekdays = ["周一","周二","周三","周四","周五","周六","周日"]
 weekday  = weekdays[today.weekday()]
@@ -1796,7 +1807,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-today_obj = datetime.now()
+today_obj = _now_sydney()
 day_options = [
     f"今天  {today_obj.strftime('%m/%d')}  Today",
     f"明天  {(today_obj + timedelta(days=1)).strftime('%m/%d')}  Tomorrow",
