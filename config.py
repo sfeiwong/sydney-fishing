@@ -22,17 +22,34 @@ SEMI_DIURNAL_MINUTES = 745  # 12h 25min（半个潮汐周期）
 LUNAR_DRIFT_PER_DAY  = 50   # 每天潮汐推迟约 50 分钟
 
 # 区域筛选关键词映射（纯地理分区，不与水域类型重叠）
+# 注：关键词按精确度降序排列，先匹配先采用；"Inner Harbour" 置于 Parramatta 之前避免歧义
 REGION_FILTER_MAP = {
-    "Northern Beaches / Manly": ["Northern Beaches", "Manly", "Narrabeen"],
-    "Hawkesbury / Brooklyn":    ["Hawkesbury", "Brooklyn", "Berowra"],
-    "Middle Harbour / Ku-ring-gai": ["Middle Harbour", "Ku-ring-gai"],
-    "内港 Inner Harbour": ["Mosman", "North Sydney", "Walsh Bay", "Seaforth", "Woolwich",
-                           "Darling Point", "Rose Bay", "Vaucluse", "Balmain",
-                           "Iron Cove", "Drummoyne"],
-    "南区 Southern": ["Botany Bay", "St George", "Blakehurst", "Cronulla", "Kurnell",
-                      "La Perouse", "Randwick", "Royal National", "Port Hacking",
-                      "Bundeena", "Sutherland Shire", "Grays Point"],
-    "西区 Western": ["Penrith", "Western Sydney", "Parramatta", "Cabarita", "Ryde", "Windsor"],
+    "悉尼内港 · Inner Harbour": [
+        "Inner Harbour", "Walsh Bay", "Darling Point", "North Sydney",
+        "Woolwich", "Balmain", "Iron Cove", "Drummoyne", "Cabarita", "Ryde",
+    ],
+    "中峡湾 · Middle Harbour": [
+        "Middle Harbour", "Seaforth", "Ku-ring-gai", "Mosman",
+    ],
+    "北部海滩 · Northern Beaches": [
+        "Northern Beaches", "Narrabeen", "Manly",
+    ],
+    "东区 · Eastern Suburbs": [
+        "Rose Bay", "Vaucluse", "Randwick", "Sydney Heads",
+    ],
+    "博特尼湾 · Botany Bay": [
+        "Botany Bay", "La Perouse", "Kurnell",
+    ],
+    "南区 · South Sydney": [
+        "Cronulla", "Blakehurst", "St George", "Sutherland",
+        "Port Hacking", "Royal National",
+    ],
+    "Hawkesbury 大河": [
+        "Hawkesbury", "Brooklyn", "Berowra",
+    ],
+    "西区淡水 · Western": [
+        "Penrith", "Western Sydney", "Windsor", "Parramatta",
+    ],
 }
 
 # NSW DPI 法定最小尺寸 & 持鱼限额（total length，cm）

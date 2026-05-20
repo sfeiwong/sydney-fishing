@@ -93,6 +93,11 @@ with st.sidebar:
     water_type       = st.selectbox("水域类型", ["全部 · All", "🌊 外海 Ocean", "🚤 船钓 Boat", "⚓ 内湾 Harbour", "🔀 咸淡水 Brackish", "🏞️ 淡水 Freshwater"])
     safe_only        = st.checkbox("隐藏危险钓点 ⚠", value=False)
     family_only      = st.checkbox("仅看家庭友好 👨‍👩‍👧 (⭐⭐⭐⭐+)", value=False)
+    sort_by          = st.selectbox(
+        "钓点排序",
+        ["推荐优先", "家庭友好优先", "涌浪最小", "风速最小"],
+        key="sel_sort",
+    )
     if st.button("↺ 重置所有筛选", use_container_width=True):
         st.session_state["sel_methods"] = []
         st.session_state["sel_fish"] = []
@@ -654,6 +659,33 @@ def render_weather_panel(day_weather: dict, data_ok: bool, next_day: dict = None
             周期 <span style="color:var(--text);font-weight:500">{swell_period}s</span>
         </div>
     """), unsafe_allow_html=True)
+
+    uv = day_weather.get("uv") or 0
+    uv_val = int(round(uv))
+    if uv_val <= 2:
+        uv_col, uv_label, uv_tip = "#4f9b76", "低", "无需特别防护"
+    elif uv_val <= 5:
+        uv_col, uv_label, uv_tip = "#d99540", "中等", "SPF 30+ 推荐"
+    elif uv_val <= 7:
+        uv_col, uv_label, uv_tip = "#cc5e54", "高", "SPF 50+ 必备，帽子眼镜必带"
+    elif uv_val <= 10:
+        uv_col, uv_label, uv_tip = "#b03060", "极高", "户外务必全副防晒，减少暴露"
+    else:
+        uv_col, uv_label, uv_tip = "#6a0dad", "危险", "尽量避免正午户外"
+    st.markdown(
+        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
+        f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
+        f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
+        f'<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
+        f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☀️ UV 指数</div>'
+        f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
+        f'color:{uv_col};line-height:1">{uv_val}</div>'
+        f'<span style="background:{uv_col}22;color:{uv_col};padding:2px 10px;'
+        f'border-radius:999px;font-size:12px;font-weight:600">{uv_label}</span>'
+        f'<div style="font-size:12px;color:var(--muted);margin-left:auto">{uv_tip}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 
 # ── 最佳时段推算 ──────────────────────────────────────────────────────────
@@ -1622,6 +1654,7 @@ def render_day_tab(day_offset: int) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
+    is_mobile = _is_mobile_user_agent()
     payload = _build_day_payload(
         day_offset,
         tuple(selected_methods),
@@ -1629,11 +1662,19 @@ def render_day_tab(day_offset: int) -> None:
         selected_region,
         water_type,
         family_only,
-        0,
+        FAST_SPOT_LIMIT if is_mobile else 0,
     )
     filtered = payload["filtered"]
     forecast_by_spot = payload["forecast_by_spot"]
-    all_spot_data = payload["all_spot_data"]
+    all_spot_data = list(payload["all_spot_data"])
+
+    _safety_order = {"sage": 0, "amber": 1, "coral": 2}
+    if sort_by == "家庭友好优先":
+        all_spot_data.sort(key=lambda x: (-x[0]["family_friendly"].count("⭐"), _safety_order.get(x[1]["color"], 3)))
+    elif sort_by == "涌浪最小":
+        all_spot_data.sort(key=lambda x: (x[3].get("swell_height") or 0))
+    elif sort_by == "风速最小":
+        all_spot_data.sort(key=lambda x: (x[3].get("wind") or 0))
 
     if not all_spot_data:
         section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
@@ -1734,9 +1775,11 @@ def render_day_tab(day_offset: int) -> None:
     st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
     visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
                     if not (safe_only and not sa["safe"])]
+    sort_label = {"家庭友好优先": "按家庭友好度排序", "涌浪最小": "按涌浪从小到大排序",
+                  "风速最小": "按风速从小到大排序"}.get(sort_by, "按当日海况评分排序")
     section_head(
         f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
-        "匹配钓点", "按当日海况评分排序"
+        "匹配钓点", sort_label
     )
     visible = 0
     for spot, safety, spot_tides, spot_day_w in visible_list:

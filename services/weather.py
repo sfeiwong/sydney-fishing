@@ -37,7 +37,8 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
             f"?latitude={lat}&longitude={lon}"
             f"&daily=temperature_2m_max,temperature_2m_min,"
             f"wind_speed_10m_max,wind_direction_10m_dominant,"
-            f"precipitation_sum,precipitation_probability_max"
+            f"precipitation_sum,precipitation_probability_max,"
+            f"uv_index_max"
             f"&timezone=Australia%2FSydney"
         )
         marine_url = (
@@ -69,6 +70,7 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
         wind_dir = _series(wd.get("wind_direction_10m_dominant"))
         rain_prob = _series(wd.get("precipitation_probability_max"), 0)
         precipitation = _series(wd.get("precipitation_sum"), 0.0)
+        uv_index = _series(wd.get("uv_index_max"), 0.0)
         wave = _series(marine_daily.get("wave_height_max"))
         swell_height = _series(marine_daily.get("swell_wave_height_max"))
         swell_direction = _series(marine_daily.get("swell_wave_direction_dominant"))
@@ -88,6 +90,7 @@ def _fetch_forecast(lat: float, lon: float) -> dict:
                 "swell_height":   swell_height[i],
                 "swell_direction":swell_direction[i],
                 "swell_period":   swell_period[i],
+                "uv":             round(uv_index[i] or 0, 1),
             })
         return {"success": True, "days": days}
 
