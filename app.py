@@ -865,7 +865,7 @@ def render_hero_card(
         <div style="color:#60758a;font-size:0.78em;margin:4px 0 10px">
             {spot['region']} &nbsp;·&nbsp; {spot['type']}
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px">
+        <div class="hero-stats-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px">
             {_mini_stat(swell_label, swell_val_html, "text" if is_fw else safety["color"])}
             {_mini_stat("风速", f"{wind}km/h", safety["color"] if wi_color != "#4f9b76" else "text")}
             {_mini_stat("最佳时段", time_window, "blue")}
@@ -960,7 +960,7 @@ def render_spot_card(
         f'<div style="position:absolute;left:0;top:0;bottom:0;width:5px;'
         f'background:{border};border-radius:14px 0 0 14px"></div>'
 
-        f'<div style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);'
+        f'<div class="spot-main-grid" style="display:grid;grid-template-columns:minmax(0,1.7fr) minmax(260px,1fr);'
         f'gap:18px;align-items:start">'
 
         f'<div>'
@@ -1086,7 +1086,7 @@ def render_spot_card(
             f'<div style="font-size:11.5px;color:#5f7690;font-weight:600">展开详情</div>'
             f'</div>'
 
-            f'<div style="display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,1.45fr);gap:12px;align-items:stretch">'
+            f'<div class="detail-main-grid" style="display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,1.45fr);gap:12px;align-items:stretch">'
             f'<div style="background:white;border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px">'
             f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
             f'text-transform:uppercase;margin-bottom:8px">Tide · 专属潮汐</div>'
@@ -1111,7 +1111,7 @@ def render_spot_card(
             f'</div>'
             f'</div>'
 
-            f'<div style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.05fr);'
+            f'<div class="detail-bottom-grid" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.05fr);'
             f'gap:10px;margin-top:12px">'
             f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
             f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
@@ -1430,7 +1430,7 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
             {fish_rules_cook_html}
         </div>
 
-        <div style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.05fr);gap:10px">
+        <div class="map-detail-bottom-grid" style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.05fr);gap:10px">
             <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--primary);
                         border-radius:12px;padding:12px 14px">
                 <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
