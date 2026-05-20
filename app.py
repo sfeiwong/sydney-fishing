@@ -39,6 +39,7 @@ st.set_page_config(
 
 spots = load_spots()
 MAP_MARKER_LIMIT = 120
+FAST_SPOT_LIMIT = 30
 
 _CSS_PATH = Path(__file__).with_name("styles.css")
 st.markdown(f"<style>{_CSS_PATH.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
@@ -480,12 +481,14 @@ def _build_day_payload(
     region: str,
     wt_filter: str,
     family: bool,
+    max_spots: int,
 ) -> dict:
     target_date = datetime.now() + timedelta(days=day_offset)
-    filtered = [
+    filtered_all = [
         s for s in spots
         if _spot_matches_with_filters(s, methods, fish, region, wt_filter, family)
     ]
+    filtered = filtered_all if max_spots <= 0 else filtered_all[:max_spots]
 
     forecast_by_spot = {}
     forecast_by_coord = {}
@@ -507,7 +510,12 @@ def _build_day_payload(
 
     _safety_order = {"sage": 0, "amber": 1, "coral": 2}
     all_spot_data.sort(key=lambda x: _safety_order.get(x[1]["color"], 3))
-    return {"filtered": filtered, "forecast_by_spot": forecast_by_spot, "all_spot_data": all_spot_data}
+    return {
+        "filtered": filtered,
+        "filtered_total": len(filtered_all),
+        "forecast_by_spot": forecast_by_spot,
+        "all_spot_data": all_spot_data,
+    }
 
 
 def _val_color(value: float, warn: float, danger: float) -> str:
@@ -1592,6 +1600,11 @@ def render_day_tab(day_offset: int) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
+    detail_key = f"load_full_day_{day_offset}"
+    if detail_key not in st.session_state:
+        st.session_state[detail_key] = False
+    load_full = st.session_state[detail_key]
+
     payload = _build_day_payload(
         day_offset,
         tuple(selected_methods),
@@ -1599,8 +1612,10 @@ def render_day_tab(day_offset: int) -> None:
         selected_region,
         water_type,
         family_only,
+        0 if load_full else FAST_SPOT_LIMIT,
     )
     filtered = payload["filtered"]
+    filtered_total = payload["filtered_total"]
     forecast_by_spot = payload["forecast_by_spot"]
     all_spot_data = payload["all_spot_data"]
 
@@ -1641,6 +1656,14 @@ def render_day_tab(day_offset: int) -> None:
             f'</div>',
             unsafe_allow_html=True,
         )
+
+    st.markdown('<div style="height:10px"></div>', unsafe_allow_html=True)
+    if not load_full and filtered_total > FAST_SPOT_LIMIT:
+        st.info(f"⚡ 为提升首屏速度，当前先加载前 {FAST_SPOT_LIMIT} / {filtered_total} 个钓点。")
+        if st.button("加载全部钓点（地图+列表）", key=f"load_full_btn_{day_offset}"):
+            st.session_state[detail_key] = True
+            st.rerun()
+        st.markdown('<div style="height:12px"></div>', unsafe_allow_html=True)
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
@@ -1683,38 +1706,39 @@ def render_day_tab(day_offset: int) -> None:
             unsafe_allow_html=True,
         )
 
-    st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
-    section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
-    render_map_section(day_offset, all_spot_data)
+    if load_full:
+        st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
+        section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
+        render_map_section(day_offset, all_spot_data)
 
-    st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
-    visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
-                    if not (safe_only and not sa["safe"])]
-    section_head(
-        f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
-        "匹配钓点", "按当日海况评分排序"
-    )
-    visible = 0
-    for spot, safety, spot_tides, spot_day_w in visible_list:
-        render_spot_card(
-            spot,
-            safety,
-            spot_tides,
-            spot_day_w,
-            day_offset,
-            forecast_days=forecast_by_spot[spot["name"]]["days"],
+        st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
+        visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
+                        if not (safe_only and not sa["safe"])]
+        section_head(
+            f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
+            "匹配钓点", "按当日海况评分排序"
         )
-        visible += 1
-    if visible == 0:
-        active_filters = []
-        if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
-        if selected_fish:    active_filters.append(f"鱼种 ({len(selected_fish)} 种)")
-        if selected_region != "全部 · All Sydney": active_filters.append(f"区域「{selected_region}」")
-        if water_type != "全部 · All": active_filters.append(f"水域「{water_type}」")
-        if safe_only:   active_filters.append("隐藏危险钓点")
-        if family_only: active_filters.append("仅家庭友好")
-        hint = "、".join(active_filters) if active_filters else "未知条件"
-        st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
+        visible = 0
+        for spot, safety, spot_tides, spot_day_w in visible_list:
+            render_spot_card(
+                spot,
+                safety,
+                spot_tides,
+                spot_day_w,
+                day_offset,
+                forecast_days=forecast_by_spot[spot["name"]]["days"],
+            )
+            visible += 1
+        if visible == 0:
+            active_filters = []
+            if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
+            if selected_fish:    active_filters.append(f"鱼种 ({len(selected_fish)} 种)")
+            if selected_region != "全部 · All Sydney": active_filters.append(f"区域「{selected_region}」")
+            if water_type != "全部 · All": active_filters.append(f"水域「{water_type}」")
+            if safe_only:   active_filters.append("隐藏危险钓点")
+            if family_only: active_filters.append("仅家庭友好")
+            hint = "、".join(active_filters) if active_filters else "未知条件"
+            st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
 
 
 # ── 主页面 ────────────────────────────────────────────────────────────────
