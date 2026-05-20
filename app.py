@@ -14,17 +14,22 @@ from datetime import datetime, timedelta
 import folium
 from streamlit_folium import st_folium
 
-from config import (
-    ALL_METHODS, ALL_FISH,
-    OCEAN_SWELL_DANGER, OCEAN_WIND_DANGER,
-    SHELTERED_SWELL_WARN, SHELTERED_WIND_WARN,
-    REGION_FILTER_MAP, FISH_LEGAL_SIZE, FISH_COOKING,
-)
+import config as cfg
 from services.weather import get_marine_forecast
 from services.tides import get_tides_for_date, get_tide_accuracy_hint
 from services.fuel import get_nearby_fuel
 from data.loader import load_spots
 from domain.safety import assess_safety
+
+ALL_METHODS = getattr(cfg, "ALL_METHODS", [])
+ALL_FISH = getattr(cfg, "ALL_FISH", [])
+OCEAN_SWELL_DANGER = getattr(cfg, "OCEAN_SWELL_DANGER", 1.3)
+OCEAN_WIND_DANGER = getattr(cfg, "OCEAN_WIND_DANGER", 20)
+SHELTERED_SWELL_WARN = getattr(cfg, "SHELTERED_SWELL_WARN", 1.4)
+SHELTERED_WIND_WARN = getattr(cfg, "SHELTERED_WIND_WARN", 22)
+REGION_FILTER_MAP = getattr(cfg, "REGION_FILTER_MAP", {})
+FISH_LEGAL_SIZE = getattr(cfg, "FISH_LEGAL_SIZE", {})
+FISH_COOKING = getattr(cfg, "FISH_COOKING", {})
 
 st.set_page_config(
     page_title="上鱼啦 Beta",
