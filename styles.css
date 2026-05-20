@@ -99,27 +99,37 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:var(--surface); bor
 /* Info/alert */
 [data-testid="stAlert"] { border-radius:12px!important; border:none!important; }
 
-/* 展开/收起 — 卡片底部箭头条，与卡片合为一体 */
+/* 展开/收起 — 右下角小圆形角标 */
+.main .stButton:has(button[kind="secondary"]) {
+    display:flex!important;
+    justify-content:flex-end!important;
+    padding-right:18px!important;
+    margin-top:-14px!important;
+    margin-bottom:14px!important;
+    position:relative!important;
+    z-index:2!important;
+}
 .main .stButton button[kind="secondary"] {
-    background:var(--surface)!important;
-    border:1px solid rgba(219,231,242,0.85)!important;
-    border-top:1px dashed rgba(15,30,50,0.08)!important;
-    border-radius:0 0 14px 14px!important;
-    box-shadow:0 2px 8px rgba(24,66,112,0.04)!important;
+    background:white!important;
+    border:1px solid rgba(219,231,242,0.9)!important;
+    border-radius:50%!important;
+    box-shadow:0 1px 6px rgba(24,66,112,0.10)!important;
     color:var(--subtle)!important;
-    font-size:16px!important;
-    padding:3px 0!important;
+    font-size:14px!important;
+    padding:0!important;
     min-height:auto!important;
-    height:24px!important;
+    width:26px!important;
+    height:26px!important;
     line-height:1!important;
-    transition:background 100ms ease,color 100ms ease!important;
-    width:100%!important;
-    margin-bottom:10px!important;
+    transition:all 100ms ease!important;
     letter-spacing:normal!important;
+    flex-shrink:0!important;
 }
 .main .stButton button[kind="secondary"]:hover {
-    background:var(--surface2)!important;
-    color:var(--primary)!important;
+    background:var(--primary)!important;
+    border-color:var(--primary)!important;
+    color:white!important;
+    box-shadow:0 2px 8px rgba(42,95,176,0.28)!important;
 }
 
 /* Tab 面板统一最小高度，切换时不跳高 */
