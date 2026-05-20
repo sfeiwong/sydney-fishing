@@ -1005,7 +1005,6 @@ def render_spot_card(
         f'{spot["region"]} · {spot["type"]}</div>'
         f'{advice_html}'
         f'<div style="margin-bottom:4px">{fish_chips}</div>'
-        f'<div>{method_chips}</div>'
         f'</div>'
 
         f'<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">'
@@ -1103,68 +1102,80 @@ def render_spot_card(
             f'</div>'
         )
 
-        st.markdown(
-            f'<div style="background:linear-gradient(180deg,#e7f1ff 0%,#ffffff 100%);'
-            f'border:1px solid #d3e3f2;border-radius:12px;border-left:5px solid {border};'
-            f'margin-top:8px;padding:12px 14px 14px;overflow:hidden">'
-            f'<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;'
-            f'padding:8px 10px;border:1px solid #c4dbf5;background:#e9f3ff;'
-            f'border-radius:10px;margin-bottom:12px">'
-            f'<div style="display:flex;align-items:center;gap:8px">'
-            f'<div style="width:9px;height:9px;border-radius:50%;background:{border}"></div>'
-            f'<div style="font-family:var(--mono);font-size:10.5px;letter-spacing:1.5px;'
-            f'color:#5f7690;text-transform:uppercase">Details Panel</div>'
-            f'</div>'
-            f'<div style="font-size:11.5px;color:#5f7690;font-weight:600">展开详情</div>'
-            f'</div>'
+        nav_lat, nav_lon = _nav_coords(spot)
+        maps_url = f"https://www.google.com/maps?q={nav_lat},{nav_lon}"
 
-            f'<div class="detail-main-grid" style="display:grid;grid-template-columns:minmax(230px,1fr) minmax(0,1.45fr);gap:12px;align-items:stretch">'
-            f'<div style="background:white;border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
-            f'text-transform:uppercase;margin-bottom:8px">Tide · 专属潮汐</div>'
-            f'{tide_rows}'
-            f'<div style="height:1px;background:#edf3f8;margin:10px 0"></div>'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
-            f'text-transform:uppercase;margin-bottom:6px">Rules & Cook · 法规与烹饪</div>'
-            f'<div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(120px,0.85fr) minmax(0,1.25fr);'
-            f'gap:8px;padding:0 0 5px;border-bottom:1px solid var(--line);margin-bottom:2px">'
-            f'<span style="font-size:10.5px;color:#7f95ab">鱼种</span>'
-            f'<span style="font-size:10.5px;color:#7f95ab">法定尺寸</span>'
-            f'<span style="font-size:10.5px;color:#7f95ab">推荐做法</span>'
-            f'</div>'
-            f'{fish_rules_cook_html}'
-            f'</div>'
+        tab1, tab2, tab3 = st.tabs(["📊 海况 & 潮汐", "🎣 钓法攻略", "🗺️ 导航路线"])
 
-            f'<div style="background:white;border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px;display:flex;flex-direction:column">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
-            f'text-transform:uppercase;margin-bottom:8px">Methods · 钓法攻略</div>'
-            f'{method_rows}'
-            f'{key_points_html}'
-            f'</div>'
-            f'</div>'
+        with tab1:
+            st.markdown(
+                f'<div class="detail-main-grid" style="display:grid;'
+                f'grid-template-columns:minmax(200px,1fr) minmax(0,1.45fr);gap:12px;align-items:start">'
 
-            f'<div class="detail-bottom-grid" style="display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.05fr);'
-            f'gap:10px;margin-top:12px">'
-            f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
-            f'text-transform:uppercase;margin-bottom:6px">Route · 自驾路线</div>'
-            f'<div style="font-size:12px;color:#213447;line-height:1.62">{spot["route"]}</div>'
-            f'<a href="https://www.google.com/maps?q={_nav_coords(spot)[0]},{_nav_coords(spot)[1]}" target="_blank" '
-            f'style="display:inline-block;margin-top:8px;font-size:11.5px;color:#2a5fb0;text-decoration:none;font-weight:600">'
-            f'Google Maps 导航 →</a>'
-            f'</div>'
-            f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
-            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
-            f'text-transform:uppercase;margin-bottom:6px">Parking · 停车方案</div>'
-            f'<div style="font-size:12px;color:#213447;line-height:1.62">{spot["parking"]}</div>'
-            f'</div>'
-            f'<div style="background:#ffffff;border:1px solid #dfe8f1;border-radius:10px;padding:11px 12px">'
-            f'{_fuel_html(spot, compact=True)}'
-            f'</div>'
-            f'</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+                f'<div style="background:var(--surface);border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px">'
+                f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+                f'text-transform:uppercase;margin-bottom:8px">Tide · 专属潮汐</div>'
+                f'{tide_rows}'
+                f'</div>'
+
+                f'<div style="background:var(--surface);border:1px solid #e2eaf2;border-radius:10px;padding:12px 13px">'
+                f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+                f'text-transform:uppercase;margin-bottom:6px">Rules & Cook · 法规与烹饪</div>'
+                f'<div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(100px,0.85fr) minmax(0,1.25fr);'
+                f'gap:8px;padding:0 0 5px;border-bottom:1px solid var(--line);margin-bottom:2px">'
+                f'<span style="font-size:10.5px;color:#7f95ab">鱼种</span>'
+                f'<span style="font-size:10.5px;color:#7f95ab">法定尺寸</span>'
+                f'<span style="font-size:10.5px;color:#7f95ab">推荐做法</span>'
+                f'</div>'
+                f'{fish_rules_cook_html}'
+                f'</div>'
+
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+        with tab2:
+            st.markdown(
+                f'<div style="background:var(--surface);border:1px solid #e2eaf2;'
+                f'border-radius:10px;padding:14px 16px">'
+                f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+                f'text-transform:uppercase;margin-bottom:10px">Methods · 钓法攻略</div>'
+                f'{method_rows}'
+                f'</div>'
+                f'{key_points_html}',
+                unsafe_allow_html=True,
+            )
+
+        with tab3:
+            st.markdown(
+                f'<div class="detail-bottom-grid" style="display:grid;'
+                f'grid-template-columns:minmax(0,1.2fr) minmax(0,1fr) minmax(0,1.05fr);gap:10px">'
+
+                f'<div style="background:var(--surface);border:1px solid #dfe8f1;'
+                f'border-top:2px solid var(--primary);border-radius:10px;padding:12px 14px">'
+                f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+                f'text-transform:uppercase;margin-bottom:6px">Route · 自驾路线</div>'
+                f'<div style="font-size:12px;color:#213447;line-height:1.62">{spot["route"]}</div>'
+                f'<a href="{maps_url}" target="_blank" '
+                f'style="display:inline-block;margin-top:8px;font-size:11.5px;color:#2a5fb0;'
+                f'text-decoration:none;font-weight:600">Google Maps 导航 →</a>'
+                f'</div>'
+
+                f'<div style="background:var(--surface);border:1px solid #dfe8f1;'
+                f'border-top:2px solid var(--sage);border-radius:10px;padding:12px 14px">'
+                f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;'
+                f'text-transform:uppercase;margin-bottom:6px">Parking · 停车方案</div>'
+                f'<div style="font-size:12px;color:#213447;line-height:1.62">{spot["parking"]}</div>'
+                f'</div>'
+
+                f'<div style="background:var(--surface);border:1px solid #dfe8f1;'
+                f'border-top:2px solid var(--amber);border-radius:10px;padding:12px 14px">'
+                f'{_fuel_html(spot, compact=True)}'
+                f'</div>'
+
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
 
 # ── 今日决策面板 ──────────────────────────────────────────────────────────
