@@ -216,16 +216,16 @@ def _mini_stat(label: str, value: str, tone: str = "text") -> str:
 
 
 def _hero_stat_tile(value: str, label: str, sublabel: str, tone: str = "light", hint: str = "") -> str:
-    value_color = "#c69230" if tone == "gold" else "#ffffff"
+    value_color = "#f5c842" if tone == "gold" else "#ffffff"
+    accent      = "#c69230" if tone == "gold" else "rgba(255,255,255,0.30)"
     return (
-        f'<div style="background:rgba(255,255,255,0.12);'
-        'border:1px solid rgba(255,255,255,0.18);border-radius:12px;'
-        'padding:12px 16px;min-width:118px;backdrop-filter:blur(6px)">'
-        f'<div style="font-family:var(--serif-en);font-size:32px;line-height:1;'
-        f'font-weight:500;color:{value_color}">{value}</div>'
-        f'<div style="font-size:12.5px;color:rgba(255,255,255,0.88);margin-top:5px">{label}</div>'
-        f'<div style="font-family:var(--mono);font-size:9.5px;letter-spacing:1px;'
-        f'text-transform:uppercase;color:rgba(255,255,255,0.58);margin-top:2px">{sublabel}</div>'
+        f'<div style="background:rgba(255,255,255,0.10);'
+        f'border:1px solid rgba(255,255,255,0.14);border-radius:14px;'
+        f'padding:14px 22px;min-width:124px;backdrop-filter:blur(8px);'
+        f'border-top:2px solid {accent}">'
+        f'<div style="font-family:\'Source Serif 4\',Georgia,serif;font-size:40px;line-height:1;'
+        f'font-weight:400;color:{value_color};letter-spacing:-1px">{value}</div>'
+        f'<div style="font-size:13px;color:rgba(255,255,255,0.92);margin-top:7px;font-weight:500">{label}</div>'
         '</div>'
     )
 
@@ -1359,143 +1359,155 @@ def _fuel_html(spot: dict, compact: bool = False) -> str:
 # ── 钓点详情（地图右侧内联）────────────────────────────────────────────────
 
 def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict) -> None:
-    c_border = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
-    c_bg     = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
-    border   = c_border.get(safety["color"], "#888")
-    badge_bg = c_bg.get(safety["color"], "#f5f5f5")
-    wt       = spot.get("water_type", "harbour")
-    is_fw    = wt == "freshwater"
-    swell    = weather.get("swell_height") or 0
-    wind     = weather.get("wind") or 0
+    c_map = {
+        "sage":  ("#4f9b76", "#e7f3ec", "#3a7f5d"),
+        "amber": ("#d99540", "#fcf2e0", "#a06c20"),
+        "coral": ("#cc5e54", "#fbeae8", "#b1453b"),
+    }
+    border, badge_bg, badge_txt = c_map.get(safety["color"], c_map["sage"])
+    wt    = spot.get("water_type", "harbour")
+    is_fw = wt == "freshwater"
+    swell = weather.get("swell_height") or 0
+    wind  = weather.get("wind") or 0
     sw_color = "#8a9cb2" if is_fw else _val_color(swell, SHELTERED_SWELL_WARN, OCEAN_SWELL_DANGER)
-    wi_color = _val_color(wind,  SHELTERED_WIND_WARN,  OCEAN_WIND_DANGER)
-    swell_icon_html = (
-        f'🏞️ <b style="color:{sw_color}">淡水</b>'
-        if is_fw else
-        f'🌊 <b style="color:{sw_color}">{swell}m</b>'
+    wi_color = _val_color(wind, SHELTERED_WIND_WARN, OCEAN_WIND_DANGER)
+    time_win = _best_window_times(spot["best_window"], tides)
+    family_stars = spot["family_friendly"].count("⭐")
+
+    # ── 头部：名称 + 安全标签 + 地区
+    advice_block = (
+        f'<div style="margin-top:8px;padding:6px 10px;background:{badge_bg};'
+        f'border-radius:6px;font-size:11.5px;color:{badge_txt};line-height:1.5">'
+        f'{safety["advice"]}</div>'
+    ) if safety["color"] != "sage" else ""
+
+    st.markdown(
+        f'<div style="border-left:4px solid {border};padding:12px 14px;margin-bottom:4px;'
+        f'background:var(--surface);border-radius:0 12px 12px 0;'
+        f'border:1px solid var(--line);border-left:4px solid {border}">'
+        f'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">'
+        f'<div style="font-family:var(--serif-zh);font-size:1.08em;font-weight:700;'
+        f'color:#102338;line-height:1.35">{spot["name"]}</div>'
+        f'<span style="background:{badge_bg};color:{badge_txt};border:1px solid {border};'
+        f'padding:2px 10px;border-radius:999px;font-size:0.75em;font-weight:700;white-space:nowrap">'
+        f'{safety["status"]}</span>'
+        f'</div>'
+        f'<div style="font-size:11.5px;color:var(--muted);margin-top:4px">'
+        f'{spot["region"]} · {spot["type"]}</div>'
+        f'{advice_block}'
+        f'</div>',
+        unsafe_allow_html=True,
     )
 
-    fish_html = "".join(
-        f'<span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:10px;'
-        f'font-size:0.76em;margin:2px 2px 0;display:inline-block">{f}</span>'
-        for f in spot["fish_tags"]
-    )
-    method_html = "".join(
-        f'<span style="background:#f3e5f5;color:#6a1b9a;padding:2px 8px;border-radius:10px;'
-        f'font-size:0.75em;margin:2px 2px 0;display:inline-block">{m}</span>'
-        for m in spot["supported_methods"][:4]
-    )
-    fish_rules_cook_html = _fish_rules_cook_html(spot["fish_tags"], max_items=4)
-    if wt == "freshwater":
-        tides_html = "🏞️ 淡水钓点 · 无潮汐影响"
-    else:
-        tides_html = " &nbsp;|&nbsp; ".join(
-            f"{t['label']} <b>{t['time'].strftime('%H:%M')}</b>" for t in tides
+    # ── 三个 Tab
+    t1, t2, t3 = st.tabs(["📊 概况", "🎣 钓法", "🗺️ 导航"])
+
+    with t1:
+        # 4 mini-stats 横排
+        swell_val = "淡水" if is_fw else f"{swell}m"
+        swell_tone = "text" if is_fw else ("coral" if sw_color == "#cc5e54" else "amber" if sw_color == "#d99540" else "text")
+        wind_tone  = "coral" if wi_color == "#cc5e54" else "amber" if wi_color == "#d99540" else "text"
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:10px">'
+            f'{_mini_stat("浪涌" if not is_fw else "水域", swell_val, swell_tone)}'
+            f'{_mini_stat("风速", f"{wind}km/h", wind_tone)}'
+            f'{_mini_stat("黄金时段", time_win, "blue")}'
+            f'{_mini_stat("家庭", "⭐"*family_stars if family_stars else "—", "text")}'
+            f'</div>',
+            unsafe_allow_html=True,
         )
-        if wt == "brackish":
-            tides_html += ' &nbsp;<span style="color:#d99540;font-size:0.88em">⚠ 咸淡水·时间仅供参考</span>'
+        # 潮汐
+        if is_fw:
+            tides_md = '<div style="font-size:12px;color:var(--muted)">🏞️ 淡水钓点 · 无潮汐影响</div>'
+        else:
+            tide_rows = "".join(
+                f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
+                f'border-bottom:1px solid var(--line)">'
+                f'<span style="font-size:12px;color:var(--muted)">{"满潮" if t["is_high"] else "干潮"}</span>'
+                f'<span style="font-family:var(--mono);font-size:12px;font-weight:600;'
+                f'color:{"#c69230" if t["is_high"] else "#8a9cb2"}">'
+                f'{t["time"].strftime("%H:%M")}</span></div>'
+                for t in tides
+            )
+            warn = '<div style="font-size:10.5px;color:var(--amber);margin-top:6px">⚠ 咸淡水·潮时仅供参考</div>' if wt == "brackish" else ""
+            tides_md = f'<div style="margin-bottom:4px">{tide_rows}{warn}</div>'
+        # 鱼种
+        fish_chips = _limited_pills(spot["fish_tags"], "blue", limit=5)
+        st.markdown(
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">Tide · 潮汐</div>'
+            + tides_md +
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;'
+            f'color:var(--subtle);text-transform:uppercase;margin:10px 0 6px">Fish · 目标鱼种</div>'
+            + fish_chips,
+            unsafe_allow_html=True,
+        )
 
-    nav_lat, nav_lon = _nav_coords(spot)
-    maps_url = f"https://www.google.com/maps?q={nav_lat},{nav_lon}"
+    with t2:
+        fish_rules_cook_html = _fish_rules_cook_html(spot["fish_tags"], max_items=4)
+        show_methods = spot["supported_methods"]
+        tip_icons = {"🎯": "#2a5fb0", "👍": "#4f9b76", "⚠": "#d99540"}
+        method_rows = ""
+        for method in show_methods[:4]:
+            tip = spot["method_tips"].get(method, "此钓法在该钓点完全可行。")
+            icon_color = next((c for k, c in tip_icons.items() if k in tip), "#8a9cb2")
+            short = method.split("(")[0].strip()
+            tip_short = tip[:90] + "…" if len(tip) > 90 else tip
+            method_rows += (
+                f'<div style="padding:7px 0 8px;border-bottom:1px dashed #e6edf4">'
+                f'<div style="display:flex;align-items:center;gap:7px;margin-bottom:3px">'
+                f'<div style="width:6px;height:6px;border-radius:50%;background:{icon_color};flex-shrink:0"></div>'
+                f'<div style="font-size:12.5px;font-weight:700;color:#1f3147">{short}</div>'
+                f'</div>'
+                f'<div style="font-size:11.5px;color:#5c6f84;line-height:1.55;padding-left:13px">{tip_short}</div>'
+                f'</div>'
+            )
+        st.markdown(
+            f'<div style="margin-bottom:12px">{method_rows}</div>'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">Rules & Cook · 法规</div>'
+            f'<div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(90px,0.85fr) minmax(0,1.25fr);'
+            f'gap:6px;padding:0 0 4px;border-bottom:1px solid var(--line);margin-bottom:2px">'
+            f'<span style="font-size:10px;color:#7f95ab">鱼种</span>'
+            f'<span style="font-size:10px;color:#7f95ab">法定尺寸</span>'
+            f'<span style="font-size:10px;color:#7f95ab">推荐做法</span>'
+            f'</div>'
+            + fish_rules_cook_html,
+            unsafe_allow_html=True,
+        )
 
-    first_method = spot["supported_methods"][0] if spot["supported_methods"] else ""
-    tip_raw      = spot["method_tips"].get(first_method, "")
-    tip_text     = tip_raw[:100] + "…" if len(tip_raw) > 100 else tip_raw
-    tip_block    = (
-        f'<div style="background:#f7fafc;border:1px solid #edf3f8;border-radius:10px;'
-        f'padding:10px 12px;font-size:0.78em;color:#496174;margin-bottom:12px;'
-        f'line-height:1.55">💡 {tip_text}</div>'
-        if tip_text else ""
-    )
+    with t3:
+        nav_lat, nav_lon = _nav_coords(spot)
+        maps_url = f"https://www.google.com/maps?q={nav_lat},{nav_lon}"
+        st.markdown(
+            f'<div style="display:flex;flex-direction:column;gap:10px">'
 
-    st.html(f"""
-    <div style="background:linear-gradient(180deg,#ffffff 0%,#f7f9fb 100%);
-                border:1px solid var(--line);border-top:4px solid {border};
-                border-radius:14px;box-shadow:0 2px 12px rgba(15,30,50,0.08);
-                padding:14px 16px;max-height:430px;overflow-y:auto;font-family:var(--ui-zh)">
-        <div style="background:linear-gradient(135deg,#f8fbff,#eef5ff);border:1px solid #d9e7f6;
-                    border-radius:12px;padding:10px 12px;margin-bottom:10px">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
-                <div style="font-family:var(--serif-zh);font-size:1.06em;font-weight:700;
-                            color:#102338;line-height:1.35">{spot['name']}</div>
-                <span style="background:{badge_bg};color:{border};padding:3px 10px;
-                             border-radius:999px;font-size:0.76em;font-weight:700;white-space:nowrap">
-                    {safety['status']}
-                </span>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
-                <span style="background:#eef4fb;color:#516579;padding:2px 10px;
-                             border-radius:999px;font-size:0.74em;font-weight:600">
-                    {spot['region']}
-                </span>
-                {_wt_pill(spot)}
-            </div>
-        </div>
+            f'<div style="background:var(--surface);border:1px solid var(--line);'
+            f'border-top:2px solid var(--primary);border-radius:10px;padding:12px 14px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">Route · 自驾路线</div>'
+            f'<div style="font-size:12px;color:var(--text);line-height:1.62">{spot["route"]}</div>'
+            f'<a href="{maps_url}" target="_blank" '
+            f'style="display:inline-block;margin-top:10px;font-size:12px;color:#2a5fb0;'
+            f'text-decoration:none;font-weight:600;background:#e6efff;padding:5px 14px;'
+            f'border-radius:8px">📍 Google Maps 导航</a>'
+            f'</div>'
 
-        <div style="background:white;border:1px solid var(--line);border-radius:12px;
-                    padding:12px 14px;margin-bottom:12px">
-            <div style="color:{border};font-size:12px;font-weight:700;line-height:1.55">
-                {safety['advice']}
-            </div>
-        </div>
+            f'<div style="background:var(--surface);border:1px solid var(--line);'
+            f'border-top:2px solid var(--sage);border-radius:10px;padding:12px 14px">'
+            f'<div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;'
+            f'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">Parking · 停车</div>'
+            f'<div style="font-size:12px;color:var(--text);line-height:1.62">{spot["parking"]}</div>'
+            f'</div>'
 
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px">
-            <div style="background:#f8fafc;border:1px solid #edf3f8;border-radius:10px;padding:8px 10px">
-                <div style="font-size:10px;letter-spacing:1px;color:#8a9cb2;text-transform:uppercase;margin-bottom:3px">Weather</div>
-                <div style="font-size:12px;color:{sw_color};font-weight:700">{swell_icon_html}</div>
-                <div style="font-size:12px;color:{wi_color};font-weight:700;margin-top:3px">风速 {wind} km/h</div>
-            </div>
-            <div style="background:#f8fafc;border:1px solid #edf3f8;border-radius:10px;padding:8px 10px">
-                <div style="font-size:10px;letter-spacing:1px;color:#8a9cb2;text-transform:uppercase;margin-bottom:3px">Timing</div>
-                <div style="font-size:12px;color:var(--text);line-height:1.45">今日 {_best_window_times(spot['best_window'], tides)}</div>
-                <div style="font-size:11px;color:var(--muted);line-height:1.45;margin-top:3px">{tides_html}</div>
-            </div>
-        </div>
+            f'<div style="background:var(--surface);border:1px solid var(--line);'
+            f'border-top:2px solid var(--amber);border-radius:10px;padding:12px 14px">'
+            f'{_fuel_html(spot, compact=True)}'
+            f'</div>'
 
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-            {fish_html}
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-            {method_html}
-        </div>
-
-        {tip_block}
-
-        <div style="background:white;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:10px">
-            <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.4px;color:#8a9cb2;
-                        text-transform:uppercase;margin-bottom:6px">Rules & Cook · 法规与烹饪</div>
-            <div style="display:grid;grid-template-columns:minmax(0,0.9fr) minmax(120px,0.85fr) minmax(0,1.25fr);
-                        gap:8px;padding:0 0 5px;border-bottom:1px solid var(--line);margin-bottom:2px">
-                <span style="font-size:10.5px;color:#7f95ab">鱼种</span>
-                <span style="font-size:10.5px;color:#7f95ab">法定尺寸</span>
-                <span style="font-size:10.5px;color:#7f95ab">推荐做法</span>
-            </div>
-            {fish_rules_cook_html}
-        </div>
-
-        <div class="map-detail-bottom-grid" style="display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) minmax(0,1.05fr);gap:10px">
-            <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--primary);
-                        border-radius:12px;padding:12px 14px">
-                <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
-                            color:var(--subtle);text-transform:uppercase;margin-bottom:6px">ROUTE · 自驾路线</div>
-                <div style="font-size:12px;color:var(--text);line-height:1.6">{spot['route']}</div>
-                <a href="{maps_url}" target="_blank"
-                   style="display:inline-block;margin-top:8px;font-size:11.5px;color:#2a5fb0;
-                          text-decoration:none;font-weight:600">Google Maps 导航 →</a>
-            </div>
-            <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--sage);
-                        border-radius:12px;padding:12px 14px">
-                <div style="font-family:var(--mono);font-size:10px;letter-spacing:1.5px;
-                            color:var(--subtle);text-transform:uppercase;margin-bottom:6px">PARKING · 停车方案</div>
-                <div style="font-size:12px;color:var(--text);line-height:1.6">{spot['parking']}</div>
-            </div>
-            <div style="background:white;border:1px solid var(--line);border-top:2px solid var(--amber);
-                        border-radius:12px;padding:12px 14px">
-                {_fuel_html(spot, compact=True)}
-            </div>
-        </div>
-    </div>
-    """)
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── 地图 + 点击详情 ───────────────────────────────────────────────────────
@@ -1839,9 +1851,9 @@ for _spot in hero_spots:
 
 st.markdown(
     f'<div class="hero" style="position:relative;border-radius:14px;overflow:hidden;'
-    f'padding:28px 32px;background:linear-gradient(110deg,#1f4a8d 0%,#2a5fb0 55%,#3479c9 100%);'
-    f'color:#fff;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap">'
-    f'<div style="min-width:280px;flex:1">'
+    f'padding:28px 32px;background:linear-gradient(110deg,#1a3f7a 0%,#2a5fb0 50%,#3479c9 100%);'
+    f'color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:40px;flex-wrap:wrap">'
+    f'<div style="min-width:260px;flex:0 1 400px">'
     f'<div style="font-family:IBM Plex Mono;font-size:11px;letter-spacing:2px;'
     f'color:rgba(255,255,255,0.7);text-transform:uppercase;margin-bottom:8px">'
     f'实时海况 · 潮汐推算 · 智能推荐</div>'
