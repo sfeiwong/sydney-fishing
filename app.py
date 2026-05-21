@@ -5,6 +5,7 @@
 import math
 import re
 import base64
+import time
 from pathlib import Path
 import numpy as np
 import streamlit as st
@@ -98,6 +99,7 @@ with st.sidebar:
         ["推荐优先", "家庭友好优先", "涌浪最小", "风速最小"],
         key="sel_sort",
     )
+    perf_debug = st.checkbox("显示性能面板", value=False, key="perf_debug")
     if st.button("↺ 重置所有筛选", use_container_width=True):
         st.session_state["sel_methods"] = []
         st.session_state["sel_fish"] = []
@@ -1026,7 +1028,7 @@ def render_spot_card(
         st.session_state[toggle_key] = False
     is_open = st.session_state[toggle_key]
 
-    if st.button("⌃" if is_open else "⌄", key=toggle_key + "_btn"):
+    if st.button(("收起详情 ▴" if is_open else "展开详情 ▾"), key=toggle_key + "_btn"):
         st.session_state[toggle_key] = not is_open
         st.rerun()
 
@@ -1509,6 +1511,42 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
         )
 
 
+def render_spot_card_mobile(
+    spot: dict,
+    safety: dict,
+    spot_tides: list,
+    spot_weather: dict,
+    day_offset: int,
+    forecast_days: list = None,
+) -> None:
+    border_map = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
+    border = border_map.get(safety["color"], "#4f9b76")
+    is_fw = spot.get("water_type") == "freshwater"
+    swell = spot_weather.get("swell_height") or 0
+    wind = spot_weather.get("wind") or 0
+    time_window = _best_window_times(spot["best_window"], spot_tides)
+    wt_badge = _wt_pill(spot)
+    fish_chips = _limited_pills(spot["fish_tags"], "blue", limit=4)
+
+    st.markdown(
+        f'<div style="background:#fff;border:1px solid rgba(219,231,242,0.85);border-left:4px solid {border};'
+        f'border-radius:12px;padding:12px 12px 10px;margin-bottom:8px">'
+        f'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
+        f'<div style="font-family:var(--serif-zh);font-size:16px;font-weight:600;line-height:1.3">{spot["name"]}</div>'
+        f'{_status_badge(safety)}</div>'
+        f'<div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">{wt_badge}</div>'
+        f'<div style="margin-top:6px;overflow-x:auto;white-space:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch">{fish_chips}</div>'
+        f'<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px">'
+        f'{_mini_stat("浪涌" if not is_fw else "水域", ("淡水" if is_fw else f"{swell}m"), "text")}'
+        f'{_mini_stat("风速", f"{wind}km/h", "text")}'
+        f'{_mini_stat("时段", time_window, "blue")}'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+
 # ── 地图 + 点击详情 ───────────────────────────────────────────────────────
 
 def render_map_section(day_offset: int, all_spot_data: list) -> None:
@@ -1660,6 +1698,8 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
 # ── 日期 Tab 渲染 ─────────────────────────────────────────────────────────
 
 def render_day_tab(day_offset: int) -> None:
+    _t0 = time.perf_counter()
+    perf = {}
     target_date = _now_sydney() + timedelta(days=day_offset)
     label = "今天" if day_offset == 0 else ("明天" if day_offset == 1 else "后天")
 
@@ -1694,10 +1734,12 @@ def render_day_tab(day_offset: int) -> None:
                 unsafe_allow_html=True,
             )
             render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
+    perf["overview"] = time.perf_counter() - _t0
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
     is_mobile = _is_mobile_user_agent()
+    _tp = time.perf_counter()
     payload = _build_day_payload(
         day_offset,
         tuple(selected_methods),
@@ -1710,6 +1752,7 @@ def render_day_tab(day_offset: int) -> None:
     filtered = payload["filtered"]
     forecast_by_spot = payload["forecast_by_spot"]
     all_spot_data = list(payload["all_spot_data"])
+    perf["payload"] = time.perf_counter() - _tp
 
     _safety_order = {"sage": 0, "amber": 1, "coral": 2}
     if sort_by == "家庭友好优先":
@@ -1733,7 +1776,9 @@ def render_day_tab(day_offset: int) -> None:
         return
 
     section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
+    _td = time.perf_counter()
     render_decision_panel(all_spot_data, day_w, base_tides, label)
+    perf["decision"] = time.perf_counter() - _td
 
     # ── 三天最佳出钓日横幅 ──────────────────────────────────────────────────
     day_safe_counts = []
@@ -1813,7 +1858,9 @@ def render_day_tab(day_offset: int) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
     section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
+    _tm = time.perf_counter()
     render_map_section(day_offset, all_spot_data)
+    perf["map"] = time.perf_counter() - _tm
 
     st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
     visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
@@ -1825,16 +1872,28 @@ def render_day_tab(day_offset: int) -> None:
         "匹配钓点", sort_label
     )
     visible = 0
+    _tl = time.perf_counter()
     for spot, safety, spot_tides, spot_day_w in visible_list:
-        render_spot_card(
-            spot,
-            safety,
-            spot_tides,
-            spot_day_w,
-            day_offset,
-            forecast_days=forecast_by_spot[spot["name"]]["days"],
-        )
+        if is_mobile:
+            render_spot_card_mobile(
+                spot,
+                safety,
+                spot_tides,
+                spot_day_w,
+                day_offset,
+                forecast_days=forecast_by_spot[spot["name"]]["days"],
+            )
+        else:
+            render_spot_card(
+                spot,
+                safety,
+                spot_tides,
+                spot_day_w,
+                day_offset,
+                forecast_days=forecast_by_spot[spot["name"]]["days"],
+            )
         visible += 1
+    perf["list"] = time.perf_counter() - _tl
     if visible == 0:
         active_filters = []
         if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
@@ -1845,6 +1904,18 @@ def render_day_tab(day_offset: int) -> None:
         if family_only: active_filters.append("仅家庭友好")
         hint = "、".join(active_filters) if active_filters else "未知条件"
         st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
+
+    if st.session_state.get("perf_debug", False):
+        total = sum(perf.values())
+        st.markdown(
+            f'<div style="margin-top:10px;background:#f7fafc;border:1px solid var(--line);border-radius:10px;'
+            f'padding:8px 10px;font-size:11px;color:#5b6e87;line-height:1.6">'
+            f'性能(ms) 总计 {total*1000:.0f} ｜ 概览 {perf.get("overview",0)*1000:.0f} ｜ '
+            f'数据 {perf.get("payload",0)*1000:.0f} ｜ 决策 {perf.get("decision",0)*1000:.0f} ｜ '
+            f'地图 {perf.get("map",0)*1000:.0f} ｜ 列表 {perf.get("list",0)*1000:.0f}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── 主页面 ────────────────────────────────────────────────────────────────
