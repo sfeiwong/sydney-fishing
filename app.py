@@ -41,6 +41,7 @@ st.set_page_config(
 
 spots = load_spots()
 MAP_MARKER_LIMIT = 120
+MAP_MARKER_LIMIT_MOBILE = 70
 FAST_SPOT_LIMIT = 30
 SYD_TZ = ZoneInfo("Australia/Sydney")
 
@@ -964,29 +965,39 @@ def render_spot_card(
     wt_badge     = _wt_pill(spot)
     season_badge = _freshwater_season_pill() if is_fw else _saltwater_season_pills(spot["fish_tags"])
 
-    # 三天安全预报小圆点
-    _dot_c = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
-    if forecast_days is not None:
-        _fc_days = forecast_days
-    else:
-        w_lat, w_lon = _weather_coords(spot)
-        _fc_days = get_marine_forecast(w_lat, w_lon)["days"]
-    _day_labels = ["今", "明", "后"]
-    _dots_parts = []
-    for _di, _lbl in enumerate(_day_labels):
-        _ds = assess_safety(spot, _fc_days[_di])
-        _c  = _dot_c[_ds["color"]]
-        _dots_parts.append(
-            f'<div style="text-align:center;line-height:1.2">'
-            f'<div style="font-size:9px;color:#aaa">{_lbl}</div>'
-            f'<div style="width:9px;height:9px;border-radius:50%;background:{_c};margin:1px auto"></div>'
-            f'</div>'
-        )
-    three_day_dots = (
-        '<div style="display:flex;gap:4px;align-items:center;'
-        'background:#f4f8fc;border-radius:8px;padding:4px 7px">'
-        + "".join(_dots_parts) + "</div>"
+    toggle_key = (
+        f"det_{day_offset}_"
+        + spot["name"].replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
     )
+    if toggle_key not in st.session_state:
+        st.session_state[toggle_key] = False
+    is_open = st.session_state[toggle_key]
+
+    # 三天安全预报小圆点（仅在展开时计算，降低列表首屏计算量）
+    three_day_dots = ""
+    if is_open:
+        _dot_c = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
+        if forecast_days is not None:
+            _fc_days = forecast_days
+        else:
+            w_lat, w_lon = _weather_coords(spot)
+            _fc_days = get_marine_forecast(w_lat, w_lon)["days"]
+        _day_labels = ["今", "明", "后"]
+        _dots_parts = []
+        for _di, _lbl in enumerate(_day_labels):
+            _ds = assess_safety(spot, _fc_days[_di])
+            _c  = _dot_c[_ds["color"]]
+            _dots_parts.append(
+                f'<div style="text-align:center;line-height:1.2">'
+                f'<div style="font-size:9px;color:#aaa">{_lbl}</div>'
+                f'<div style="width:9px;height:9px;border-radius:50%;background:{_c};margin:1px auto"></div>'
+                f'</div>'
+            )
+        three_day_dots = (
+            '<div style="display:flex;gap:4px;align-items:center;'
+            'background:#f4f8fc;border-radius:8px;padding:4px 7px">'
+            + "".join(_dots_parts) + "</div>"
+        )
 
     # Safety advice — only shown inline for amber/coral; sage is self-explanatory
     advice_html = ""
@@ -1037,14 +1048,6 @@ def render_spot_card(
         f'</div>',
         unsafe_allow_html=True,
     )
-
-    toggle_key = (
-        f"det_{day_offset}_"
-        + spot["name"].replace(" ", "_").replace("(", "").replace(")", "").replace("/", "_")
-    )
-    if toggle_key not in st.session_state:
-        st.session_state[toggle_key] = False
-    is_open = st.session_state[toggle_key]
 
     if st.button(("收起详情 ▴" if is_open else "展开详情 ▾"), key=toggle_key + "_btn"):
         st.session_state[toggle_key] = not is_open
@@ -1567,14 +1570,15 @@ def render_spot_card_mobile(
 
 # ── 地图 + 点击详情 ───────────────────────────────────────────────────────
 
-def render_map_section(day_offset: int, all_spot_data: list) -> None:
+def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = False) -> None:
     STATUS_COLOR = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     status_counts = {
         "sage": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "sage"),
         "amber": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "amber"),
         "coral": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "coral"),
     }
-    map_spot_data = all_spot_data[:MAP_MARKER_LIMIT]
+    marker_limit = MAP_MARKER_LIMIT_MOBILE if is_mobile else MAP_MARKER_LIMIT
+    map_spot_data = all_spot_data[:marker_limit]
 
     col_map, col_detail = st.columns([3, 2])
     selected_key = f"map_selected_spot_{day_offset}"
@@ -1645,8 +1649,8 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
             returned_objects=["last_object_clicked"],
             key=f"map_{day_offset}",
         )
-        if len(all_spot_data) > MAP_MARKER_LIMIT:
-            st.caption(f"地图已显示前 {MAP_MARKER_LIMIT} 个钓点以提升速度（列表仍显示全部）。")
+        if len(all_spot_data) > marker_limit:
+            st.caption(f"地图已显示前 {marker_limit} 个钓点以提升速度（列表仍显示全部）。")
 
     with col_detail:
         clicked = (map_data or {}).get("last_object_clicked")
@@ -1715,13 +1719,12 @@ def render_map_section(day_offset: int, all_spot_data: list) -> None:
 
 # ── 日期 Tab 渲染 ─────────────────────────────────────────────────────────
 
-def render_day_tab(day_offset: int) -> None:
+def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     _t0 = time.perf_counter()
     perf = {}
     target_date = _now_sydney() + timedelta(days=day_offset)
     label = "今天" if day_offset == 0 else ("明天" if day_offset == 1 else "后天")
 
-    overview_weather = get_marine_forecast(-33.8688, 151.2093)
     day_w      = overview_weather["days"][day_offset]
     next_day_w = overview_weather["days"][day_offset + 1] if day_offset < 2 else None
     base_tides = get_tides_for_date(target_date)
@@ -1887,7 +1890,7 @@ def render_day_tab(day_offset: int) -> None:
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
     section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
     _tm = time.perf_counter()
-    render_map_section(day_offset, all_spot_data)
+    render_map_section(day_offset, all_spot_data, is_mobile=is_mobile)
     perf["map"] = time.perf_counter() - _tm
 
     st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
@@ -1899,9 +1902,14 @@ def render_day_tab(day_offset: int) -> None:
         f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
         "匹配钓点", sort_label
     )
+    page_size = 12 if is_mobile else 20
+    page_key = f"matched_page_{day_offset}"
+    if page_key not in st.session_state:
+        st.session_state[page_key] = 1
+    render_n = min(len(visible_list), st.session_state[page_key] * page_size)
     visible = 0
     _tl = time.perf_counter()
-    for spot, safety, spot_tides, spot_day_w in visible_list:
+    for spot, safety, spot_tides, spot_day_w in visible_list[:render_n]:
         if is_mobile:
             render_spot_card_mobile(
                 spot,
@@ -1922,6 +1930,10 @@ def render_day_tab(day_offset: int) -> None:
             )
         visible += 1
     perf["list"] = time.perf_counter() - _tl
+    if render_n < len(visible_list):
+        if st.button(f"加载更多钓点（{render_n}/{len(visible_list)}）", key=f"{page_key}_more"):
+            st.session_state[page_key] += 1
+            st.rerun()
     if visible == 0:
         active_filters = []
         if selected_methods: active_filters.append(f"钓法 ({len(selected_methods)} 种)")
@@ -2018,7 +2030,7 @@ selected_day_offset = st.segmented_control(
     label_visibility="collapsed",
     default=0,
 ) or 0
-render_day_tab(selected_day_offset)
+render_day_tab(selected_day_offset, _day_overview)
 
 st.markdown("---")
 st.markdown("""
