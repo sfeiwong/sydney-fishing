@@ -1732,16 +1732,16 @@ def render_day_tab(day_offset: int) -> None:
     _shelter_bad  = _s > SHELTERED_SWELL_WARN or _w > SHELTERED_WIND_WARN
     if _ocean_bad and _shelter_bad:
         _s_emoji, _s_col, _s_bg, _s_bd = "⛔", "#b1453b", "#fbeae8", "#cc5e54"
-        _s_msg = f"{label}整体海况偏差（风 {_w}km/h · 涌 {_s}m），建议推迟或仅考虑淡水钓点"
+        _s_msg = f"{label}整体风浪偏大，建议推迟出钓或仅选淡水钓点"
     elif _ocean_bad:
         _s_emoji, _s_col, _s_bg, _s_bd = "⚠️", "#a06c20", "#fcf2e0", "#d99540"
-        _s_msg = f"{label}外海/船钓风浪偏大（风 {_w}km/h · 涌 {_s}m），推荐优先内湾或淡水钓点"
+        _s_msg = f"{label}外海/船钓危险，建议优先内湾或淡水钓点"
     elif _r >= 70:
         _s_emoji, _s_col, _s_bg, _s_bd = "🌧️", "#3a5fa8", "#e8f0fe", "#7baee8"
-        _s_msg = f"{label}降雨概率 {int(_r)}%，海况尚可，备好雨衣仍可前往内湾钓点"
+        _s_msg = f"{label}降雨为主，海况尚可，备好雨具仍可出钓"
     else:
         _s_emoji, _s_col, _s_bg, _s_bd = "✅", "#3a7f5d", "#e7f3ec", "#4f9b76"
-        _s_msg = f"{label}海况良好（风 {_w}km/h · 涌 {_s}m），内湾与外海均可出行"
+        _s_msg = f"{label}适合出钓，内湾与外海条件均良好"
     st.markdown(
         f'<div style="background:{_s_bg};border:1px solid {_s_bd};border-radius:12px;'
         f'padding:10px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px">'
@@ -1836,28 +1836,13 @@ def render_day_tab(day_offset: int) -> None:
     day_names = ["今天", "明天", "后天"]
     if best_di != day_offset:
         diff = day_safe_counts[best_di] - day_safe_counts[day_offset]
-        st.markdown(
-            f'<div style="background:linear-gradient(90deg,#e8f5e9,#f1f8e9);'
-            f'border-radius:12px;padding:10px 18px;border-left:4px solid #4f9b76;'
-            f'display:flex;align-items:center;gap:12px;margin-bottom:8px">'
-            f'<span style="font-size:20px">💡</span>'
-            f'<div><span style="font-size:13px;color:#2e7d32;font-weight:600">'
-            f'{day_names[best_di]}出钓更佳</span>'
-            f'<span style="font-size:12px;color:#555;margin-left:8px">'
-            f'比{label}多 {diff} 个推荐钓点（共 {day_safe_counts[best_di]} 个✅）'
-            f' → 切换到「{day_names[best_di]}」标签查看</span></div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f'<div style="background:#e8f5e9;border-radius:12px;padding:8px 18px;'
-            f'border-left:4px solid #4f9b76;font-size:12.5px;color:#2e7d32;'
-            f'font-weight:600;margin-bottom:8px">'
-            f'✅ {label}是未来三天最佳出钓日（{day_safe_counts[day_offset]} 个推荐钓点）'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        if diff >= 2:
+            st.markdown(
+                f'<div style="background:#f6f9fc;border:1px solid #dbe6f2;border-radius:10px;'
+                f'padding:8px 12px;margin-bottom:8px;font-size:12px;color:#4f647a">'
+                f'💡 {day_names[best_di]}更优（+{diff} 推荐点） · 可切换查看</div>',
+                unsafe_allow_html=True,
+            )
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
