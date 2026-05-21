@@ -662,32 +662,49 @@ def render_weather_panel(day_weather: dict, data_ok: bool, next_day: dict = None
         </div>
     """), unsafe_allow_html=True)
 
-    uv = day_weather.get("uv") or 0
-    uv_val = int(round(uv))
-    if uv_val <= 2:
-        uv_col, uv_label, uv_tip = "#4f9b76", "低", "无需特别防护"
-    elif uv_val <= 5:
-        uv_col, uv_label, uv_tip = "#d99540", "中等", "SPF 30+ 推荐"
-    elif uv_val <= 7:
-        uv_col, uv_label, uv_tip = "#cc5e54", "高", "SPF 50+ 必备，帽子眼镜必带"
-    elif uv_val <= 10:
-        uv_col, uv_label, uv_tip = "#b03060", "极高", "户外务必全副防晒，减少暴露"
+    if rain_prob >= 70:
+        st.markdown(
+            f'<div style="background:#e8f0fe;border:1px solid #b3cdf5;border-radius:14px;'
+            f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
+            f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
+            f'<div style="font-family:var(--mono);font-size:10.5px;color:#4472a8;'
+            f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☔ 降雨预报</div>'
+            f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
+            f'color:#3a5fa8;line-height:1">{int(rain_prob)}%</div>'
+            f'<span style="background:#b3cdf544;color:#3a5fa8;padding:2px 10px;'
+            f'border-radius:999px;font-size:12px;font-weight:600">降雨概率高</span>'
+            f'<div style="font-size:12px;color:#4472a8;margin-left:auto">'
+            f'备好雨衣和防水装备再出发，{rain_str} 预计降水</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
     else:
-        uv_col, uv_label, uv_tip = "#6a0dad", "危险", "尽量避免正午户外"
-    st.markdown(
-        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
-        f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
-        f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
-        f'<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
-        f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☀️ UV 指数</div>'
-        f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
-        f'color:{uv_col};line-height:1">{uv_val}</div>'
-        f'<span style="background:{uv_col}22;color:{uv_col};padding:2px 10px;'
-        f'border-radius:999px;font-size:12px;font-weight:600">{uv_label}</span>'
-        f'<div style="font-size:12px;color:var(--muted);margin-left:auto">{uv_tip}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+        uv = day_weather.get("uv") or 0
+        uv_val = int(round(uv))
+        if uv_val <= 2:
+            uv_col, uv_label, uv_tip = "#4f9b76", "低", "无需特别防护"
+        elif uv_val <= 5:
+            uv_col, uv_label, uv_tip = "#d99540", "中等", "SPF 30+ 推荐"
+        elif uv_val <= 7:
+            uv_col, uv_label, uv_tip = "#cc5e54", "高", "SPF 50+ 必备，帽子眼镜必带"
+        elif uv_val <= 10:
+            uv_col, uv_label, uv_tip = "#b03060", "极高", "户外务必全副防晒，减少暴露"
+        else:
+            uv_col, uv_label, uv_tip = "#6a0dad", "危险", "尽量避免正午户外"
+        st.markdown(
+            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
+            f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
+            f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
+            f'<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
+            f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☀️ UV 指数</div>'
+            f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
+            f'color:{uv_col};line-height:1">{uv_val}</div>'
+            f'<span style="background:{uv_col}22;color:{uv_col};padding:2px 10px;'
+            f'border-radius:999px;font-size:12px;font-weight:600">{uv_label}</span>'
+            f'<div style="font-size:12px;color:var(--muted);margin-left:auto">{uv_tip}</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── 最佳时段推算 ──────────────────────────────────────────────────────────
@@ -695,11 +712,11 @@ def render_weather_panel(day_weather: dict, data_ok: bool, next_day: dict = None
 def _best_window_times(best_window: str, tides: list) -> str:
     text = best_window
 
-    explicit = re.findall(r'\d{1,2}:\d{2}[–\-]\d{1,2}:\d{2}', text)
+    explicit = re.findall(r'\d{1,2}:\d{2}\s*[–\-~至到]\s*\d{1,2}:\d{2}', text)
     if explicit:
-        return explicit[0]
+        return re.sub(r'\s*[~至到]\s*', '–', explicit[0]).replace(" ", "")
 
-    sorted_tides = sorted(tides, key=lambda t: t["time"])
+    sorted_tides = sorted(tides, key=lambda t: t["time"]) if tides else []
 
     hrs_match = re.search(r'(\d+(?:\.\d+)?)[\s]*小时', text)
     offset_h  = float(hrs_match.group(1)) if hrs_match else 1.5
@@ -709,12 +726,12 @@ def _best_window_times(best_window: str, tides: list) -> str:
         end   = center + timedelta(hours=after_h)
         return f"{start.strftime('%H:%M')}–{end.strftime('%H:%M')}"
 
-    if "满潮" in text or "涨潮" in text or "高潮" in text:
+    if ("满潮" in text or "涨潮" in text or "高潮" in text) and sorted_tides:
         highs = [t for t in sorted_tides if t["is_high"]]
         if highs:
             return fmt_window(highs[0]["time"], offset_h, offset_h)
 
-    if "干潮" in text or "落潮" in text or "低潮" in text:
+    if ("干潮" in text or "落潮" in text or "低潮" in text) and sorted_tides:
         lows = [t for t in sorted_tides if not t["is_high"]]
         if lows:
             return fmt_window(lows[0]["time"], offset_h, offset_h)
@@ -728,7 +745,8 @@ def _best_window_times(best_window: str, tides: list) -> str:
     if "白天" in text or "正午" in text:
         return "09:00–16:00"
 
-    return "—"
+    # Last-resort fallback: always provide practical windows even if no tide parse hit.
+    return "05:30–08:30 / 16:30–19:00"
 
 
 # ── 潮汐面板（Plotly） ────────────────────────────────────────────────────
@@ -1708,6 +1726,31 @@ def render_day_tab(day_offset: int) -> None:
     next_day_w = overview_weather["days"][day_offset + 1] if day_offset < 2 else None
     base_tides = get_tides_for_date(target_date)
 
+    # ── 今日一句话摘要 ─────────────────────────────────────────────────────
+    _w, _s, _r = (day_w.get("wind") or 0), (day_w.get("swell_height") or 0), (day_w.get("rain_prob") or 0)
+    _ocean_bad    = _s > OCEAN_SWELL_DANGER or _w > OCEAN_WIND_DANGER
+    _shelter_bad  = _s > SHELTERED_SWELL_WARN or _w > SHELTERED_WIND_WARN
+    if _ocean_bad and _shelter_bad:
+        _s_emoji, _s_col, _s_bg, _s_bd = "⛔", "#b1453b", "#fbeae8", "#cc5e54"
+        _s_msg = f"{label}整体海况偏差（风 {_w}km/h · 涌 {_s}m），建议推迟或仅考虑淡水钓点"
+    elif _ocean_bad:
+        _s_emoji, _s_col, _s_bg, _s_bd = "⚠️", "#a06c20", "#fcf2e0", "#d99540"
+        _s_msg = f"{label}外海/船钓风浪偏大（风 {_w}km/h · 涌 {_s}m），推荐优先内湾或淡水钓点"
+    elif _r >= 70:
+        _s_emoji, _s_col, _s_bg, _s_bd = "🌧️", "#3a5fa8", "#e8f0fe", "#7baee8"
+        _s_msg = f"{label}降雨概率 {int(_r)}%，海况尚可，备好雨衣仍可前往内湾钓点"
+    else:
+        _s_emoji, _s_col, _s_bg, _s_bd = "✅", "#3a7f5d", "#e7f3ec", "#4f9b76"
+        _s_msg = f"{label}海况良好（风 {_w}km/h · 涌 {_s}m），内湾与外海均可出行"
+    st.markdown(
+        f'<div style="background:{_s_bg};border:1px solid {_s_bd};border-radius:12px;'
+        f'padding:10px 18px;display:flex;align-items:center;gap:12px;margin-bottom:16px">'
+        f'<span style="font-size:18px">{_s_emoji}</span>'
+        f'<div style="font-size:13px;color:{_s_col};font-weight:600">{_s_msg}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
     section_head("OVERALL CONDITIONS · SYDNEY", "悉尼整体海况", "Open-Meteo · 缓存 1 小时")
     left_col, right_col = st.columns([1.6, 1])
     with left_col:
@@ -1740,15 +1783,16 @@ def render_day_tab(day_offset: int) -> None:
 
     is_mobile = _is_mobile_user_agent()
     _tp = time.perf_counter()
-    payload = _build_day_payload(
-        day_offset,
-        tuple(selected_methods),
-        tuple(selected_fish),
-        selected_region,
-        water_type,
-        family_only,
-        FAST_SPOT_LIMIT if is_mobile else 0,
-    )
+    with st.spinner("正在评估钓点海况…"):
+        payload = _build_day_payload(
+            day_offset,
+            tuple(selected_methods),
+            tuple(selected_fish),
+            selected_region,
+            water_type,
+            family_only,
+            FAST_SPOT_LIMIT if is_mobile else 0,
+        )
     filtered = payload["filtered"]
     forecast_by_spot = payload["forecast_by_spot"]
     all_spot_data = list(payload["all_spot_data"])
@@ -1825,16 +1869,15 @@ def render_day_tab(day_offset: int) -> None:
     section_head(f"TOP PICK · {label.upper()}", f"{label}精选推荐", pick_accent)
     if top_safe:
         top3 = top_safe[:3]
-        cols = st.columns(len(top3))
-        for col, (spot, safety, tides, dw) in zip(cols, top3):
-            render_hero_card(
-                col,
-                spot,
-                safety,
-                dw,
-                tides,
-                forecast_days=forecast_by_spot[spot["name"]]["days"],
-            )
+        if len(top3) == 1:
+            spot, safety, tides, dw = top3[0]
+            render_hero_card(st, spot, safety, dw, tides,
+                             forecast_days=forecast_by_spot[spot["name"]]["days"])
+        else:
+            cols = st.columns(len(top3))
+            for col, (spot, safety, tides, dw) in zip(cols, top3):
+                render_hero_card(col, spot, safety, dw, tides,
+                                 forecast_days=forecast_by_spot[spot["name"]]["days"])
         if is_amber_fallback:
             st.markdown(
                 '<div style="background:#fcf2e0;border-radius:10px;padding:10px 16px;'
@@ -1974,13 +2017,22 @@ st.markdown(
 )
 
 today_obj = _now_sydney()
-day_options = [
-    f"今天  {today_obj.strftime('%m/%d')}  Today",
-    f"明天  {(today_obj + timedelta(days=1)).strftime('%m/%d')}  Tomorrow",
-    f"后天  {(today_obj + timedelta(days=2)).strftime('%m/%d')}  Day after",
-]
-selected_day_label = st.radio("选择日期", day_options, horizontal=True, label_visibility="collapsed")
-selected_day_offset = day_options.index(selected_day_label)
+_day_overview = get_marine_forecast(-33.8688, 151.2093)
+
+def _day_weather_icon(i: int) -> str:
+    w = _day_overview["days"][i]
+    if (w.get("rain_prob") or 0) >= 60: return "🌧"
+    if (w.get("wind") or 0) > OCEAN_WIND_DANGER or (w.get("swell_height") or 0) > OCEAN_SWELL_DANGER: return "⚠️"
+    return "☀️"
+
+_day_names = ["今天", "明天", "后天"]
+selected_day_offset = st.segmented_control(
+    "选择日期",
+    options=[0, 1, 2],
+    format_func=lambda i: f"{_day_weather_icon(i)}  {_day_names[i]}  {(today_obj + timedelta(days=i)).strftime('%m/%d')}",
+    label_visibility="collapsed",
+    default=0,
+) or 0
 render_day_tab(selected_day_offset)
 
 st.markdown("---")

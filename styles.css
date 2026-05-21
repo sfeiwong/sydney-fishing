@@ -103,7 +103,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] { background:var(--surface); bor
 .main .stButton:has(button[kind="secondary"]) {
     display:flex!important;
     justify-content:flex-end!important;
-    padding-right:18px!important;
+    padding-right:22px!important;
     margin-top:-14px!important;
     margin-bottom:14px!important;
     position:relative!important;
