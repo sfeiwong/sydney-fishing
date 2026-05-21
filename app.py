@@ -20,6 +20,7 @@ import config as cfg
 from services.weather import get_marine_forecast
 from services.tides import get_tides_for_date, get_tide_accuracy_hint
 from services.fuel import get_nearby_fuel
+from services.stats import record_visit_start, record_visit_end, render_stats_panel
 from data.loader import load_spots
 from domain.safety import assess_safety
 
@@ -38,6 +39,9 @@ st.set_page_config(
     page_icon="🐟",
     layout="wide",
 )
+
+# 追踪访问开始
+record_visit_start()
 
 spots = load_spots()
 MAP_MARKER_LIMIT = 120
@@ -2043,3 +2047,9 @@ st.markdown("""
        style="color:#2a5fb0">BOM 官方预报</a>。
 </div>
 """, unsafe_allow_html=True)
+
+# 访问统计面板
+render_stats_panel()
+
+# 追踪访问结束
+record_visit_end()
