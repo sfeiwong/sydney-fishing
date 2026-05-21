@@ -4,185 +4,167 @@
 
 import sqlite3
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import streamlit as st
+import plotly.graph_objects as go
 
 
 SYD_TZ = ZoneInfo("Australia/Sydney")
 DB_PATH = Path(__file__).parent.parent / "data" / "stats.db"
 
+# Session state keys
+_SESSION_KEY_ID = "stats_session_id"
+_SESSION_KEY_RECORD_ID = "stats_visit_record_id"
+_SESSION_KEY_START_TIME = "stats_visit_start_time"
+
 
 def _init_db():
-    """初始化数据库"""
+    """初始化数据库（模块加载时调用一次）"""
     DB_PATH.parent.mkdir(exist_ok=True)
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS visits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                visit_date DATE,
+                start_time DATETIME,
+                end_time DATETIME,
+                duration_seconds INTEGER,
+                user_agent TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+
+# 模块加载时初始化数据库
+_init_db()
+
+
+@contextmanager
+def _db_cursor():
+    """数据库连接上下文管理器"""
     conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS visits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT,
-            visit_date DATE,
-            start_time DATETIME,
-            end_time DATETIME,
-            duration_seconds INTEGER,
-            user_agent TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
+    try:
+        yield conn.cursor()
+        conn.commit()
+    finally:
+        conn.close()
 
 
-def _get_db_connection():
-    """获取数据库连接"""
-    return sqlite3.connect(DB_PATH)
+def _query_scalar(sql: str, params: tuple = ()):
+    """执行标量查询并返回结果"""
+    with _db_cursor() as cursor:
+        cursor.execute(sql, params)
+        return cursor.fetchone()[0]
 
 
 def get_or_create_session_id() -> str:
     """获取或创建会话ID"""
-    if "session_id" not in st.session_state:
-        st.session_state.session_id = str(uuid.uuid4())
-    return st.session_state.session_id
+    if _SESSION_KEY_ID not in st.session_state:
+        st.session_state[_SESSION_KEY_ID] = str(uuid.uuid4())
+    return st.session_state[_SESSION_KEY_ID]
 
 
 def record_visit_start():
     """记录访问开始"""
-    _init_db()
+    if _SESSION_KEY_RECORD_ID in st.session_state:
+        return
     
     session_id = get_or_create_session_id()
     now = datetime.now(SYD_TZ)
+    user_agent = getattr(st.context, "headers", {}).get("User-Agent", "")
     
-    # 检查这次会话是否已经记录过开始
-    if "visit_recorded" not in st.session_state:
-        conn = _get_db_connection()
-        cursor = conn.cursor()
-        
-        # 插入访问记录
+    with _db_cursor() as cursor:
         cursor.execute('''
             INSERT INTO visits (session_id, visit_date, start_time, user_agent)
             VALUES (?, ?, ?, ?)
-        ''', (
-            session_id,
-            now.date().isoformat(),
-            now.isoformat(),
-            st.context.headers.get("User-Agent", "") if hasattr(st.context, "headers") else ""
-        ))
+        ''', (session_id, now.date().isoformat(), now.isoformat(), user_agent))
         
-        st.session_state.visit_record_id = cursor.lastrowid
-        st.session_state.visit_recorded = True
-        st.session_state.visit_start_time = now
-        
-        conn.commit()
-        conn.close()
+        st.session_state[_SESSION_KEY_RECORD_ID] = cursor.lastrowid
+        st.session_state[_SESSION_KEY_START_TIME] = now
 
 
 def record_visit_end():
     """记录访问结束"""
-    if "visit_record_id" in st.session_state and "visit_start_time" in st.session_state:
-        conn = _get_db_connection()
-        cursor = conn.cursor()
-        
-        now = datetime.now(SYD_TZ)
-        duration = int((now - st.session_state.visit_start_time).total_seconds())
-        
+    record_id = st.session_state.get(_SESSION_KEY_RECORD_ID)
+    start_time = st.session_state.get(_SESSION_KEY_START_TIME)
+    
+    if record_id is None or start_time is None:
+        return
+    
+    now = datetime.now(SYD_TZ)
+    duration = int((now - start_time).total_seconds())
+    
+    with _db_cursor() as cursor:
         cursor.execute('''
             UPDATE visits 
             SET end_time = ?, duration_seconds = ?
             WHERE id = ?
-        ''', (now.isoformat(), duration, st.session_state.visit_record_id))
-        
-        conn.commit()
-        conn.close()
+        ''', (now.isoformat(), duration, record_id))
 
 
 def get_daily_visits(date_str: str = None) -> int:
     """获取指定日期的访问量"""
-    _init_db()
-    
     if date_str is None:
         date_str = datetime.now(SYD_TZ).date().isoformat()
     
-    conn = _get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('''
+    result = _query_scalar('''
         SELECT COUNT(DISTINCT session_id) 
         FROM visits 
         WHERE visit_date = ?
     ''', (date_str,))
     
-    result = cursor.fetchone()[0]
-    conn.close()
-    
-    return result
+    return result or 0
 
 
 def get_average_duration(days: int = 1) -> float:
     """获取最近N天的平均使用时长（秒）"""
-    _init_db()
+    start_date = (datetime.now(SYD_TZ) - timedelta(days=days)).date().isoformat()
     
-    conn = _get_db_connection()
-    cursor = conn.cursor()
-    
-    start_date = (datetime.now(SYD_TZ) - timedelta(days=days-1)).date().isoformat()
-    
-    cursor.execute('''
+    result = _query_scalar('''
         SELECT AVG(duration_seconds) 
         FROM visits 
         WHERE visit_date >= ? AND duration_seconds IS NOT NULL
     ''', (start_date,))
-    
-    result = cursor.fetchone()[0]
-    conn.close()
     
     return round(result, 1) if result else 0.0
 
 
 def get_total_visitors() -> int:
     """获取总访客数"""
-    _init_db()
-    
-    conn = _get_db_connection()
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT COUNT(DISTINCT session_id) FROM visits')
-    result = cursor.fetchone()[0]
-    conn.close()
-    
-    return result
+    result = _query_scalar('SELECT COUNT(DISTINCT session_id) FROM visits')
+    return result or 0
 
 
 def get_weekly_stats() -> dict:
     """获取最近7天的统计数据"""
-    _init_db()
-    
-    conn = _get_db_connection()
-    cursor = conn.cursor()
-    
     today = datetime.now(SYD_TZ)
-    weekly_data = {}
+    start_date = (today - timedelta(days=6)).date().isoformat()
     
+    with _db_cursor() as cursor:
+        cursor.execute('''
+            SELECT visit_date, COUNT(DISTINCT session_id), AVG(duration_seconds)
+            FROM visits 
+            WHERE visit_date >= ?
+            GROUP BY visit_date
+            ORDER BY visit_date DESC
+        ''', (start_date,))
+        
+        db_data = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+    
+    weekly_data = {}
     for i in range(7):
         date = today - timedelta(days=i)
         date_str = date.date().isoformat()
-        
-        cursor.execute('''
-            SELECT COUNT(DISTINCT session_id), AVG(duration_seconds)
-            FROM visits 
-            WHERE visit_date = ?
-        ''', (date_str,))
-        
-        visits, avg_duration = cursor.fetchone()
+        visits, avg_duration = db_data.get(date_str, (0, None))
         weekly_data[date_str] = {
-            "visits": visits or 0,
+            "visits": visits,
             "avg_duration": round(avg_duration, 1) if avg_duration else 0.0,
         }
     
-    conn.close()
     return weekly_data
 
 
@@ -191,11 +173,21 @@ def format_duration(seconds: float) -> str:
     if seconds < 60:
         return f"{seconds}秒"
     elif seconds < 3600:
-        minutes = seconds / 60
-        return f"{minutes:.1f}分钟"
+        return f"{seconds / 60:.1f}分钟"
     else:
-        hours = seconds / 3600
-        return f"{hours:.1f}小时"
+        return f"{seconds / 3600:.1f}小时"
+
+
+@st.cache_data(ttl=300)
+def _get_cached_stats():
+    """缓存统计数据（5分钟）"""
+    today = datetime.now(SYD_TZ).date().isoformat()
+    return {
+        "daily_visits": get_daily_visits(today),
+        "avg_duration": get_average_duration(days=1),
+        "total_visitors": get_total_visitors(),
+        "weekly_stats": get_weekly_stats(),
+    }
 
 
 def render_stats_panel():
@@ -203,46 +195,37 @@ def render_stats_panel():
     st.markdown("---")
     st.markdown("## 📊 访问统计")
     
-    today = datetime.now(SYD_TZ).date().isoformat()
-    weekly_stats = get_weekly_stats()
+    stats = _get_cached_stats()
+    weekly_stats = stats["weekly_stats"]
     
-    # 今日统计
     col1, col2, col3 = st.columns(3)
     
     with col1:
         st.metric(
             label="今日访问量",
-            value=str(get_daily_visits(today)),
+            value=str(stats["daily_visits"]),
             help="今日独立访客数"
         )
     
     with col2:
-        avg_duration = get_average_duration(days=1)
         st.metric(
             label="今日平均使用时长",
-            value=format_duration(avg_duration),
+            value=format_duration(stats["avg_duration"]),
             help="今日用户的平均使用时长"
         )
     
     with col3:
         st.metric(
             label="总访客数",
-            value=str(get_total_visitors()),
+            value=str(stats["total_visitors"]),
             help="累计访客数"
         )
     
-    # 最近7天趋势
     st.markdown("### 📈 最近7天趋势")
     
-    dates = list(weekly_stats.keys())
+    dates = list(weekly_stats.keys())[::-1]
     visits = [weekly_stats[d]["visits"] for d in dates]
     durations = [weekly_stats[d]["avg_duration"] for d in dates]
-    
-    dates = dates[::-1]
-    visits = visits[::-1]
-    durations = durations[::-1]
-    
-    import plotly.graph_objects as go
     
     fig = go.Figure()
     fig.add_trace(go.Bar(x=dates, y=visits, name="访问量", yaxis="y", marker_color="#2a5fb0"))
