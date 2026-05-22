@@ -1714,29 +1714,23 @@ def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = F
         )
 
         for spot, safety, _, _ in map_spot_data:
-            bg = STATUS_COLOR.get(safety["color"], "#8a9cb2")
+            status_col = STATUS_COLOR.get(safety["color"], "#8a9cb2")
             emoji = _WT_EMOJI.get(spot.get("water_type", "harbour"), "•")
             map_lat, map_lon = _map_coords(spot)
             is_selected = spot["name"] == selected_name
-            if is_selected:
-                border = "#ffe082"
-            elif spot.get("water_type") in {"ocean", "boat"}:
-                border = bg
-            else:
-                border = "#ffffff"
-            size = 24 if is_selected else 21
-            font_size = 13 if is_selected else 11
+            size = 28 if is_selected else 24
+            font_size = 14 if is_selected else 12
             ring = (
-                "0 0 0 4px rgba(255,224,130,0.45),0 3px 8px rgba(0,0,0,0.34)"
+                f"0 0 0 3px rgba(255,224,130,0.7),0 0 0 5px {status_col}55,0 3px 8px rgba(0,0,0,0.30)"
                 if is_selected else
-                "0 3px 8px rgba(0,0,0,0.34)"
+                f"0 0 0 2.5px {status_col},0 2px 6px rgba(0,0,0,0.22)"
             )
             icon = folium.DivIcon(
                 html=(
-                    f'<div style="background:{bg};border:2.5px solid {border};border-radius:50%;'
-                    f'width:{size}px;height:{size}px;display:flex;align-items:center;justify-content:center;'
-                    f'font-size:{font_size}px;line-height:1;box-shadow:{ring};cursor:pointer;'
-                    f'transition:all 120ms ease">'
+                    f'<div style="background:#ffffff;border:3px solid {status_col};border-radius:50%;'
+                    f'width:{size}px;height:{size}px;box-sizing:border-box;'
+                    f'display:flex;align-items:center;justify-content:center;'
+                    f'font-size:{font_size}px;line-height:1;box-shadow:{ring};cursor:pointer;">'
                     f'{emoji}</div>'
                 ),
                 icon_size=(size, size),
