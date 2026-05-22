@@ -19,7 +19,7 @@ from streamlit_folium import st_folium
 
 import config as cfg
 from services.weather import get_marine_forecast
-from services.tides import get_tides_for_date, get_tide_accuracy_hint
+from services.tides import get_tides_for_date
 from services.fuel import get_nearby_fuel
 from services.stats import record_visit_start, record_visit_end, render_stats_panel
 from services import log as fishing_log
@@ -915,35 +915,6 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
             unsafe_allow_html=True,
         )
 
-    low_rows = sorted([td for td in sorted_tides if not td["is_high"]], key=lambda td: td["time"])
-    high_rows = sorted([td for td in sorted_tides if td["is_high"]], key=lambda td: td["time"])
-
-    def _rows_html(rows: list[dict]) -> str:
-        if not rows:
-            return '<div style="font-size:12px;color:var(--muted)">—</div>'
-        return "".join(
-            f'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
-            f'<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text)">{td["time"].strftime("%H:%M")}</span>'
-            f'<span style="font-family:var(--mono);font-size:13px;color:var(--muted)">{_height_for_event(td):.2f} m</span>'
-            f'</div>'
-            for td in rows
-        )
-
-    st.markdown(
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">'
-        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px">'
-        f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">DRY · 干潮</div>'
-        f'{_rows_html(low_rows)}</div>'
-        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px">'
-        f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">HIGH · 满潮</div>'
-        f'{_rows_html(high_rows)}</div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown(
-        f'<div style="margin-top:8px;font-size:11px;color:#8a9cb2">{get_tide_accuracy_hint()}</div>',
-        unsafe_allow_html=True,
-    )
 
 
 # ── 精选推荐英雄卡 ────────────────────────────────────────────────────────
