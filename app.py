@@ -5,6 +5,7 @@
 import math
 import re
 import base64
+import html
 import time
 from pathlib import Path
 import numpy as np
@@ -21,6 +22,7 @@ from services.weather import get_marine_forecast
 from services.tides import get_tides_for_date, get_tide_accuracy_hint
 from services.fuel import get_nearby_fuel
 from services.stats import record_visit_start, record_visit_end, render_stats_panel
+from services import log as fishing_log
 from data.loader import load_spots
 from domain.safety import assess_safety
 
@@ -48,6 +50,8 @@ MAP_MARKER_LIMIT = 120
 MAP_MARKER_LIMIT_MOBILE = 70
 FAST_SPOT_LIMIT = 30
 SYD_TZ = ZoneInfo("Australia/Sydney")
+LOG_MAX_PHOTOS = 4
+LOG_MAX_PHOTO_BYTES = 3 * 1024 * 1024
 
 _CSS_PATH = Path(__file__).with_name("styles.css")
 st.markdown(f"<style>{_CSS_PATH.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
@@ -85,30 +89,46 @@ with st.sidebar:
         '</div></div></div>',
         unsafe_allow_html=True,
     )
-    st.markdown(
-        '<div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;'
-        'color:var(--gold);opacity:0.8;margin-bottom:8px">智能筛选</div>',
-        unsafe_allow_html=True,
+    selected_page = st.radio(
+        "页面",
+        ["🎣 钓点推荐", "📖 渔获日记"],
+        label_visibility="collapsed",
+        horizontal=True,
+        key="selected_page",
     )
-    selected_methods = st.multiselect("钓法", ALL_METHODS, key="sel_methods", placeholder="选择钓法 · Method")
-    selected_fish    = st.multiselect("目标鱼种", ALL_FISH, key="sel_fish", placeholder="选择鱼种 · Species")
-    selected_region  = st.selectbox(
-        "地理区域",
-        ["全部 · All Sydney"] + list(REGION_FILTER_MAP.keys()),
-    )
-    water_type       = st.selectbox("水域类型", ["全部 · All", "🌊 外海 Ocean", "🚤 船钓 Boat", "⚓ 内湾 Harbour", "🔀 咸淡水 Brackish", "🏞️ 淡水 Freshwater"])
-    safe_only        = st.checkbox("隐藏危险钓点 ⚠", value=False)
-    family_only      = st.checkbox("仅看家庭友好 👨‍👩‍👧 (⭐⭐⭐⭐+)", value=False)
-    sort_by          = st.selectbox(
-        "钓点排序",
-        ["推荐优先", "家庭友好优先", "涌浪最小", "风速最小"],
-        key="sel_sort",
-    )
-    perf_debug = st.checkbox("显示性能面板", value=False, key="perf_debug")
-    if st.button("↺ 重置所有筛选", use_container_width=True):
-        st.session_state["sel_methods"] = []
-        st.session_state["sel_fish"] = []
-        st.rerun()
+
+    if selected_page == "🎣 钓点推荐":
+        st.markdown(
+            '<div style="font-size:11px;font-family:var(--mono);letter-spacing:2px;'
+            'color:var(--gold);opacity:0.8;margin-bottom:8px">智能筛选</div>',
+            unsafe_allow_html=True,
+        )
+        selected_methods = st.multiselect("钓法", ALL_METHODS, key="sel_methods", placeholder="选择钓法 · Method")
+        selected_fish    = st.multiselect("目标鱼种", ALL_FISH, key="sel_fish", placeholder="选择鱼种 · Species")
+        selected_region  = st.selectbox(
+            "地理区域",
+            ["全部 · All Sydney"] + list(REGION_FILTER_MAP.keys()),
+        )
+        water_type       = st.selectbox("水域类型", ["全部 · All", "🌊 外海 Ocean", "🚤 船钓 Boat", "⚓ 内湾 Harbour", "🔀 咸淡水 Brackish", "🏞️ 淡水 Freshwater"])
+        safe_only        = st.checkbox("隐藏危险钓点 ⚠", value=False)
+        family_only      = st.checkbox("仅看家庭友好 👨‍👩‍👧 (⭐⭐⭐⭐+)", value=False)
+        sort_by          = st.selectbox(
+            "钓点排序",
+            ["推荐优先", "家庭友好优先", "涌浪最小", "风速最小"],
+            key="sel_sort",
+        )
+        if st.button("↺ 重置所有筛选", use_container_width=True):
+            st.session_state["sel_methods"] = []
+            st.session_state["sel_fish"] = []
+            st.rerun()
+    else:
+        selected_methods = []
+        selected_fish    = []
+        selected_region  = "全部 · All Sydney"
+        water_type       = "全部 · All"
+        safe_only        = False
+        family_only      = False
+        sort_by          = "推荐优先"
 
     st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
     st.markdown(
@@ -2013,95 +2033,250 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
         hint = "、".join(active_filters) if active_filters else "未知条件"
         st.info(f"ℹ️ 当前筛选「{hint}」无匹配钓点，点击「↺ 重置所有筛选」或放宽条件。")
 
-    if st.session_state.get("perf_debug", False):
-        total = sum(perf.values())
+
+
+# ── 渔获日记页 ───────────────────────────────────────────────────────────
+
+def render_fishing_log_page() -> None:
+    st.markdown(
+        '<div style="display:flex;justify-content:space-between;align-items:flex-end;'
+        'gap:16px;flex-wrap:wrap;margin-bottom:16px">'
+        '<div>'
+        '<h2 style="font-family:var(--serif-zh);font-weight:600;font-size:28px;'
+        'color:var(--text);margin:0 0 4px">渔获日记</h2>'
+        '<div style="font-size:13px;color:var(--muted)">朋友们的出钓记录、鱼种和现场照片</div>'
+        '</div>'
+        '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);'
+        'border:1px solid var(--line);border-radius:999px;padding:5px 10px">Catch log</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    all_spot_names = [s["name"] for s in spots]
+
+    with st.expander("发布渔获", expanded=False):
+        with st.form("log_form", clear_on_submit=True):
+            col1, col2 = st.columns([1, 1])
+            with col1:
+                log_date = st.date_input(
+                    "出钓日期",
+                    value=_now_sydney().date(),
+                    format="YYYY-MM-DD",
+                )
+                log_spot = st.selectbox(
+                    "钓点",
+                    ["（自定义）"] + all_spot_names,
+                    key="log_spot_select",
+                )
+                if log_spot == "（自定义）":
+                    log_spot = st.text_input("自定义钓点名称", placeholder="例：中国花园码头")
+            with col2:
+                log_author = st.text_input("你的昵称", placeholder="（可空）")
+                log_fish = st.multiselect(
+                    "钓到的鱼种",
+                    ALL_FISH,
+                    placeholder="选择鱼种",
+                )
+            log_notes = st.text_area(
+                "渔获记录",
+                placeholder="今天的情况、用饵、心得……",
+                height=100,
+            )
+            log_photos = st.file_uploader(
+                f"上传照片（最多 {LOG_MAX_PHOTOS} 张，每张 < 3 MB）",
+                type=["jpg", "jpeg", "png", "webp"],
+                accept_multiple_files=True,
+            )
+            submitted = st.form_submit_button("发布", type="primary", use_container_width=True)
+            if submitted:
+                spot_name = log_spot.strip() if log_spot else ""
+                if not spot_name:
+                    st.error("请填写钓点名称")
+                elif len(log_photos or []) > LOG_MAX_PHOTOS:
+                    st.error(f"最多只能上传 {LOG_MAX_PHOTOS} 张照片")
+                elif any(photo.size > LOG_MAX_PHOTO_BYTES for photo in (log_photos or [])):
+                    st.error("单张照片不能超过 3 MB")
+                else:
+                    photo_bytes = [f.read() for f in (log_photos or [])]
+                    fishing_log.add_entry(
+                        fish_date=log_date.isoformat(),
+                        spot_name=spot_name,
+                        author=log_author.strip(),
+                        notes=log_notes.strip(),
+                        fish_caught=log_fish,
+                        photos=photo_bytes,
+                    )
+                    st.success("已发布！")
+                    st.rerun()
+
+    st.markdown("---")
+    entries = fishing_log.get_entries()
+    if not entries:
         st.markdown(
-            f'<div style="margin-top:10px;background:#f7fafc;border:1px solid var(--line);border-radius:10px;'
-            f'padding:8px 10px;font-size:11px;color:#5b6e87;line-height:1.6">'
-            f'性能(ms) 总计 {total*1000:.0f} ｜ 概览 {perf.get("overview",0)*1000:.0f} ｜ '
-            f'数据 {perf.get("payload",0)*1000:.0f} ｜ 决策 {perf.get("decision",0)*1000:.0f} ｜ '
-            f'地图 {perf.get("map",0)*1000:.0f} ｜ 列表 {perf.get("list",0)*1000:.0f}'
-            f'</div>',
+            '<div style="border:1px dashed var(--line);border-radius:14px;padding:28px 18px;'
+            'text-align:center;background:#fbfdff;margin-top:8px">'
+            '<div style="font-family:var(--serif-zh);font-size:20px;font-weight:600;'
+            'color:var(--text);margin-bottom:6px">还没有渔获记录</div>'
+            '<div style="font-size:13px;color:var(--muted)">展开上方「发布渔获」，发第一条照片和心得。</div>'
+            '</div>',
             unsafe_allow_html=True,
         )
+        return
+
+    for entry in entries:
+        fish_date   = entry["fish_date"]
+        spot_name   = entry["spot_name"]
+        author      = entry["author"] or "匿名钓友"
+        notes       = entry["notes"]
+        fish_caught = entry["fish_caught"]
+        photos      = entry["photos"]
+        entry_id    = entry["id"]
+        fish_date_html = html.escape(str(fish_date))
+        spot_name_html = html.escape(str(spot_name))
+        author_html    = html.escape(str(author))
+        notes_html     = html.escape(str(notes))
+
+        fish_pills = "".join(
+            f'<span style="background:#e7f3ec;color:#3a7f5d;border-radius:999px;'
+            f'padding:2px 10px;font-size:12px;margin:0 3px 3px 0;display:inline-block">'
+            f'{html.escape(str(f))}</span>'
+            for f in fish_caught
+        ) if fish_caught else '<span style="color:#aaa;font-size:12px">未记录鱼种</span>'
+
+        hero_photo_html = ""
+        extra_photos = photos
+        if photos:
+            hero_b64 = base64.b64encode(photos[0]).decode()
+            hero_photo_html = (
+                f'<div style="width:100%;aspect-ratio:4/3;background:#eef4fa;border-radius:10px;'
+                f'overflow:hidden;border:1px solid #edf3f8">'
+                f'<img src="data:image/jpeg;base64,{hero_b64}" '
+                f'style="width:100%;height:100%;object-fit:cover;display:block"/>'
+                f'</div>'
+            )
+            extra_photos = photos[1:]
+        else:
+            hero_photo_html = (
+                '<div style="width:100%;aspect-ratio:4/3;background:#f6f9fc;border-radius:10px;'
+                'border:1px solid #edf3f8;display:flex;align-items:center;justify-content:center;'
+                'font-size:13px;color:var(--muted)">无照片</div>'
+            )
+
+        st.markdown(
+            f'<div style="background:#fff;border:1px solid #edf3f8;border-radius:14px;'
+            f'padding:14px;margin-bottom:14px;box-shadow:0 1px 5px rgba(0,0,0,0.04)">'
+            f'<div style="display:grid;grid-template-columns:minmax(160px,240px) 1fr;gap:16px;align-items:start">'
+            f'{hero_photo_html}'
+            f'<div>'
+            f'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;'
+            f'flex-wrap:wrap;margin-bottom:7px">'
+            f'<div>'
+            f'<div style="font-size:17px;font-weight:700;color:var(--text);line-height:1.25">📍 {spot_name_html}</div>'
+            f'<div style="font-family:var(--mono);font-size:11.5px;color:#8a9cb2;margin-top:4px">'
+            f'{fish_date_html} · {author_html}</div>'
+            f'</div>'
+            f'</div>'
+            f'<div style="margin-bottom:9px">{fish_pills}</div>'
+            + (f'<div style="font-size:13.5px;color:#3a4a5c;white-space:pre-wrap;line-height:1.65">{notes_html}</div>' if notes else '')
+            + '</div></div></div>',
+            unsafe_allow_html=True,
+        )
+
+        if extra_photos:
+            n = len(extra_photos)
+            cols = st.columns(min(n, 3))
+            for idx, photo_bytes in enumerate(extra_photos):
+                b64 = base64.b64encode(photo_bytes).decode()
+                cols[idx % 3].markdown(
+                    f'<img src="data:image/jpeg;base64,{b64}" '
+                    f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
+                    f'border-radius:8px;margin-bottom:6px;border:1px solid #edf3f8"/>',
+                    unsafe_allow_html=True,
+                )
+
+        with st.expander("管理", expanded=False):
+            if st.button(f"确认删除（{fish_date} · {spot_name}）", key=f"del_{entry_id}", type="secondary"):
+                fishing_log.delete_entry(entry_id)
+                st.rerun()
 
 
 # ── 主页面 ────────────────────────────────────────────────────────────────
 
-today = _now_sydney()
-date_str = f"{today.year} 年 {today.month} 月 {today.day} 日"
-weekdays = ["周一","周二","周三","周四","周五","周六","周日"]
-weekday  = weekdays[today.weekday()]
-hero_spots = [spot for spot in spots if spot_matches(spot)]
-hero_safe = 0
-hero_ocean_danger = 0
-hero_forecast_by_coord = {}
-for _spot in hero_spots:
-    _w_lat, _w_lon = _weather_coords(_spot)
-    _key = _forecast_key(_w_lat, _w_lon)
-    if _key not in hero_forecast_by_coord:
-        hero_forecast_by_coord[_key] = get_marine_forecast(_w_lat, _w_lon)
-    _today_weather = hero_forecast_by_coord[_key]["days"][0]
-    _safety = assess_safety(_spot, _today_weather)
-    if _safety["color"] == "sage":
-        hero_safe += 1
-    if _spot.get("water_type") in {"ocean", "boat"} and _safety["color"] == "coral":
-        hero_ocean_danger += 1
+if selected_page == "🎣 钓点推荐":
+    today = _now_sydney()
+    date_str = f"{today.year} 年 {today.month} 月 {today.day} 日"
+    weekdays = ["周一","周二","周三","周四","周五","周六","周日"]
+    weekday  = weekdays[today.weekday()]
+    hero_spots = [spot for spot in spots if spot_matches(spot)]
+    hero_safe = 0
+    hero_ocean_danger = 0
+    hero_forecast_by_coord = {}
+    for _spot in hero_spots:
+        _w_lat, _w_lon = _weather_coords(_spot)
+        _key = _forecast_key(_w_lat, _w_lon)
+        if _key not in hero_forecast_by_coord:
+            hero_forecast_by_coord[_key] = get_marine_forecast(_w_lat, _w_lon)
+        _today_weather = hero_forecast_by_coord[_key]["days"][0]
+        _safety = assess_safety(_spot, _today_weather)
+        if _safety["color"] == "sage":
+            hero_safe += 1
+        if _spot.get("water_type") in {"ocean", "boat"} and _safety["color"] == "coral":
+            hero_ocean_danger += 1
 
-st.markdown(
-    f'<div class="hero" style="position:relative;border-radius:14px;overflow:hidden;'
-    f'padding:28px 32px;background:linear-gradient(110deg,#1a3f7a 0%,#2a5fb0 50%,#3479c9 100%);'
-    f'color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:40px;flex-wrap:wrap">'
-    f'<div style="min-width:260px;flex:0 1 400px">'
-    f'<div style="font-family:IBM Plex Mono;font-size:11px;letter-spacing:2px;'
-    f'color:rgba(255,255,255,0.7);text-transform:uppercase;margin-bottom:8px">'
-    f'实时海况 · 潮汐推算 · 智能推荐</div>'
-    f'<h1 class="brand-q" style="font-size:38px;font-weight:400;'
-    f'color:#fff;margin:0 0 6px;display:flex;align-items:center;gap:10px">上鱼啦'
-    f'<span style="font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:1.4px;'
-    f'opacity:0.82;margin-left:2px">BETA</span>'
-    + (
-        f'<span class="brand-mascot-wrap">'
-        f'<img src="{_MASCOT_DATA_URL}" class="brand-mascot" alt="mascot"/>'
-        f'<span class="brand-bubble b1"></span>'
-        f'<span class="brand-bubble b2"></span>'
-        f'</span>'
-        if _MASCOT_DATA_URL else ''
+    st.markdown(
+        f'<div class="hero" style="position:relative;border-radius:14px;overflow:hidden;'
+        f'padding:28px 32px;background:linear-gradient(110deg,#1a3f7a 0%,#2a5fb0 50%,#3479c9 100%);'
+        f'color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:40px;flex-wrap:wrap">'
+        f'<div style="min-width:260px;flex:0 1 400px">'
+        f'<div style="font-family:IBM Plex Mono;font-size:11px;letter-spacing:2px;'
+        f'color:rgba(255,255,255,0.7);text-transform:uppercase;margin-bottom:8px">'
+        f'实时海况 · 潮汐推算 · 智能推荐</div>'
+        f'<h1 class="brand-q" style="font-size:38px;font-weight:400;'
+        f'color:#fff;margin:0 0 6px;display:flex;align-items:center;gap:10px">上鱼啦'
+        f'<span style="font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:1.4px;'
+        f'opacity:0.82;margin-left:2px">BETA</span>'
+        + (
+            f'<span class="brand-mascot-wrap">'
+            f'<img src="{_MASCOT_DATA_URL}" class="brand-mascot" alt="mascot"/>'
+            f'<span class="brand-bubble b1"></span>'
+            f'<span class="brand-bubble b2"></span>'
+            f'</span>'
+            if _MASCOT_DATA_URL else ''
+        )
+        + '</h1>'
+        f'<div style="font-size:14px;color:rgba(255,255,255,0.8)">'
+        f'{date_str} · {weekday} · 悉尼</div>'
+        f'</div>'
+        f'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
+        f'{_hero_stat_tile(str(len(hero_spots)), "匹配钓点", "Spots indexed", hint="当前筛选后纳入评估的钓点数量。")}'
+        f'{_hero_stat_tile(str(hero_safe), "今日推荐", "Recommend now", "gold", hint="根据当天风浪阈値评估为“推荐”的钓点数量。")}'
+        f'{_hero_stat_tile(f"{hero_ocean_danger} 个", "高风险点（外海/船钓）", "High-risk spots", hint="外海或船钓点中，今日安全评估为危险的数量。")}'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True,
     )
-    + '</h1>'
-    f'<div style="font-size:14px;color:rgba(255,255,255,0.8)">'
-    f'{date_str} · {weekday} · 悉尼</div>'
-    f'</div>'
-    f'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
-    f'{_hero_stat_tile(str(len(hero_spots)), "匹配钓点", "Spots indexed", hint="当前筛选后纳入评估的钓点数量。")}'
-    f'{_hero_stat_tile(str(hero_safe), "今日推荐", "Recommend now", "gold", hint="根据当天风浪阈值评估为“推荐”的钓点数量。")}'
-    f'{_hero_stat_tile(f"{hero_ocean_danger} 个", "高风险点（外海/船钓）", "High-risk spots", hint="外海或船钓点中，今日安全评估为危险的数量。")}'
-    f'</div>'
-    f'</div>',
-    unsafe_allow_html=True,
-)
 
-today_obj = _now_sydney()
-_day_overview = get_marine_forecast(-33.8688, 151.2093)
+    today_obj = _now_sydney()
+    _day_overview = get_marine_forecast(-33.8688, 151.2093)
 
-def _day_weather_icon(i: int) -> str:
-    w = _day_overview["days"][i]
-    if (w.get("rain_prob") or 0) >= 60: return "🌧"
-    if (w.get("wind") or 0) > OCEAN_WIND_DANGER or (w.get("swell_height") or 0) > OCEAN_SWELL_DANGER: return "⚠️"
-    return "☀️"
+    def _day_weather_icon(i: int) -> str:
+        w = _day_overview["days"][i]
+        if (w.get("rain_prob") or 0) >= 60: return "🌧"
+        if (w.get("wind") or 0) > OCEAN_WIND_DANGER or (w.get("swell_height") or 0) > OCEAN_SWELL_DANGER: return "⚠️"
+        return "☀️"
 
-_day_names = ["今天", "明天", "后天"]
-selected_day_offset = st.segmented_control(
-    "选择日期",
-    options=[0, 1, 2],
-    format_func=lambda i: f"{_day_weather_icon(i)}  {_day_names[i]}  {(today_obj + timedelta(days=i)).strftime('%m/%d')}",
-    label_visibility="collapsed",
-    default=0,
-) or 0
-render_day_tab(selected_day_offset, _day_overview)
+    _day_names = ["今天", "明天", "后天"]
+    selected_day_offset = st.segmented_control(
+        "选择日期",
+        options=[0, 1, 2],
+        format_func=lambda i: f"{_day_weather_icon(i)}  {_day_names[i]}  {(today_obj + timedelta(days=i)).strftime('%m/%d')}",
+        label_visibility="collapsed",
+        default=0,
+    ) or 0
+    render_day_tab(selected_day_offset, _day_overview)
 
-st.markdown("---")
-st.markdown("""
+    st.markdown("---")
+    st.markdown("""
 <div style="text-align:center;color:#8a9cb2;font-size:0.82em;padding:4px 0 16px">
     🚨 <b>安全提示</b>：外海矶钓请务必穿戴救生衣和防滑钉鞋，结伴同行，浪况不对立刻撤退。<br>
     天气数据来自
@@ -2112,8 +2287,10 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# 访问统计面板
-render_stats_panel()
+    render_stats_panel()
+
+else:
+    render_fishing_log_page()
 
 # 追踪访问结束
 record_visit_end()
