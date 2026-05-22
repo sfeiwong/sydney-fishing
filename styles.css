@@ -74,6 +74,48 @@ section[data-testid="stSidebar"] .stButton>button:hover {
   color:#ffffff!important;
 }
 
+/* Page switcher — segmented control */
+section[data-testid="stSidebar"] [data-testid="stRadio"] {
+  margin:14px 0 18px;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] > label {
+  display:none;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] {
+  display:flex;
+  background:rgba(0,0,0,0.18);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;
+  padding:4px;
+  gap:4px;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label {
+  flex:1;
+  display:flex!important;
+  align-items:center;
+  justify-content:center;
+  border-radius:10px;
+  padding:10px 6px!important;
+  cursor:pointer;
+  font-size:13px!important;
+  font-weight:500!important;
+  color:rgba(234,241,248,0.38)!important;
+  transition:background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+  white-space:nowrap;
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:hover {
+  color:rgba(234,241,248,0.7)!important;
+  background:rgba(255,255,255,0.07);
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked) {
+  background:linear-gradient(135deg,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.1) 100%);
+  color:#eaf1f8!important;
+  box-shadow:0 1px 6px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+section[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"] label > div:first-child {
+  display:none!important;
+}
+
 /* Tabs */
 .stTabs [data-baseweb="tab-list"] { gap:8px; border-bottom:1px solid var(--line); background:transparent; padding:0; border-radius:0; box-shadow:none; }
 .stTabs [data-baseweb="tab"] { background:transparent!important; border:none!important; border-bottom:2px solid transparent!important; border-radius:0!important; padding:12px 20px!important; color:var(--muted)!important; font-size:15px!important; }
@@ -239,6 +281,21 @@ hr { border:none; border-top:1px solid var(--line); margin:1.2rem 0; }
   .brand-mascot-wrap { width:72px; height:72px; }
   .brand-mascot { width:135%; height:135%; }
   .stTabs [data-baseweb="tab"] { padding:10px 12px!important; font-size:13px!important; }
+  .stButtonGroup [data-baseweb="button-group"] {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+  }
+  .stButtonGroup [data-baseweb="button-group"]::after {
+    display: none !important;
+  }
+  .stButtonGroup [data-baseweb="button-group"] > button {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+    white-space: nowrap !important;
+  }
   [data-testid="stMetricValue"] { font-size:24px!important; }
   .stButton>button { min-height:44px!important; font-size:14px!important; }
   div[data-testid="stVerticalBlockBorderWrapper"] { border-radius:12px!important; }

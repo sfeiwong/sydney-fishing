@@ -9,11 +9,15 @@
     "map_lon": 151.2868,
     "sheltered": false,
     "tide_delay": -5,
-    "active_fish": "Yellowtail Kingfish (黄尾师)、Black Drummer (黑毛)、Blue Groper (蓝唇鱼)、Tuna (金枪鱼)",
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Black Drummer (黑毛)、Blue Groper (苏眉)、Tuna (金枪鱼)",
     "fish_tags": [
       "Kingfish (黄尾师)",
       "Drummer (黑毛)",
-      "Blue Groper (蓝唇鱼)"
+      "Blue Groper (苏眉)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌅 破晓第一缕光 + 满潮前后1.5小时。此时深海巨物会贴着绝壁游过。",
     "family_friendly": "⭐ (绝壁死地，禁带家属) 悉尼最著名的重矶圣地，也是发生坠海事故最多的地方。需要攀爬悬崖，无任何护栏及设施，全家出行请自动拉黑该点！",
@@ -44,12 +48,16 @@
     "map_lon": 151.2962,
     "sheltered": false,
     "tide_delay": -5,
-    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (三文鱼)、Tailor (蓝鱼)、Black Drummer (黑毛)",
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (澳三)、Tailor (蓝鱼)、Black Drummer (黑毛)",
     "fish_tags": [
       "Kingfish (黄尾师)",
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Tailor (蓝鱼)",
-      "Drummer (黑毛)"
+      "Drummer (黑毛)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌊 涨潮期 + 外海无大涌。这里是整个悉尼港的入口大门，水深极大。",
     "family_friendly": "⭐ (地狱难度，拒绝家人) 站在高达数十米的悬崖下方作钓，风浪稍微超过1.2米就会有暗涌直接洗刷平台，极度危险！没有任何生活设施，请让家人远离此地。",
@@ -82,7 +90,9 @@
     "fish_tags": [
       "Flathead (牛鳅)",
       "Bream (鳊鱼)",
-      "Jewfish (皇冠鲊)"
+      "Jewfish (皇冠鲊)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🕒 夜间涨潮顶峰前 2 小时。桥梁巨大的灯光投影在水面形成完美的天然猎场。",
     "family_friendly": "⭐⭐⭐⭐⭐ (周末野餐神位) 桥底连着超大型的 Davidson Park。配有大量高品质免费公共 BBQ 电炉、全平整林荫大草坪、儿童滑梯。100%无障碍推车，全家烧烤，爸爸在桥墩旁稳坐钓大鱼！",
@@ -144,7 +154,9 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Squid (鱿鱼)"
+      "Squid (鱿鱼)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🌅 傍晚黄昏（Sunset）结合涨潮。红树林里倒下的大量枯木断枝为底栖鱼类提供了极佳隐藏结构。",
     "family_friendly": "⭐⭐⭐⭐⭐ (极具生态风情) 风景极其幽静。建有漂亮的红树林悬空无障碍高木步道、小型滑梯游乐场、现代公共免费 BBQ、自带高分水岸西餐厅。推推车极其舒适顺畅。",
@@ -177,7 +189,12 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Leatherjacket (剥皮鱼)"
+      "Leatherjacket (剥皮鱼)",
+      "Eel (鳗鱼)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "☀️ 白天静水期。由于是一个完全封闭的狭长深水内湾，水面平静如镜，不受任何外海风浪干扰。",
     "family_friendly": "⭐⭐⭐ (纯自然徒步风光) 风景非常静谧原始，绿树环绕。属于野外探险风格，没有滑梯和固定电 BBQ 炉子。需要走一小段林荫土路，推车略显吃力。适合大一点的孩子来看历史遗迹。",
@@ -210,7 +227,12 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Tailor (蓝鱼)",
-      "Leatherjacket (剥皮鱼)"
+      "Leatherjacket (剥皮鱼)",
+      "Eel (鳗鱼)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🕒 满潮前后 1 小时。高水位会把主河道的鱼群推向这里的岸边乱石缝中寻找螃蟹贝壳。",
     "family_friendly": "⭐⭐ (硬核钓点，不宜低龄娃) 属于典型的野生自然岸线。完全没有人工游乐场或 BBQ 炉，没有公共洗手间。台阶多且陡峭，无法推婴儿车。不适合家庭休闲野餐。",
@@ -239,11 +261,15 @@
     "map_lon": 151.3198,
     "sheltered": false,
     "tide_delay": -5,
-    "active_fish": "Black Drummer (黑毛)、Blue Groper (蓝唇鱼)、Yellowtail Kingfish (黄尾师)",
+    "active_fish": "Black Drummer (黑毛)、Blue Groper (苏眉)、Yellowtail Kingfish (黄尾师)",
     "fish_tags": [
       "Drummer (黑毛)",
-      "Blue Groper (蓝唇鱼)",
-      "Kingfish (黄尾师)"
+      "Blue Groper (苏眉)",
+      "Kingfish (黄尾师)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌊 外海绝对风平浪静（Swell < 1.1米）的清晨。这里风光无限好，但背后就是凶猛的南太平洋。",
     "family_friendly": "⭐ (高危矶盘，严禁带娃) 属于拍过无数电影的著名灯塔下方大矶盘。怪石鳞峋，大浪随时洗盘，极度危险！没有任何生活设施，千万别带孩子和太太站上这片危险区域！",
@@ -334,11 +360,12 @@
     "map_lon": 151.3162,
     "sheltered": false,
     "tide_delay": -5,
-    "active_fish": "Australian Salmon (三文鱼)、Tailor (蓝鱼)、Black Drummer (黑毛)",
+    "active_fish": "Australian Salmon (澳三)、Tailor (蓝鱼)、Black Drummer (黑毛)",
     "fish_tags": [
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Tailor (蓝鱼)",
-      "Drummer (黑毛)"
+      "Drummer (黑毛)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌅 清晨或黄昏 + 涨潮前后2小时。",
     "family_friendly": "⭐⭐ (不适合低龄娃) 有洗手间和金黄沙滩，但风浪大，两侧礁石高危，绝不能带孩子过去。",
@@ -373,7 +400,11 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Drummer (黑毛)",
-      "Flathead (牛鳅)"
+      "Flathead (牛鳅)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌊 潮水刚开始上涨至满潮期间。",
     "family_friendly": "⭐⭐⭐⭐ (极佳打卡地) 拥有绝美晚霞和木桥。草坪开阔适合野餐，洗手间便利，极其适合推车遛娃。",
@@ -408,7 +439,11 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Kingfish (黄尾师)",
-      "Squid (鱿鱼)"
+      "Squid (鱿鱼)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🕒 退潮三分，主航道水流湍急时。",
     "family_friendly": "⭐⭐⭐⭐ (风景绝美) 剧场式大草坪，正对歌剧院。有干净厕所，极其适合铺野餐垫遛娃。",
@@ -476,7 +511,8 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Jewfish (皇冠鲊)"
+      "Jewfish (皇冠鲊)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🌙 深夜到凌晨 3 点。轮渡停航航道恢复死寂时。",
     "family_friendly": "⭐⭐⭐⭐ (硬核大桥夜景) 有很棒的儿童秋千滑梯、大草坪和洗手间。白天遛娃看船、夜间老爸守夜大物。",
@@ -509,7 +545,8 @@
     "fish_tags": [
       "Flathead (牛鳅)",
       "Whiting (沙尖)",
-      "Bream (鳊鱼)"
+      "Bream (鳊鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🕒 满潮后开始退潮的前 3 小时。退水冲出小虾。",
     "family_friendly": "⭐⭐⭐⭐⭐ (家庭野餐神位) 拥有大量全免费公共 BBQ 炉子、大型遮阳亭、平整推车绿道。浅沙滩安全无浪。",
@@ -540,7 +577,12 @@
     "fish_tags": [
       "Kingfish (黄尾师)",
       "Squid (鱿鱼)",
-      "Drummer (黑毛)"
+      "Drummer (黑毛)",
+      "Eel (鳗鱼)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌄 太阳破晓前后 1 小时 + 潮流最急的涨潮期。",
     "family_friendly": "⭐ (硬核荒野绝壁) 需要走很长的原始泥泞陡坡下山，完全无法推车，无任何生活设施，严禁带娃。",
@@ -604,11 +646,15 @@
     "map_lon": 151.2483,
     "sheltered": false,
     "tide_delay": -5,
-    "active_fish": "Black Drummer (黑毛)、Blue Groper (蓝唇鱼)、Yellowtail Kingfish (黄尾师)",
+    "active_fish": "Black Drummer (黑毛)、Blue Groper (苏眉)、Yellowtail Kingfish (黄尾师)",
     "fish_tags": [
       "Drummer (黑毛)",
-      "Blue Groper (蓝唇鱼)",
-      "Kingfish (黄尾师)"
+      "Blue Groper (苏眉)",
+      "Kingfish (黄尾师)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌊 外海风浪极小的极端晴朗天气。生命第一！",
     "family_friendly": "⭐ (极限高危险，拒绝家属) 纯野生乱石矶钓场，完全没有任何人工设施，打浪严重，必须穿钉鞋救生衣。",
@@ -643,7 +689,9 @@
     "fish_tags": [
       "Flathead (牛鳅)",
       "Whiting (沙尖)",
-      "Bream (鳊鱼)"
+      "Bream (鳊鱼)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "☀️ 白天中午阳光充足期结合满潮，底栖鱼活跃。",
     "family_friendly": "⭐⭐⭐⭐⭐ (奢华森林天然氧吧) 顶级遮阳 BBQ 亭子群、海盗船儿童乐园、无障碍步道。带袋鼠和巨蜥生态观赏。",
@@ -707,7 +755,9 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Jewfish (皇冠鲊)"
+      "Jewfish (皇冠鲊)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🕒 每天深夜暗河涨潮至满潮黄金窗口。",
     "family_friendly": "⭐⭐⭐ (下车走十米即钓) 宽敞铁护栏专属垂钓站台，推车全无障碍。但缺乏秋千滑梯，有公路过车噪音。",
@@ -767,7 +817,9 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Squid (鱿鱼)"
+      "Squid (鱿鱼)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🌅 黄昏日落交替至大入夜。双河交汇激流明显。",
     "family_friendly": "⭐⭐⭐⭐⭐ (草坪野餐巨无霸) 拥有全悉尼数一数二的高级大无敌江景绿地。配大量免费 BBQ 烤炉、平整无阶梯漫步道。",
@@ -800,7 +852,9 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Jewfish (皇冠鲊)"
+      "Jewfish (皇冠鲊)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🕒 夜间涨潮至满潮期，避开白天轮渡轰鸣。",
     "family_friendly": "⭐⭐⭐⭐⭐ (西区遛娃常青树) 喷水戏水泉、前卫儿童乐园、完美平整草坪、全无障碍推车绿道及高分咖啡馆。",
@@ -830,7 +884,9 @@
     "active_fish": "Bream (鳊鱼)、Dusk Flathead (牛鳅)",
     "fish_tags": [
       "Bream (鳊鱼)",
-      "Flathead (牛鳅)"
+      "Flathead (牛鳅)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🌅 傍晚黄昏到晚上 10 点，海水涨满漫过河口泥湾浅滩时。",
     "family_friendly": "⭐⭐⭐⭐⭐ (华人烧烤高分点) 橡胶软地儿童高空滑梯乐园、多台全自动免费 BBQ 电炉。岸边配有百分之百安全的厚实护栏。",
@@ -886,11 +942,12 @@
     "map_lon": 151.2432,
     "sheltered": true,
     "tide_delay": 10,
-    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (三文鱼)、Calamari (大鱿鱼)",
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (澳三)、Calamari (大鱿鱼)",
     "fish_tags": [
       "Kingfish (黄尾师)",
-      "Salmon (三文鱼)",
-      "Squid (鱿鱼)"
+      "Australian Salmon (澳三)",
+      "Squid (鱿鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🕒 湍急潮汐刚转停流的半小时（Slack Water）前后。",
     "family_friendly": "⭐⭐ (风景极美但无游乐场) 桥底连接看海大草坪，全平整。推车方便。但现场无任何儿童滑梯或固定 BBQ 设施。",
@@ -956,7 +1013,8 @@
     "fish_tags": [
       "Flathead (牛鳅)",
       "Whiting (沙尖)",
-      "Bream (鳊鱼)"
+      "Bream (鳊鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🕒 满潮退三分至干潮底的前 2 小时大退水退鱼期。",
     "family_friendly": "⭐⭐⭐⭐⭐ (水上度假乐园) 连绵数公里长的完美无阶梯胶质环湖道。遍布顶级野餐 BBQ 遮阳群亭，小娃可在清澈死水滩安全玩沙。",
@@ -985,7 +1043,11 @@
     "fish_tags": [
       "Bream (鳊鱼)",
       "Leatherjacket (剥皮鱼)",
-      "Squid (鱿鱼)"
+      "Squid (鱿鱼)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🕒 满潮前后 1.5 小时。深水礁石区大鳊鱼和大剥皮鱼贴近岸壁觅食。",
     "family_friendly": "⭐⭐⭐ (悬崖风景绝佳) Bottle and Glass Point 俯瞰悉尼港入口，风景壮阔。礁石作钓需穿防滑鞋，有少量草坪可野餐。无 BBQ 炉和游乐场，不适合低龄娃。",
@@ -1049,12 +1111,13 @@
     "map_lon": 151.0621,
     "sheltered": false,
     "tide_delay": -8,
-    "active_fish": "Australian Salmon (三文鱼)、Black Drummer (黑毛)、Tailor (蓝鱼)、Jewfish (皇冠鲊)",
+    "active_fish": "Australian Salmon (澳三)、Black Drummer (黑毛)、Tailor (蓝鱼)、Jewfish (皇冠鲊)",
     "fish_tags": [
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Drummer (黑毛)",
       "Tailor (蓝鱼)",
-      "Jewfish (皇冠鲊)"
+      "Jewfish (皇冠鲊)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌅 清晨第一缕光至上午 9 点。回游大鱼冲洗礁石平台的最佳捕食时机。",
     "family_friendly": "⭐⭐ (壮丽景区，不适合低龄娃) 徒步栈道优美，有洗手间和野餐区。但礁石作钓区域危险，浪大时严禁踏上。适合大孩子观光，低龄不宜靠礁。",
@@ -1066,7 +1129,7 @@
     ],
     "method_tips": {
       "半游动": "🎯 顶级推荐！在泻湖礁石出海口，用阿波半游动线组顺流钓大 Drummer 黑毛，效果一流。",
-      "全游动": "👍 推荐！让诱饵随南太平洋的涌流穿越礁盘，是截击洄游三文鱼和 Tailor 的王牌招式。",
+      "全游动": "👍 推荐！让诱饵随南太平洋的涌流穿越礁盘，是截击洄游澳三和 Tailor 的王牌招式。",
       "路亚大物": "👍 推荐！清晨远投重型铁板，南段礁盘对面常年有大群 Salmon 和 Kingfish 咬钩。",
       "Running Sinker (活铅沉底)": "👍 推荐！泻湖内侧可用轻铅沉底，挂沙蚕钓 Whiting 和 Bream，适合海况好的平静日。"
     },
@@ -1085,12 +1148,16 @@
     "map_lon": 151.2308,
     "sheltered": false,
     "tide_delay": -3,
-    "active_fish": "Yellowtail Kingfish (黄尾师)、Bluefin Tuna (蓝鳍金枪鱼)、Black Drummer (黑毛)、Australian Salmon (三文鱼)",
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Bluefin Tuna (蓝鳍金枪鱼)、Black Drummer (黑毛)、Australian Salmon (澳三)",
     "fish_tags": [
       "Kingfish (黄尾师)",
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Drummer (黑毛)",
-      "Blue Groper (蓝唇鱼)"
+      "Blue Groper (苏眉)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌅 破晓至上午 9 点，以及满潮前后 1.5 小时。这里是悉尼观鲸圣地，回游大物密度极高。",
     "family_friendly": "⭐ (仅限精英重矶玩家) Kamay Botany Bay 国家公园内部。悬崖高耸，浪涌凶猛，完全没有任何生活设施，绝对禁止携带家人。",
@@ -1121,12 +1188,16 @@
     "map_lon": 151.3015,
     "sheltered": false,
     "tide_delay": -5,
-    "active_fish": "Black Drummer (黑毛)、Australian Salmon (三文鱼)、Tailor (蓝鱼)、Yellowtail Kingfish (黄尾师)",
+    "active_fish": "Black Drummer (黑毛)、Australian Salmon (澳三)、Tailor (蓝鱼)、Yellowtail Kingfish (黄尾师)",
     "fish_tags": [
       "Drummer (黑毛)",
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Tailor (蓝鱼)",
-      "Kingfish (黄尾师)"
+      "Kingfish (黄尾师)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌅 清晨涨潮期（浪涌 < 1.0m）。Long Reef 礁盘宽阔低矮，对海况要求极高，必须风平浪静才能安全作钓。",
     "family_friendly": "⭐ (高危潮间带礁盘，严禁带娃) 礁盘宽广，景色壮阔，但礁石青苔湿滑，海浪随时可能洗盘，必须全副装备。",
@@ -1159,7 +1230,9 @@
     "fish_tags": [
       "Australian Bass (澳洲鲈鱼)",
       "Golden Perch (黄金鲈)",
-      "Carp (鲤鱼)"
+      "Carp (鲤鱼)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🌅 破晓至上午 9 点 Bass 最活跃，以及黄昏后 1-2 小时。气温适中的秋冬季节渔获最佳。",
     "family_friendly": "⭐⭐⭐⭐ (大城市旁的清澈大河) 河边 Tench Reserve 公园草坪宽阔，配有 BBQ 炉和洗手间。河岸平缓，孩子可以安全戏水，观察原生植被。",
@@ -1191,7 +1264,8 @@
       "Australian Bass (澳洲鲈鱼)",
       "Catfish (鲶鱼)",
       "Carp (鲤鱼)",
-      "Golden Perch (黄金鲈)"
+      "Golden Perch (黄金鲈)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🌅 清晨至上午 10 点。大坝泄水期间水流湍急，大 Bass 在激流与缓流交界的回水湾中蹲守捕食。",
     "family_friendly": "⭐⭐ (峡谷探险风格) 峡谷风光原始壮丽，但河岸道路崎岖，推车不便，无公共 BBQ 设施。适合喜欢户外探险的大孩子。",
@@ -1222,7 +1296,8 @@
     "fish_tags": [
       "Australian Bass (澳洲鲈鱼)",
       "Carp (鲤鱼)",
-      "Catfish (鲶鱼)"
+      "Catfish (鲶鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🌅 清晨首缕阳光至上午 8:30（黄金时段），以及黄昏日落前后 1 小时。湖水宁静，鱼群聚集在倒木和水生植物边缘。",
     "family_friendly": "⭐⭐⭐⭐⭐ (CBD 旁最美城市自然保护区) 湖边步道全无障碍，配有 BBQ 炉和洗手间。湖水清澈见底，适合孩子观鱼和野餐，夏天有游泳区（须持有效游泳证）。",
@@ -1257,7 +1332,9 @@
       "Jewfish (皇冠鲊)",
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
-      "Tailor (蓝鱼)"
+      "Tailor (蓝鱼)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🌙 夜间涨潮至满潮期，以及黎明前后 1 小时。Hawkesbury 是悉尼最出名的大型 Jewfish 产地。",
     "family_friendly": "⭐⭐⭐ (大河风光独特) 渔人码头边有小型咖啡馆和餐厅，停车方便，儿童可在码头安全垂钓。",
@@ -1292,7 +1369,9 @@
     "fish_tags": [
       "Jewfish (皇冠鲊)",
       "Bream (鳊鱼)",
-      "Flathead (牛鳅)"
+      "Flathead (牛鳅)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "🌙 夜间落潮至低潮期。陡峭的礁石崖壁之间深水区水流复杂，是 Jewfish 最佳伏击地形。",
     "family_friendly": "⭐⭐⭐ (峡谷秘境) 国家公园内部，风景极其原始壮丽。小型渡船码头旁有餐厅可用餐，有洗手间。推车困难，适合稍大孩子。",
@@ -1326,7 +1405,8 @@
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
       "Whiting (沙尖)",
-      "Leatherjacket (剥皮鱼)"
+      "Leatherjacket (剥皮鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "☀️ 白天满潮期 + 退潮前后 2 小时。Hacking River 内侧水质极清，沙尖鱼密度极高。",
     "family_friendly": "⭐⭐⭐⭐⭐ (儿童钓鱼神位) 平坦的岩石平台护栏完善，清澈水域可以直接看到鱼游过。大草坪配有 BBQ 电炉和儿童滑梯，百分之百适合家庭出行。",
@@ -1360,7 +1440,8 @@
       "Bream (鳊鱼)",
       "Squid (鱿鱼)",
       "Flathead (牛鳅)",
-      "Tailor (蓝鱼)"
+      "Tailor (蓝鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🌅 黄昏至夜间 10 点，结合涨潮期。皇家国家公园入口海湾，水质极纯净，鱼类密度远超城市内湾。",
     "family_friendly": "⭐⭐⭐⭐ (世外桃源) Port Hacking 内侧最安静的渡轮码头，沙滩旁有野餐桌和洗手间。从 Cronulla 乘渡轮可直达，也可驾车进入国家公园。",
@@ -1423,12 +1504,16 @@
     "water_type": "ocean",
     "sheltered": false,
     "tide_delay": -2,
-    "active_fish": "Black Drummer (黑毛)、Australian Salmon (三文鱼)、Tailor (蓝鱼)、Yellowtail Kingfish (黄尾师)",
+    "active_fish": "Black Drummer (黑毛)、Australian Salmon (澳三)、Tailor (蓝鱼)、Yellowtail Kingfish (黄尾师)",
     "fish_tags": [
       "Drummer (黑毛)",
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Tailor (蓝鱼)",
-      "Kingfish (黄尾师)"
+      "Kingfish (黄尾师)",
+      "Tuskfish (青衣)",
+      "Wrasse (彩衣)",
+      "Scorpionfish (红蝎子)",
+      "Old Wife (老人靴)"
     ],
     "best_window": "🌅 破晓至上午 9 点 + 满潮前后 1 小时。Cape Banks 正对 Botany Bay 入口，外海回游鱼密度极高。",
     "family_friendly": "⭐ (高危外海矶盘) 宽阔低矮的礁盘，海浪随时洗盘，必须穿戴钉鞋和救生衣。严禁带娃，完全没有任何生活设施。",
@@ -1496,7 +1581,8 @@
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
       "Jewfish (皇冠鲊)",
-      "Leatherjacket (剥皮鱼)"
+      "Leatherjacket (剥皮鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🕒 夜间涨潮满潮前后 2 小时。Iron Cove 铁湾桥是内西区最著名的 Bream 和 Jewfish 截击点。",
     "family_friendly": "⭐⭐⭐⭐ (环湾步道公园) Iron Cove 两侧有完整的环湾无障碍步道，大草坪 BBQ 设施完善，适合白天家庭野餐，夜间爸爸守 Jewfish。",
@@ -1528,7 +1614,8 @@
       "Australian Bass (澳洲鲈鱼)",
       "Golden Perch (黄金鲈)",
       "Carp (鲤鱼)",
-      "Catfish (鲶鱼)"
+      "Catfish (鲶鱼)",
+      "Eel (鳗鱼)"
     ],
     "best_window": "🌅 破晓至上午 9 点，以及黄昏日落前 1 小时。秋冬季（4-10 月）为 Bass 和 Golden Perch 最旺季节。",
     "family_friendly": "⭐⭐⭐⭐ (历史古镇大河风情) Windsor 是悉尼最古老的历史城镇，大河旁有宽阔草坪、BBQ 炉和洗手间。河岸平缓开阔，非常适合亲子垂钓。",
@@ -1562,7 +1649,9 @@
       "Bream (鳊鱼)",
       "Flathead (牛鳅)",
       "Australian Bass (澳洲鲈鱼)",
-      "Leatherjacket (剥皮鱼)"
+      "Leatherjacket (剥皮鱼)",
+      "Eel (鳗鱼)",
+      "Catfish (鲶鱼)"
     ],
     "best_window": "☀️ 白天中午前后，水温最适宜时段。Audley 河堰以上为淡水，以下随潮汐变化，Bass 和 Bream 混居，鱼种多样。",
     "family_friendly": "⭐⭐⭐⭐⭐ (国家公园家庭钓鱼天堂) 国家公园内最受欢迎的家庭钓鱼点。有专属独木舟和划艇出租，遮阴大草坪，BBQ 炉，小型咖啡馆和纪念品店，推车无障碍。",
@@ -1593,10 +1682,10 @@
     "water_type": "boat",
     "sheltered": false,
     "tide_delay": -4,
-    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (三文鱼)、Mulloway (皇冠鲊)、Bonito",
+    "active_fish": "Yellowtail Kingfish (黄尾师)、Australian Salmon (澳三)、Mulloway (皇冠鲊)、Bonito",
     "fish_tags": [
       "Kingfish (黄尾师)",
-      "Salmon (三文鱼)",
+      "Australian Salmon (澳三)",
       "Jewfish (皇冠鲊)"
     ],
     "best_window": "🌅 破晓至上午 10 点，配合涨潮入流。外海口门流速提升时回游鱼活性最高。",

@@ -25,6 +25,7 @@ from services.stats import record_visit_start, record_visit_end, render_stats_pa
 from services import log as fishing_log
 from data.loader import load_spots
 from domain.safety import assess_safety
+from domain.recommendation import recommendation_score
 
 ALL_METHODS = getattr(cfg, "ALL_METHODS", [])
 ALL_FISH = getattr(cfg, "ALL_FISH", [])
@@ -95,6 +96,10 @@ with st.sidebar:
         label_visibility="collapsed",
         horizontal=True,
         key="selected_page",
+    )
+    st.markdown(
+        '<div style="height:1px;background:rgba(255,255,255,0.08);margin:2px 0 14px"></div>',
+        unsafe_allow_html=True,
     )
 
     if selected_page == "🎣 钓点推荐":
@@ -351,12 +356,15 @@ def _freshwater_season_pill() -> str:
 _FISH_PEAK_MONTHS = {
     "Kingfish (黄尾师)":   [10, 11, 12, 1, 2, 3],   # 夏季回游
     "Tailor (蓝鱼)":       [3, 4, 5, 6, 7, 8, 9],    # 秋冬
-    "Salmon (三文鱼)":     [3, 4, 5, 6, 7, 8],        # 秋冬
+    "Australian Salmon (澳三)":     [3, 4, 5, 6, 7, 8],        # 秋冬
     "Drummer (黑毛)":      [4, 5, 6, 7, 8, 9, 10],    # 凉季
     "Jewfish (皇冠鲊)":    [10, 11, 12, 1, 2],        # 夏季
     "Squid (鱿鱼)":        [3, 4, 5, 6, 7, 8, 9, 10], # 秋冬春
     "Australian Bass (澳洲鲈鱼)": [4, 5, 6, 7, 8, 9, 10],
     "Golden Perch (黄金鲈)": [4, 5, 6, 7, 8, 9],
+    "Tuskfish (青衣)": [10, 11, 12, 1, 2, 3],  # 夏季礁盘活跃
+    "Wrasse (彩衣)": [10, 11, 12, 1, 2, 3],
+    "Eel (鳗鱼)": [3, 4, 5, 6, 7, 8, 9, 10],   # 秋冬春
 }
 
 def _saltwater_season_pills(fish_tags: list) -> str:
@@ -554,10 +562,27 @@ def _build_day_payload(
         safety = assess_safety(spot, spot_day_w)
         f_lat, f_lon = _fishing_coords(spot)
         tides = get_tides_for_date(target_date, spot["tide_delay"], lat=f_lat, lon=f_lon)
+        safety = {
+            **safety,
+            "rank_score": recommendation_score(
+                spot,
+                safety,
+                spot_day_w,
+                tides,
+                methods,
+                fish,
+            ),
+        }
         all_spot_data.append((spot, safety, tides, spot_day_w))
 
     _safety_order = {"sage": 0, "amber": 1, "coral": 2}
-    all_spot_data.sort(key=lambda x: _safety_order.get(x[1]["color"], 3))
+    all_spot_data.sort(
+        key=lambda x: (
+            _safety_order.get(x[1]["color"], 3),
+            -x[1].get("rank_score", 0),
+            x[0]["name"],
+        )
+    )
     return {
         "filtered": filtered,
         "filtered_total": len(filtered_all),
@@ -688,23 +713,7 @@ def render_weather_panel(day_weather: dict, data_ok: bool, next_day: dict = None
         </div>
     """), unsafe_allow_html=True)
 
-    if rain_prob >= 70:
-        st.markdown(
-            f'<div style="background:#e8f0fe;border:1px solid #b3cdf5;border-radius:14px;'
-            f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
-            f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
-            f'<div style="font-family:var(--mono);font-size:10.5px;color:#4472a8;'
-            f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☔ 降雨预报</div>'
-            f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
-            f'color:#3a5fa8;line-height:1">{int(rain_prob)}%</div>'
-            f'<span style="background:#b3cdf544;color:#3a5fa8;padding:2px 10px;'
-            f'border-radius:999px;font-size:12px;font-weight:600">降雨概率高</span>'
-            f'<div style="font-size:12px;color:#4472a8;margin-left:auto">'
-            f'备好雨衣和防水装备再出发，{rain_str} 预计降水</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-    else:
+    if rain_prob < 60:
         uv = day_weather.get("uv") or 0
         uv_val = int(round(uv))
         if uv_val <= 2:
@@ -717,19 +726,20 @@ def render_weather_panel(day_weather: dict, data_ok: bool, next_day: dict = None
             uv_col, uv_label, uv_tip = "#b03060", "极高", "户外务必全副防晒，减少暴露"
         else:
             uv_col, uv_label, uv_tip = "#6a0dad", "危险", "尽量避免正午户外"
+    if rain_prob < 60:
         st.markdown(
-            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
-            f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
-            f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
-            f'<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
-            f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☀️ UV 指数</div>'
-            f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
-            f'color:{uv_col};line-height:1">{uv_val}</div>'
-            f'<span style="background:{uv_col}22;color:{uv_col};padding:2px 10px;'
-            f'border-radius:999px;font-size:12px;font-weight:600">{uv_label}</span>'
-            f'<div style="font-size:12px;color:var(--muted);margin-left:auto">{uv_tip}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
+        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;'
+        f'padding:12px 20px;margin-top:8px;display:flex;align-items:center;gap:14px;'
+        f'box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
+        f'<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
+        f'letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap">☀️ UV 指数</div>'
+        f'<div style="font-family:var(--serif-en);font-size:28px;font-weight:400;'
+        f'color:{uv_col};line-height:1">{uv_val}</div>'
+        f'<span style="background:{uv_col}22;color:{uv_col};padding:2px 10px;'
+        f'border-radius:999px;font-size:12px;font-weight:600">{uv_label}</span>'
+        f'<div style="font-size:12px;color:var(--muted);margin-left:auto">{uv_tip}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
         )
 
 
@@ -1907,7 +1917,14 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
 
     _safety_order = {"sage": 0, "amber": 1, "coral": 2}
     if sort_by == "家庭友好优先":
-        all_spot_data.sort(key=lambda x: (-x[0]["family_friendly"].count("⭐"), _safety_order.get(x[1]["color"], 3)))
+        all_spot_data.sort(
+            key=lambda x: (
+                -x[0]["family_friendly"].count("⭐"),
+                _safety_order.get(x[1]["color"], 3),
+                -x[1].get("rank_score", 0),
+                x[0]["name"],
+            )
+        )
 
     if not all_spot_data:
         section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
@@ -2270,6 +2287,7 @@ if selected_page == "🎣 钓点推荐":
         format_func=lambda i: f"{_day_weather_icon(i)}  {_day_names[i]}  {(today_obj + timedelta(days=i)).strftime('%m/%d')}",
         label_visibility="collapsed",
         default=0,
+        width="stretch",
     ) or 0
     render_day_tab(selected_day_offset, _day_overview)
 
