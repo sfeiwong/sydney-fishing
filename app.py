@@ -868,7 +868,7 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
             hoverinfo="skip", showlegend=False,
         ))
     fig.update_layout(
-        template="plotly_white", height=180,
+        template="plotly_white", height=210,
         margin=dict(l=32, r=8, t=8, b=28), showlegend=False,
         xaxis=dict(
             range=[0, 24],
@@ -1863,12 +1863,11 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     with left_col:
         render_weather_panel(day_w, overview_weather["success"], next_day=next_day_w)
     with right_col:
+        st.markdown('<div class="tide-col-marker"></div>', unsafe_allow_html=True)
         st.markdown(
-            '<div style="background:var(--surface);border:1px solid var(--line);'
-            'border-radius:14px;padding:18px 20px;box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
             '<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
             'letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">'
-            'TIDES · FORT DENISON</div></div>',
+            'TIDES · FORT DENISON</div>',
             unsafe_allow_html=True,
         )
         render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
