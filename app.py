@@ -503,6 +503,7 @@ def spot_matches(spot: dict) -> bool:
 @st.cache_data(ttl=900, show_spinner=False)
 def _build_day_payload(
     day_offset: int,
+    sydney_date_key: str,
     methods: tuple[str, ...],
     fish: tuple[str, ...],
     region: str,
@@ -510,7 +511,7 @@ def _build_day_payload(
     family: bool,
     max_spots: int,
 ) -> dict:
-    target_date = datetime.now() + timedelta(days=day_offset)
+    target_date = datetime.strptime(sydney_date_key, "%Y-%m-%d")
     filtered_all = [
         s for s in spots
         if _spot_matches_with_filters(s, methods, fish, region, wt_filter, family)
@@ -783,12 +784,20 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
                 next_td = td
                 break
         if prev_td is None:
-            h = HIGH_M if all_tides[0]["is_high"] else LOW_M
+            h = all_tides[0].get("height_m")
+            if h is None:
+                h = HIGH_M if all_tides[0]["is_high"] else LOW_M
         elif next_td is None:
-            h = HIGH_M if all_tides[-1]["is_high"] else LOW_M
+            h = all_tides[-1].get("height_m")
+            if h is None:
+                h = HIGH_M if all_tides[-1]["is_high"] else LOW_M
         else:
-            ph = HIGH_M if prev_td["is_high"] else LOW_M
-            nh = HIGH_M if next_td["is_high"] else LOW_M
+            ph = prev_td.get("height_m")
+            nh = next_td.get("height_m")
+            if ph is None:
+                ph = HIGH_M if prev_td["is_high"] else LOW_M
+            if nh is None:
+                nh = HIGH_M if next_td["is_high"] else LOW_M
             period  = (next_td["time"] - prev_td["time"]).total_seconds()
             elapsed = (t - prev_td["time"]).total_seconds()
             frac    = elapsed / period if period > 0 else 0
@@ -804,6 +813,28 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
         fill="tozeroy", fillcolor="rgba(42,95,176,0.18)",
         hovertemplate="%{x:.1f}h · %{y:.2f}m<extra></extra>",
     ))
+    event_x, event_y, event_text, event_color = [], [], [], []
+    for td in sorted_tides:
+        xh = td["time"].hour + td["time"].minute / 60
+        if not 0 <= xh <= 24:
+            continue
+        height_m = td.get("height_m")
+        if not isinstance(height_m, (int, float)):
+            height_m = HIGH_M if td["is_high"] else LOW_M
+        event_x.append(xh)
+        event_y.append(height_m)
+        event_text.append(
+            f'{"满潮" if td["is_high"] else "干潮"} {td["time"].strftime("%H:%M")} · {height_m:.2f}m'
+        )
+        event_color.append("#c69230" if td["is_high"] else "#8a9cb2")
+    if event_x:
+        fig.add_trace(go.Scatter(
+            x=event_x, y=event_y, mode="markers",
+            marker=dict(size=9, color=event_color, line=dict(width=1.4, color="#fff")),
+            customdata=event_text,
+            hovertemplate="%{customdata}<extra></extra>",
+            showlegend=False,
+        ))
     if is_today and 0 <= now_h <= 24:
         idx = int(now_h / 24 * (len(y_m) - 1))
         fig.add_vline(x=now_h, line=dict(color="#c69230", width=1.2, dash="dash"))
@@ -823,6 +854,7 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
             gridcolor="rgba(15,30,50,0.06)",
         ),
         yaxis=dict(
+            title=dict(text="m", font=dict(family="IBM Plex Mono", size=10, color="#8a9cb2")),
             tickfont=dict(family="IBM Plex Mono", size=10, color="#8a9cb2"),
             gridcolor="rgba(15,30,50,0.06)",
         ),
@@ -835,6 +867,8 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
         dot_color = "#c69230" if is_high else "#8a9cb2"
         label     = "满潮" if is_high else "干潮"
         time_str  = td["time"].strftime("%H:%M")
+        height_m  = td.get("height_m")
+        height_str = f"{height_m:.2f} m" if isinstance(height_m, (int, float)) else ""
         opacity   = "1" if (not is_today or td["time"] > now) else "0.4"
         col.markdown(
             f'<div style="text-align:center;opacity:{opacity}">'
@@ -843,6 +877,7 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
             f'<div style="font-family:IBM Plex Mono;font-size:11px;color:{dot_color};font-weight:500">'
             f'{time_str}</div>'
             f'<div style="font-size:10.5px;color:#8a9cb2">{label}</div>'
+            f'<div style="font-family:IBM Plex Mono;font-size:10px;color:#8a9cb2">{height_str}</div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -1079,12 +1114,17 @@ def render_spot_card(
             for td in spot_tides:
                 dot = "#c69230" if td["is_high"] else "#8a9cb2"
                 lbl = "满潮" if td["is_high"] else "干潮"
+                height_m = td.get("height_m")
+                height_html = (
+                    f'<span style="font-family:var(--mono);font-size:10.5px;color:var(--muted)"> · {height_m:.2f}m</span>'
+                    if isinstance(height_m, (int, float)) else ""
+                )
                 tide_rows += (
                     f'<div style="display:flex;align-items:center;justify-content:space-between;'
                     f'gap:10px;padding:7px 0;border-bottom:1px solid var(--line)">'
                     f'<div style="display:flex;align-items:center;gap:8px">'
                     f'<div style="width:7px;height:7px;border-radius:50%;background:{dot};flex-shrink:0"></div>'
-                    f'<span style="font-size:11.5px;color:var(--muted)">{lbl}</span>'
+                    f'<span style="font-size:11.5px;color:var(--muted)">{lbl}{height_html}</span>'
                     f'</div>'
                     f'<span style="font-family:var(--mono);font-size:12px;color:{dot};font-weight:600">'
                     f'{td["time"].strftime("%H:%M")}</span>'
@@ -1441,7 +1481,8 @@ def _render_map_spot_detail(spot: dict, safety: dict, tides: list, weather: dict
             tide_rows = "".join(
                 f'<div style="display:flex;justify-content:space-between;padding:5px 0;'
                 f'border-bottom:1px solid var(--line)">'
-                f'<span style="font-size:12px;color:var(--muted)">{"满潮" if t["is_high"] else "干潮"}</span>'
+                f'<span style="font-size:12px;color:var(--muted)">{"满潮" if t["is_high"] else "干潮"}'
+                f'{(" · " + format(t["height_m"], ".2f") + "m") if isinstance(t.get("height_m"), (int, float)) else ""}</span>'
                 f'<span style="font-family:var(--mono);font-size:12px;font-weight:600;'
                 f'color:{"#c69230" if t["is_high"] else "#8a9cb2"}">'
                 f'{t["time"].strftime("%H:%M")}</span></div>'
@@ -1793,6 +1834,7 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     with st.spinner("正在评估钓点海况…"):
         payload = _build_day_payload(
             day_offset,
+            target_date.strftime("%Y-%m-%d"),
             tuple(selected_methods),
             tuple(selected_fish),
             selected_region,

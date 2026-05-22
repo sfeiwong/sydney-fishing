@@ -1,5 +1,5 @@
 # ============================================================
-# services/tides.py — 潮汐服务（WorldTides + 本地估算回退）
+# services/tides.py — 潮汐服务（WorldTides + 官方表修正 + 本地估算回退）
 # ============================================================
 
 from datetime import datetime, timedelta, timezone
@@ -26,6 +26,23 @@ _WORLDTIDES_URL = "https://www.worldtides.info/api/v3"
 _SYD_TZ = timezone(timedelta(hours=10))
 _MIN_EVENT_GAP_MINUTES = 300  # 5h, avoid near-duplicate extremes
 
+# Fort Denison official predictions from NSW Tide Tables / BoM for the current
+# app-critical window. BoM blocks automated scraping, so keep these as local
+# overrides ahead of the rough astronomical fallback.
+_FORT_DENISON_OFFICIAL = {
+    "2026-05-21": [("06:17", 0.39, False), ("12:20", 1.37, True), ("17:45", 0.70, False)],
+    "2026-05-22": [("00:16", 1.89, True), ("07:19", 0.45, False), ("13:25", 1.36, True), ("18:51", 0.75, False)],
+    "2026-05-23": [("01:19", 1.77, True), ("08:18", 0.51, False), ("14:29", 1.39, True), ("20:02", 0.78, False)],
+    "2026-05-24": [("02:24", 1.67, True), ("09:11", 0.55, False), ("15:28", 1.44, True), ("21:15", 0.78, False)],
+    "2026-05-25": [("03:27", 1.58, True), ("09:59", 0.57, False), ("16:22", 1.52, True), ("22:24", 0.76, False)],
+    "2026-05-26": [("04:24", 1.50, True), ("10:41", 0.59, False), ("17:10", 1.60, True), ("23:26", 0.72, False)],
+    "2026-05-27": [("05:15", 1.45, True), ("11:18", 0.61, False), ("17:53", 1.67, True)],
+    "2026-05-28": [("00:19", 0.67, False), ("06:03", 1.41, True), ("11:55", 0.62, False), ("18:32", 1.73, True)],
+    "2026-05-29": [("01:05", 0.62, False), ("06:47", 1.39, True), ("12:30", 0.64, False), ("19:08", 1.78, True)],
+    "2026-05-30": [("01:45", 0.58, False), ("07:30", 1.37, True), ("13:04", 0.65, False), ("19:44", 1.82, True)],
+    "2026-05-31": [("02:24", 0.55, False), ("08:11", 1.36, True), ("13:39", 0.67, False), ("20:18", 1.84, True)],
+}
+
 
 def _estimate_tides_for_date(target_date: datetime, delay_minutes: int = 0) -> list[dict]:
     """天文近似算法：4 个潮汐事件（2 满潮 + 2 干潮）。"""
@@ -48,6 +65,28 @@ def _estimate_tides_for_date(target_date: datetime, delay_minutes: int = 0) -> l
                 "time": t,
                 "is_high": is_high,
                 "label": "🟢 满潮" if is_high else "🔵 干潮",
+                "height_m": None,
+                "source": "estimate",
+            }
+        )
+    return tides
+
+
+def _official_fort_denison_for_date(target_date: datetime, delay_minutes: int = 0) -> list[dict]:
+    rows = _FORT_DENISON_OFFICIAL.get(target_date.strftime("%Y-%m-%d"), [])
+    tides = []
+    for time_text, height_m, is_high in rows:
+        hour, minute = [int(x) for x in time_text.split(":")]
+        event_time = target_date.replace(hour=hour, minute=minute, second=0, microsecond=0)
+        if delay_minutes:
+            event_time += timedelta(minutes=delay_minutes)
+        tides.append(
+            {
+                "time": event_time,
+                "is_high": is_high,
+                "label": "🟢 满潮" if is_high else "🔵 干潮",
+                "height_m": height_m,
+                "source": "nsw_official",
             }
         )
     return tides
@@ -107,6 +146,8 @@ def _fetch_worldtides_extremes(lat: float, lon: float, date_key: str) -> list[di
                 "time": dt,
                 "is_high": is_high,
                 "label": "🟢 满潮" if is_high else "🔵 干潮",
+                "height_m": item.get("height"),
+                "source": "worldtides",
             }
         )
 
@@ -140,11 +181,12 @@ def get_tides_for_date(
     lon: Optional[float] = None,
 ) -> list[dict]:
     """
-    返回某天潮汐事件。优先 WorldTides，失败后回退到本地估算。
+    返回某天潮汐事件。优先 WorldTides，其次 NSW/BoM Fort Denison 官方表，
+    最后回退到本地估算。
 
     参数：
         target_date    目标日期
-        delay_minutes  仅在估算回退时生效（相对参考点偏移）
+        delay_minutes  相对 Fort Denison 的本地潮时偏移
         lat/lon        可选，提供时才会尝试 WorldTides
     """
     if lat is not None and lon is not None and _worldtides_key():
@@ -156,6 +198,10 @@ def get_tides_for_date(
         except Exception:
             pass
 
+    official = _official_fort_denison_for_date(target_date, delay_minutes=delay_minutes)
+    if official:
+        return official
+
     return _estimate_tides_for_date(target_date, delay_minutes=delay_minutes)
 
 
@@ -163,4 +209,7 @@ def get_tide_accuracy_hint() -> str:
     """Return a short UX hint about current tide data confidence."""
     if _worldtides_key():
         return "潮汐精度：WorldTides 实时极值（通常约 ±5 分钟）"
+    today = datetime.now(_SYD_TZ)
+    if today.strftime("%Y-%m-%d") in _FORT_DENISON_OFFICIAL:
+        return "潮汐精度：NSW/BoM Fort Denison 官方表（本地钓点按延迟修正）"
     return "潮汐精度：天文估算（通常约 ±30–60 分钟）"
