@@ -841,10 +841,10 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
         ))
     if is_today and 0 <= now_h <= 24:
         idx = int(now_h / 24 * (len(y_m) - 1))
-        fig.add_vline(x=now_h, line=dict(color="#c69230", width=1.2, dash="dash"))
+        fig.add_vline(x=now_h, line=dict(color="#d94b45", width=1.4, dash="dash"))
         fig.add_trace(go.Scatter(
             x=[now_h], y=[y_m[idx]], mode="markers",
-            marker=dict(size=10, color="#c69230", line=dict(width=1.5, color="#fff")),
+            marker=dict(size=11, color="#d94b45", line=dict(width=1.8, color="#fff")),
             hoverinfo="skip", showlegend=False,
         ))
     fig.update_layout(
@@ -1843,10 +1843,7 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
                 '<div style="margin-bottom:10px">'
                 '<div style="font-family:var(--serif-en);font-size:30px;font-weight:700;'
                 'line-height:1;color:var(--text)">Tides</div>'
-                '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;'
-                'font-size:13px;font-weight:600;color:#2f70b7">'
-                '<span>⌖</span><span>Circular Quay</span>'
-                '</div></div>',
+                '</div>',
                 unsafe_allow_html=True,
             )
             render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)

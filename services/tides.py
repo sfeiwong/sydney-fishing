@@ -2,8 +2,10 @@
 # services/tides.py — 潮汐服务（WorldTides + 官方表修正 + 本地估算回退）
 # ============================================================
 
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 import requests
 import streamlit as st
@@ -23,8 +25,11 @@ _REFERENCE_HIGH = datetime(
 )
 
 _WORLDTIDES_URL = "https://www.worldtides.info/api/v3"
-_SYD_TZ = timezone(timedelta(hours=10))
+_TIDECHECK_URL = "https://tidecheck.com"
+_SYD_TZ = ZoneInfo("Australia/Sydney")
 _MIN_EVENT_GAP_MINUTES = 300  # 5h, avoid near-duplicate extremes
+_SYDNEY_TIDE_LAT = -33.8610
+_SYDNEY_TIDE_LON = 151.2120
 
 # Circular Quay baseline predictions for the current app-critical window.
 # BoM blocks automated scraping, so keep local overrides ahead of the rough
@@ -97,7 +102,25 @@ def _worldtides_key() -> str:
     try:
         return str(st.secrets.get("worldtides_api_key", "")).strip()
     except Exception:
-        return ""
+        return os.environ.get("WORLDTIDES_API_KEY", "").strip()
+
+
+def _secret_or_env(secret_name: str, env_name: str) -> str:
+    try:
+        value = str(st.secrets.get(secret_name, "")).strip()
+        if value:
+            return value
+    except Exception:
+        pass
+    return os.environ.get(env_name, "").strip()
+
+
+def _tidecheck_key() -> str:
+    return _secret_or_env("tidecheck_api_key", "TIDECHECK_API_KEY")
+
+
+def _tidecheck_station_id() -> str:
+    return _secret_or_env("tidecheck_station_id", "TIDECHECK_STATION_ID")
 
 
 def _to_epoch_seconds(dt: datetime) -> int:
@@ -108,6 +131,88 @@ def _to_epoch_seconds(dt: datetime) -> int:
 
 def _from_epoch_seconds(ts: int) -> datetime:
     return datetime.fromtimestamp(int(ts), tz=_SYD_TZ).replace(tzinfo=None)
+
+
+def _from_utc_iso_to_sydney(value: str) -> datetime:
+    iso_value = str(value).replace("Z", "+00:00")
+    return datetime.fromisoformat(iso_value).astimezone(_SYD_TZ).replace(tzinfo=None)
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def _fetch_tidecheck_nearest_station(lat: float, lon: float) -> str:
+    key = _tidecheck_key()
+    if not key:
+        return ""
+
+    response = requests.get(
+        f"{_TIDECHECK_URL}/api/stations/nearest",
+        params={"lat": f"{lat:.6f}", "lng": f"{lon:.6f}"},
+        headers={"X-API-Key": key},
+        timeout=10,
+    )
+    response.raise_for_status()
+    data = response.json()
+    if not data:
+        return ""
+    return str(data[0].get("id", "")).strip()
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def _fetch_tidecheck_extremes(station_id: str, date_key: str) -> list[dict]:
+    key = _tidecheck_key()
+    if not key or not station_id:
+        return []
+
+    response = requests.get(
+        f"{_TIDECHECK_URL}/api/station/{station_id}/tides",
+        params={"datum": "LAT", "days": 1, "start": date_key},
+        headers={"X-API-Key": key},
+        timeout=10,
+    )
+    response.raise_for_status()
+    data = response.json()
+
+    parsed = []
+    for item in data.get("extremes", []):
+        typ = str(item.get("type", "")).lower()
+        is_high = typ in {"high", "h"}
+        parsed.append(
+            {
+                "time": _from_utc_iso_to_sydney(item.get("time")),
+                "is_high": is_high,
+                "label": "🟢 满潮" if is_high else "🔵 干潮",
+                "height_m": item.get("height"),
+                "source": "tidecheck",
+            }
+        )
+
+    parsed.sort(key=lambda x: x["time"])
+    return parsed
+
+
+def _get_tidecheck_for_date(target_date: datetime, delay_minutes: int = 0) -> list[dict]:
+    if not _tidecheck_key():
+        return []
+
+    station_id = _tidecheck_station_id()
+    if not station_id:
+        station_id = _fetch_tidecheck_nearest_station(_SYDNEY_TIDE_LAT, _SYDNEY_TIDE_LON)
+    if not station_id:
+        return []
+
+    events = _fetch_tidecheck_extremes(station_id, target_date.strftime("%Y-%m-%d"))
+    picked = _pick_events_for_date(events, target_date)
+    if not picked:
+        return []
+    if delay_minutes:
+        picked = [
+            {
+                **event,
+                "time": event["time"] + timedelta(minutes=delay_minutes),
+            }
+            for event in picked
+        ]
+    return picked
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -190,6 +295,10 @@ def get_tides_for_date(
         delay_minutes  相对 Circular Quay 的本地潮时偏移
         lat/lon        可选，提供时才会尝试 WorldTides
     """
+    tidecheck_events = _get_tidecheck_for_date(target_date, delay_minutes=delay_minutes)
+    if len(tidecheck_events) >= 2:
+        return tidecheck_events
+
     if lat is not None and lon is not None and _worldtides_key():
         try:
             all_events = _fetch_worldtides_extremes(float(lat), float(lon), target_date.strftime("%Y-%m-%d"))
@@ -208,6 +317,8 @@ def get_tides_for_date(
 
 def get_tide_accuracy_hint() -> str:
     """Return a short UX hint about current tide data confidence."""
+    if _tidecheck_key():
+        return "潮汐精度：TideCheck harmonic predictions（API 缓存 6 小时）"
     if _worldtides_key():
         return "潮汐精度：WorldTides 实时极值（通常约 ±5 分钟）"
     today = datetime.now(_SYD_TZ)
