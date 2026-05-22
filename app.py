@@ -1001,7 +1001,6 @@ def render_hero_card(
 
 # ── 钓点详情卡片 ──────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=60)
 def _load_log_by_spot() -> dict:
     """Load all fishing log entries grouped by spot_name (cached 60s)."""
     from services import log as fishing_log
@@ -2020,6 +2019,10 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     render_n = min(len(visible_list), st.session_state[page_key] * page_size)
     visible = 0
     _tl = time.perf_counter()
+    try:
+        _log_by_spot = _load_log_by_spot()
+    except Exception:
+        _log_by_spot = {}
     for spot, safety, spot_tides, spot_day_w in visible_list[:render_n]:
         if is_mobile:
             render_spot_card_mobile(
@@ -2031,7 +2034,6 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
                 forecast_days=forecast_by_spot[spot["name"]]["days"],
             )
         else:
-            _log_by_spot = _load_log_by_spot()
             render_spot_card(
                 spot,
                 safety,
