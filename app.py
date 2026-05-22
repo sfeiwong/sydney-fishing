@@ -926,7 +926,6 @@ def render_hero_card(
     day_weather: dict,
     tides: list = None,
     forecast_days: list = None,
-    log_entries: list = None,
 ) -> None:
     color_map = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     bg_map    = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
@@ -1018,6 +1017,7 @@ def render_spot_card(
     spot_weather: dict,
     day_offset: int,
     forecast_days: list = None,
+    log_entries: list = None,
 ) -> None:
     color_map = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     bg_map    = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
