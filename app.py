@@ -136,7 +136,7 @@ with st.sidebar:
         'padding:10px 12px;font-size:11.5px;color:var(--muted-on-dark);line-height:1.7">'
         '🎫 <b style="color:var(--text-on-dark)">NSW 钓鱼执照</b><br>'
         '多数人在 NSW 淡水/海水<br>作钓需付费并携带收据<br>'
-        '<a href="https://www.dpi.nsw.gov.au/fishing/recreational/fishing-rules-and-regulations/recreational-fishing-fee" '
+        '<a href="https://www.service.nsw.gov.au/services/recreational-fishing-licence" '
         'target="_blank" style="color:var(--gold)">查看官方费用与豁免 →</a>'
         '</div>',
         unsafe_allow_html=True,
