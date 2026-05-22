@@ -1791,7 +1791,8 @@ def render_spot_card_mobile(
 
 # ── 地图 + 点击详情 ───────────────────────────────────────────────────────
 
-def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = False) -> None:
+def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = False,
+                       top_pick_names=None) -> None:
     STATUS_COLOR = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     status_counts = {
         "sage": sum(1 for _, safety, _, _ in all_spot_data if safety["color"] == "sage"),
@@ -1800,6 +1801,7 @@ def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = F
     }
     marker_limit = MAP_MARKER_LIMIT_MOBILE if is_mobile else MAP_MARKER_LIMIT
     map_spot_data = all_spot_data[:marker_limit]
+    _top_picks = top_pick_names or set()
 
     col_map, col_detail = st.columns([3, 2])
     selected_key = f"map_selected_spot_{day_offset}"
@@ -1812,35 +1814,124 @@ def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = F
             attr="© OpenStreetMap · CARTO",
         )
 
-        for spot, safety, _, _ in map_spot_data:
+        # Render regular spots first so top-pick markers sit on top
+        render_order = (
+            [(s, sa, ti, w) for s, sa, ti, w in map_spot_data if s["name"] not in _top_picks] +
+            [(s, sa, ti, w) for s, sa, ti, w in map_spot_data if s["name"] in _top_picks]
+        )
+
+        for spot, safety, _, _ in render_order:
             status_col = STATUS_COLOR.get(safety["color"], "#8a9cb2")
             emoji = _WT_EMOJI.get(spot.get("water_type", "harbour"), "•")
             map_lat, map_lon = _map_coords(spot)
             is_selected = spot["name"] == selected_name
-            size = 21 if is_selected else 18
-            font_size = 10 if is_selected else 9
-            ring = (
-                f"0 0 0 2px rgba(255,224,130,0.8),0 0 0 4px {status_col}50,0 2px 5px rgba(0,0,0,0.28)"
-                if is_selected else
-                f"0 0 0 2px {status_col},0 1px 4px rgba(0,0,0,0.20)"
-            )
-            icon = folium.DivIcon(
-                html=(
-                    f'<div style="background:#ffffff;border:2px solid {status_col};border-radius:50%;'
-                    f'width:{size}px;height:{size}px;box-sizing:border-box;'
+            is_top = spot["name"] in _top_picks
+
+            if is_top:
+                # Gold-filled teardrop pin: 32px pin head + pointed tail, blue ★ badge top-right
+                # Wrapper gives 6px bleed on all sides for badge overflow + halo
+                pad = 6
+                pin = 32        # pin head diameter
+                tail = 10       # tail height below circle
+                wrap_w = pin + pad * 2          # 44
+                wrap_h = pin + tail + pad * 2   # 54
+                cx = wrap_w // 2                # 22 — horizontal center
+                cy = pad + pin // 2             # 6+16=22 — center of pin head
+                star_sz = 18
+
+                icon_html = (
+                    # CSS: expanding halo ring + selected bright ring
+                    '<style>'
+                    '@keyframes ph{0%{transform:scale(1);opacity:.55}70%{transform:scale(2);opacity:0}100%{transform:scale(2);opacity:0}}'
+                    '.ph{animation:ph 2.2s ease-out infinite;transform-origin:50% 50%;pointer-events:none}'
+                    '</style>'
+                    f'<div style="position:relative;width:{wrap_w}px;height:{wrap_h}px;">'
+
+                    # Pulsing halo — positioned at pin-head center
+                    f'<div class="ph" style="position:absolute;'
+                    f'width:{pin}px;height:{pin}px;border-radius:50%;'
+                    f'background:rgba(245,166,35,0.45);'
+                    f'top:{cy - pin//2}px;left:{cx - pin//2}px;"></div>'
+
+                    # Teardrop pin — circle + triangular tail via CSS clip or border trick
+                    # Using: rounded square rotated -45° for teardrop effect
+                    f'<div style="position:absolute;top:{pad}px;left:{cx - pin//2}px;'
+                    f'width:{pin}px;height:{pin + tail}px;">'
+
+                    # Pin head: gold circle
+                    f'<div style="position:absolute;top:0;left:0;'
+                    f'width:{pin}px;height:{pin}px;border-radius:50%;'
+                    f'background:radial-gradient(circle at 38% 32%,#ffe680 0%,#f5a623 52%,#c97b0a 100%);'
+                    f'border:2.5px solid rgba(255,255,255,0.75);'
+                    f'box-shadow:0 4px 12px rgba(180,95,0,0.45),inset 0 1px 2px rgba(255,255,255,0.5);'
                     f'display:flex;align-items:center;justify-content:center;'
-                    f'font-size:{font_size}px;line-height:1;box-shadow:{ring};cursor:pointer;">'
-                    f'{emoji}</div>'
-                ),
-                icon_size=(size, size),
-                icon_anchor=(size // 2, size // 2),
-            )
+                    f'font-size:15px;line-height:1;cursor:pointer;">{emoji}</div>'
+
+                    # Tail: small triangle centered below circle
+                    f'<div style="position:absolute;top:{pin - 2}px;left:{pin//2 - 6}px;'
+                    f'width:0;height:0;'
+                    f'border-left:6px solid transparent;'
+                    f'border-right:6px solid transparent;'
+                    f'border-top:{tail + 2}px solid #d4810a;"></div>'
+                    # Tail highlight (lighter triangle slightly offset)
+                    f'<div style="position:absolute;top:{pin - 2}px;left:{pin//2 - 4}px;'
+                    f'width:0;height:0;'
+                    f'border-left:4px solid transparent;'
+                    f'border-right:4px solid transparent;'
+                    f'border-top:{tail}px solid #f5a623;"></div>'
+                    f'</div>'
+
+                    # Blue ★ badge — sits at top-right, white border keeps it distinct
+                    f'<div style="position:absolute;top:0;right:0;'
+                    f'background:#1d4ed8;color:#fff;border-radius:50%;'
+                    f'width:{star_sz}px;height:{star_sz}px;font-size:11px;font-weight:700;'
+                    f'display:flex;align-items:center;justify-content:center;'
+                    f'border:2.5px solid #fff;box-shadow:0 2px 7px rgba(0,0,0,0.32);'
+                    f'line-height:1;z-index:10;">★</div>'
+                    f'</div>'
+                )
+                # Anchor = tip of the tail
+                icon = folium.DivIcon(
+                    html=icon_html,
+                    icon_size=(wrap_w, wrap_h),
+                    icon_anchor=(cx, pad + pin + tail),
+                )
+            else:
+                size = 21 if is_selected else 18
+                font_size = 10 if is_selected else 9
+                ring = (
+                    f"0 0 0 2px rgba(255,224,130,0.8),0 0 0 4px {status_col}50,0 2px 5px rgba(0,0,0,0.28)"
+                    if is_selected else
+                    f"0 0 0 2px {status_col},0 1px 4px rgba(0,0,0,0.20)"
+                )
+                icon = folium.DivIcon(
+                    html=(
+                        f'<div style="background:#ffffff;border:2px solid {status_col};border-radius:50%;'
+                        f'width:{size}px;height:{size}px;box-sizing:border-box;'
+                        f'display:flex;align-items:center;justify-content:center;'
+                        f'font-size:{font_size}px;line-height:1;box-shadow:{ring};cursor:pointer;">'
+                        f'{emoji}</div>'
+                    ),
+                    icon_size=(size, size),
+                    icon_anchor=(size // 2, size // 2),
+                )
             folium.Marker(
                 location=[map_lat, map_lon],
                 icon=icon,
                 tooltip=spot["name"],
                 popup=spot["name"],
             ).add_to(m)
+
+        pick_legend_row = (
+            '<div style="display:flex;align-items:center;gap:5px;margin-top:3px;padding-top:3px;'
+            'border-top:1px solid rgba(15,30,50,0.08)">'
+            '<span style="background:#1d4ed8;color:#fff;border-radius:50%;width:13px;height:13px;'
+            'font-size:9px;display:inline-flex;align-items:center;justify-content:center;'
+            'font-weight:700;flex-shrink:0;border:1.5px solid #fff;'
+            'box-shadow:0 1px 3px rgba(0,0,0,0.2);">★</span>'
+            f'<span style="font-size:10.5px;color:#1e3a8a">精选推荐 Top {len(_top_picks)}</span>'
+            '</div>'
+        ) if _top_picks else ""
 
         legend_html = f"""
         <div style="position:absolute;top:12px;right:12px;z-index:9999;
@@ -1854,6 +1945,7 @@ def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = F
             <span><span style="background:#d99540;width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px"></span>谨慎 {status_counts["amber"]}</span>
             <span><span style="background:#cc5e54;width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:4px"></span>危险 {status_counts["coral"]}</span>
           </div>
+          {pick_legend_row}
           <div style="color:#5b6e87;font-size:10.5px;border-top:1px solid rgba(15,30,50,0.08);
                       margin-top:4px;padding-top:3px">🌊 外海 · ⚓ 内湾 · 🔀 咸淡水 · 🏞️ 淡水</div>
         </div>"""
@@ -2107,7 +2199,8 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
     section_head(f"MAP · {len(all_spot_data)} SPOTS", "钓点地图", "点击标记查看详情")
     _tm = time.perf_counter()
-    render_map_section(day_offset, all_spot_data, is_mobile=is_mobile)
+    _top_pick_names = {s["name"] for s, _, _, _ in top_safe[:3]} if top_safe else set()
+    render_map_section(day_offset, all_spot_data, is_mobile=is_mobile, top_pick_names=_top_pick_names)
     perf["map"] = time.perf_counter() - _tm
 
     st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
