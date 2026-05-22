@@ -25,7 +25,7 @@ from services.stats import record_visit_start, record_visit_end, render_stats_pa
 from services import log as fishing_log
 from data.loader import load_spots
 from domain.safety import assess_safety
-from domain.recommendation import recommendation_score
+from domain.recommendation import log_reputation_score, recommendation_score
 
 ALL_METHODS = getattr(cfg, "ALL_METHODS", [])
 ALL_FISH = getattr(cfg, "ALL_FISH", [])
@@ -216,6 +216,17 @@ def _status_badge(safety: dict) -> str:
         f'<span style="background:{bg};color:{fg};border:1px solid {border};'
         f'padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">'
         f'{text}</span>'
+    )
+
+
+def _reputation_badge(safety: dict) -> str:
+    score = safety.get("log_reputation_score") or 0
+    if score <= 0:
+        return ""
+    return (
+        '<span style="background:#f4f0ff;color:#5b45a8;border:1px solid #d8cdfa;'
+        'padding:2px 10px;border-radius:999px;font-size:0.76em;font-weight:700">'
+        f'钓友口碑 +{score:g}</span>'
     )
 
 
@@ -1012,6 +1023,7 @@ def render_hero_card(
                     line-height:1.35;margin-bottom:8px">{spot['name']}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
             {_status_badge(safety)}
+            {_reputation_badge(safety)}
             {wt_html}{season_html}{hero_dots_html}
         </div>
         <div style="color:#60758a;font-size:0.78em;margin:4px 0 10px">
@@ -1030,6 +1042,7 @@ def render_hero_card(
 
 # ── 钓点详情卡片 ──────────────────────────────────────────────────────────
 
+@st.cache_data(ttl=60, show_spinner=False)
 def _load_log_by_spot() -> dict:
     """Load all fishing log entries grouped by spot_name (cached 60s)."""
     from services import log as fishing_log
@@ -1038,6 +1051,41 @@ def _load_log_by_spot() -> dict:
     for e in entries:
         by_spot.setdefault(e["spot_name"], []).append(e)
     return by_spot
+
+
+def _apply_reputation_scores(
+    all_spot_data: list,
+    log_by_spot: dict,
+    methods: tuple[str, ...],
+    fish: tuple[str, ...],
+) -> list:
+    enriched = []
+    for spot, safety, tides, spot_day_w in all_spot_data:
+        log_score = log_reputation_score(log_by_spot.get(spot["name"], []), _now_sydney().date())
+        ranked_safety = {
+            **safety,
+            "log_reputation_score": log_score,
+            "rank_score": recommendation_score(
+                spot,
+                safety,
+                spot_day_w,
+                tides,
+                methods,
+                fish,
+                reputation_score=log_score,
+            ),
+        }
+        enriched.append((spot, ranked_safety, tides, spot_day_w))
+
+    safety_order = {"sage": 0, "amber": 1, "coral": 2}
+    enriched.sort(
+        key=lambda x: (
+            safety_order.get(x[1]["color"], 3),
+            -x[1].get("rank_score", 0),
+            x[0]["name"],
+        )
+    )
+    return enriched
 
 
 def render_spot_card(
@@ -1140,7 +1188,7 @@ def render_spot_card(
         f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
         f'<div style="font-family:var(--serif-zh);font-size:1.08em;font-weight:600;'
         f'color:#102338;line-height:1.35">{spot["name"]}</div>'
-        f'{_status_badge(safety)}{wt_badge}{season_badge}{three_day_dots}'
+        f'{_status_badge(safety)}{_reputation_badge(safety)}{wt_badge}{season_badge}{three_day_dots}'
         f'</div>'
         f'<div style="color:#6f8196;font-size:0.8em;line-height:1.5;margin-bottom:10px">'
         f'{spot["region"]} · {spot["type"]}</div>'
@@ -1711,7 +1759,7 @@ def render_spot_card_mobile(
         f'<div style="display:flex;align-items:center;justify-content:space-between;gap:8px">'
         f'<div style="font-family:var(--serif-zh);font-size:16px;font-weight:600;line-height:1.3">{spot["name"]}</div>'
         f'{_status_badge(safety)}</div>'
-        f'<div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">{wt_badge}</div>'
+        f'<div style="margin-top:6px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">{_reputation_badge(safety)}{wt_badge}</div>'
         f'<div style="margin-top:6px;overflow-x:auto;white-space:nowrap;padding-bottom:2px;-webkit-overflow-scrolling:touch">{fish_chips}</div>'
         f'<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px">'
         f'{_mini_stat("浪涌" if not is_fw else "水域", ("淡水" if is_fw else f"{swell}m"), "text")}'
@@ -1937,6 +1985,16 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     filtered = payload["filtered"]
     forecast_by_spot = payload["forecast_by_spot"]
     all_spot_data = list(payload["all_spot_data"])
+    try:
+        _log_by_spot = _load_log_by_spot()
+    except Exception:
+        _log_by_spot = {}
+    all_spot_data = _apply_reputation_scores(
+        all_spot_data,
+        _log_by_spot,
+        tuple(selected_methods),
+        tuple(selected_fish),
+    )
     perf["payload"] = time.perf_counter() - _tp
 
     _safety_order = {"sage": 0, "amber": 1, "coral": 2}
@@ -2050,10 +2108,6 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     render_n = min(len(visible_list), st.session_state[page_key] * page_size)
     visible = 0
     _tl = time.perf_counter()
-    try:
-        _log_by_spot = _load_log_by_spot()
-    except Exception:
-        _log_by_spot = {}
     for spot, safety, spot_tides, spot_day_w in visible_list[:render_n]:
         if is_mobile:
             render_spot_card_mobile(
