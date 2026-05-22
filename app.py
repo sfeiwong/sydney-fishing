@@ -262,13 +262,13 @@ def _hero_stat_tile(value: str, label: str, sublabel: str, tone: str = "light", 
     value_color = "#f5c842" if tone == "gold" else "#ffffff"
     accent      = "#c69230" if tone == "gold" else "rgba(255,255,255,0.30)"
     return (
-        f'<div style="background:rgba(255,255,255,0.10);'
+        f'<div class="hero-stat-tile" style="background:rgba(255,255,255,0.10);'
         f'border:1px solid rgba(255,255,255,0.14);border-radius:14px;'
         f'padding:14px 22px;min-width:124px;backdrop-filter:blur(8px);'
         f'border-top:2px solid {accent}">'
-        f'<div style="font-family:\'Source Serif 4\',Georgia,serif;font-size:40px;line-height:1;'
+        f'<div class="hero-stat-value" style="font-family:\'Source Serif 4\',Georgia,serif;font-size:40px;line-height:1;'
         f'font-weight:400;color:{value_color};letter-spacing:-1px">{value}</div>'
-        f'<div style="font-size:13px;color:rgba(255,255,255,0.92);margin-top:7px;font-weight:500">{label}</div>'
+        f'<div class="hero-stat-label" style="font-size:13px;color:rgba(255,255,255,0.92);margin-top:7px;font-weight:500">{label}</div>'
         '</div>'
     )
 
@@ -911,8 +911,10 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
     fig.update_layout(
         template="plotly_white", height=210,
         margin=dict(l=32, r=8, t=8, b=28), showlegend=False,
+        dragmode=False,
         xaxis=dict(
             range=[0, 24],
+            fixedrange=True,
             tickvals=[0, 4, 8, 12, 16, 20, 24],
             ticktext=["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"],
             tickfont=dict(family="IBM Plex Mono", size=10, color="#8a9cb2"),
@@ -920,12 +922,22 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
         ),
         yaxis=dict(
             range=y_range,
+            fixedrange=True,
             title=dict(text="m", font=dict(family="IBM Plex Mono", size=10, color="#8a9cb2")),
             tickfont=dict(family="IBM Plex Mono", size=10, color="#8a9cb2"),
             gridcolor="rgba(15,30,50,0.06)",
         ),
     )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key=chart_key)
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "displayModeBar": False,
+            "scrollZoom": False,
+            "doubleClick": False,
+        },
+        key=chart_key,
+    )
 
     if is_today:
         if next_high:
@@ -2340,10 +2352,10 @@ if selected_page == "🎣 钓点推荐":
         f'<div style="font-size:14px;color:rgba(255,255,255,0.8)">'
         f'{date_str} · {weekday} · 悉尼</div>'
         f'</div>'
-        f'<div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
+        f'<div class="hero-stat-row" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">'
         f'{_hero_stat_tile(str(len(hero_spots)), "匹配钓点", "Spots indexed", hint="当前筛选后纳入评估的钓点数量。")}'
         f'{_hero_stat_tile(str(hero_safe), "今日推荐", "Recommend now", "gold", hint="根据当天风浪阈値评估为“推荐”的钓点数量。")}'
-        f'{_hero_stat_tile(f"{hero_ocean_danger} 个", "高风险点（外海/船钓）", "High-risk spots", hint="外海或船钓点中，今日安全评估为危险的数量。")}'
+        f'{_hero_stat_tile(f"{hero_ocean_danger} 个", "高风险点", "High-risk spots", hint="外海或船钓点中，今日安全评估为危险的数量。")}'
         f'</div>'
         f'</div>',
         unsafe_allow_html=True,
@@ -2362,7 +2374,7 @@ if selected_page == "🎣 钓点推荐":
     selected_day_offset = st.segmented_control(
         "选择日期",
         options=[0, 1, 2],
-        format_func=lambda i: f"{_day_weather_icon(i)}  {_day_names[i]}  {(today_obj + timedelta(days=i)).strftime('%m/%d')}",
+        format_func=lambda i: f"{_day_weather_icon(i)} {_day_names[i]} {(today_obj + timedelta(days=i)).strftime('%m/%d')}",
         label_visibility="collapsed",
         default=0,
         width="stretch",

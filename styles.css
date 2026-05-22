@@ -273,28 +273,65 @@ hr { border:none; border-top:1px solid var(--line); margin:1.2rem 0; }
   .block-container { padding-top: .6rem; padding-left: .75rem; padding-right: .75rem; }
   .hero { padding:16px 14px!important; gap:10px!important; }
   .hero h1 { font-size:30px!important; line-height:1.05!important; margin-bottom:4px!important; flex-wrap:wrap!important; }
-  .hero [style*="Spots indexed"] { min-width:96px!important; padding:8px 10px!important; }
-  .hero [style*="Spots indexed"] div:last-child,
-  .hero [style*="Recommend now"] div:last-child,
-  .hero [style*="High-risk spots"] div:last-child { display:none!important; }
+  .hero .hero-stat-row {
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:8px!important;
+    width:100%!important;
+    justify-content:stretch!important;
+  }
+  .hero .hero-stat-tile {
+    min-width:0!important;
+    width:100%!important;
+    padding:9px 6px!important;
+    text-align:center!important;
+    border-radius:10px!important;
+  }
+  .hero .hero-stat-value {
+    font-size:30px!important;
+    letter-spacing:0!important;
+  }
+  .hero .hero-stat-label {
+    font-size:11px!important;
+    margin-top:5px!important;
+    white-space:nowrap!important;
+  }
   .hero [style*="实时海况 · 潮汐推算 · 智能推荐"] { font-size:10px!important; letter-spacing:1.2px!important; }
   .brand-mascot-wrap { width:72px; height:72px; }
   .brand-mascot { width:135%; height:135%; }
   .stTabs [data-baseweb="tab"] { padding:10px 12px!important; font-size:13px!important; }
+  .stButtonGroup {
+    width: 100% !important;
+    overflow: hidden !important;
+  }
   .stButtonGroup [data-baseweb="button-group"] {
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     flex-wrap: nowrap !important;
     width: 100% !important;
+    max-width: 100% !important;
+    gap: 0 !important;
   }
   .stButtonGroup [data-baseweb="button-group"]::after {
     display: none !important;
+    content: none !important;
   }
-  .stButtonGroup [data-baseweb="button-group"] > button {
-    flex: 1 1 0 !important;
+  .stButtonGroup [data-baseweb="button-group"] > *,
+  .stButtonGroup [data-baseweb="button-group"] [role="radio"],
+  .stButtonGroup [data-baseweb="button-group"] [data-baseweb="button"] {
+    width: 100% !important;
     min-width: 0 !important;
-    padding-left: 6px !important;
-    padding-right: 6px !important;
+    max-width: none !important;
+  }
+  .stButtonGroup [data-baseweb="button-group"] [role="radio"],
+  .stButtonGroup [data-baseweb="button-group"] [data-baseweb="button"] {
+    padding-left: 2px !important;
+    padding-right: 2px !important;
     white-space: nowrap !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    overflow: hidden !important;
+    text-overflow: clip !important;
   }
   [data-testid="stMetricValue"] { font-size:24px!important; }
   .stButton>button { min-height:44px!important; font-size:14px!important; }
