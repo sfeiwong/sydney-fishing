@@ -364,7 +364,6 @@ _FISH_PEAK_MONTHS = {
     "Golden Perch (黄金鲈)": [4, 5, 6, 7, 8, 9],
     "Tuskfish (青衣)": [10, 11, 12, 1, 2, 3],  # 夏季礁盘活跃
     "Wrasse (彩衣)": [10, 11, 12, 1, 2, 3],
-    "Eel (鳗鱼)": [3, 4, 5, 6, 7, 8, 9, 10],   # 秋冬春
 }
 
 def _saltwater_season_pills(fish_tags: list) -> str:
@@ -757,32 +756,53 @@ def _best_window_times(best_window: str, tides: list) -> str:
     hrs_match = re.search(r'(\d+(?:\.\d+)?)[\s]*小时', text)
     offset_h  = float(hrs_match.group(1)) if hrs_match else 1.5
 
+    DAY_START = 6    # 06:00
+    DAY_END   = 19   # 19:00
+
+    def is_daytime(dt):
+        return DAY_START <= dt.hour < DAY_END
+
     def fmt_window(center, before_h, after_h):
         start = center - timedelta(hours=before_h)
         end   = center + timedelta(hours=after_h)
+        # clamp both ends into daylight
+        if start.hour < DAY_START:
+            start = start.replace(hour=DAY_START, minute=0)
+        if end.hour >= DAY_END or (end.hour == DAY_END and end.minute > 0):
+            end = end.replace(hour=DAY_END, minute=0)
+        if start >= end:
+            return None
         return f"{start.strftime('%H:%M')}–{end.strftime('%H:%M')}"
+
+    def best_daytime_tide(candidates):
+        daytime = [t for t in candidates if is_daytime(t["time"])]
+        return (daytime or candidates)[0]
 
     if ("满潮" in text or "涨潮" in text or "高潮" in text) and sorted_tides:
         highs = [t for t in sorted_tides if t["is_high"]]
         if highs:
-            return fmt_window(highs[0]["time"], offset_h, offset_h)
+            result = fmt_window(best_daytime_tide(highs)["time"], offset_h, offset_h)
+            if result:
+                return result
 
     if ("干潮" in text or "落潮" in text or "低潮" in text) and sorted_tides:
         lows = [t for t in sorted_tides if not t["is_high"]]
         if lows:
-            return fmt_window(lows[0]["time"], offset_h, offset_h)
+            result = fmt_window(best_daytime_tide(lows)["time"], offset_h, offset_h)
+            if result:
+                return result
 
     if "破晓" in text or "黎明" in text or "日出" in text:
-        return "05:30–08:00"
+        return "06:00–08:30"
     if "黄昏" in text or "日落" in text:
-        return "17:00–19:30"
+        return "17:00–19:00"
     if "夜间" in text or "夜晚" in text:
-        return "20:00–23:00"
+        return "06:00–08:30"   # 夜钓点改推晨钓
     if "白天" in text or "正午" in text:
         return "09:00–16:00"
 
-    # Last-resort fallback: always provide practical windows even if no tide parse hit.
-    return "05:30–08:30 / 16:30–19:00"
+    # Last-resort fallback
+    return "06:30–09:00 / 16:00–19:00"
 
 
 # ── 潮汐面板（Plotly） ────────────────────────────────────────────────────
@@ -1377,9 +1397,13 @@ def render_decision_panel(all_spot_data: list, day_w: dict, base_tides: list, la
 
     sorted_tides = sorted(base_tides, key=lambda t: t["time"])
     highs        = [t for t in sorted_tides if t["is_high"]]
-    if highs:
-        h = highs[0]["time"]
-        v3_win = f"{(h - timedelta(hours=1.5)).strftime('%H:%M')}–{(h + timedelta(hours=1.5)).strftime('%H:%M')}"
+    daytime_highs = [t for t in highs if 6 <= t["time"].hour < 19]
+    best_high = (daytime_highs or highs or [None])[0]
+    if best_high:
+        h = best_high["time"]
+        h_start = max(h - timedelta(hours=1.5), h.replace(hour=6, minute=0))
+        h_end   = min(h + timedelta(hours=1.5), h.replace(hour=19, minute=0))
+        v3_win = f"{h_start.strftime('%H:%M')}–{h_end.strftime('%H:%M')}"
         v3_sub = f"满潮 {h.strftime('%H:%M')} 前后 1.5h"
     else:
         v3_win, v3_sub = "—", "参考各钓点潮汐"
