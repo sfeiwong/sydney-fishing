@@ -80,6 +80,7 @@ FISH_LEGAL_SIZE = {
     "Wrasse (彩衣)":               {"size": None, "bag": None,"note": "无限制"},
     "Scorpionfish (红蝎子)":       {"size": None, "bag": None,"note": "无限制；鳍刺有毒，小心处理"},
     "Old Wife (老人靴)":           {"size": None, "bag": None,"note": "无限制"},
+    "Grouper (石斑鱼)":            {"size": 40,   "bag": 5,   "note": "Estuary Cod TL；礁石斑参照同类"},
 }
 
 # 鱼种烹饪建议（按家庭实用口味）
@@ -110,6 +111,7 @@ FISH_COOKING = {
     "Wrasse (彩衣)": "清蒸 / 盐烤",
     "Scorpionfish (红蝎子)": "红烧 / 清蒸（处理时注意毒刺）",
     "Old Wife (老人靴)": "刺多，通常放生",
+    "Grouper (石斑鱼)": "清蒸 / 红烧整鱼",
 }
 
 # 筛选下拉框选项
@@ -154,4 +156,5 @@ ALL_FISH = [
     "Wrasse (彩衣)",
     "Scorpionfish (红蝎子)",
     "Old Wife (老人靴)",
+    "Grouper (石斑鱼)",
 ]
