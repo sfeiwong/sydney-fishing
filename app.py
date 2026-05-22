@@ -1955,8 +1955,9 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
 
-    top_sage  = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["color"] == "sage"]
-    top_amber = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["color"] == "amber"]
+    _exclude_wt = {"freshwater", "boat"}
+    top_sage  = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["color"] == "sage"  and s.get("water_type") not in _exclude_wt]
+    top_amber = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data if sa["color"] == "amber" and s.get("water_type") not in _exclude_wt]
     top_safe  = top_sage or top_amber
     is_amber_fallback = not top_sage and bool(top_amber)
     pick_accent = "海况温和，综合评分最优" if not is_amber_fallback else "无满分点，以下为谨慎可前往钓点"
