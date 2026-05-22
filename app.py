@@ -926,6 +926,7 @@ def render_hero_card(
     day_weather: dict,
     tides: list = None,
     forecast_days: list = None,
+    log_entries: list = None,
 ) -> None:
     color_map = {"sage": "#4f9b76", "amber": "#d99540", "coral": "#cc5e54"}
     bg_map    = {"sage": "#e7f3ec", "amber": "#fcf2e0", "coral": "#fbeae8"}
@@ -999,6 +1000,17 @@ def render_hero_card(
 
 
 # ── 钓点详情卡片 ──────────────────────────────────────────────────────────
+
+@st.cache_data(ttl=60)
+def _load_log_by_spot() -> dict:
+    """Load all fishing log entries grouped by spot_name (cached 60s)."""
+    from services import log as fishing_log
+    entries = fishing_log.get_entries(limit=500)
+    by_spot: dict = {}
+    for e in entries:
+        by_spot.setdefault(e["spot_name"], []).append(e)
+    return by_spot
+
 
 def render_spot_card(
     spot: dict,
@@ -1202,7 +1214,9 @@ def render_spot_card(
         nav_lat, nav_lon = _nav_coords(spot)
         maps_url = f"https://www.google.com/maps?q={nav_lat},{nav_lon}"
 
-        tab1, tab2, tab3 = st.tabs(["📊 海况 & 潮汐", "🎣 钓法攻略", "🗺️ 导航路线"])
+        _log_count = len(log_entries) if log_entries else 0
+        _log_label = f"📖 渔获 {_log_count}" if _log_count else "📖 渔获日记"
+        tab1, tab2, tab3, tab4 = st.tabs(["📊 海况 & 潮汐", "🎣 钓法攻略", "🗺️ 导航路线", _log_label])
 
         with tab1:
             st.markdown(
@@ -1273,6 +1287,40 @@ def render_spot_card(
                 f'</div>',
                 unsafe_allow_html=True,
             )
+
+        with tab4:
+            if not log_entries:
+                st.markdown(
+                    '<div style="padding:16px 0;text-align:center;color:var(--muted);font-size:13px">'
+                    '还没有人在这里记录过渔获</div>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                for le in log_entries[:8]:
+                    fish_pills = "".join(
+                        f'<span style="background:#e7f3ec;color:#3a7f5d;border-radius:999px;'
+                        f'padding:1px 8px;font-size:11px;margin:0 3px 3px 0;display:inline-block">{f}</span>'
+                        for f in le["fish_caught"]
+                    ) if le["fish_caught"] else '<span style="font-size:11px;color:#aaa">未记录鱼种</span>'
+                    author = le["author"] or "匿名钓友"
+                    notes_preview = le["notes"][:60] + "…" if len(le["notes"]) > 60 else le["notes"]
+                    st.markdown(
+                        f'<div style="background:var(--surface);border:1px solid var(--line);'
+                        f'border-radius:10px;padding:10px 14px;margin-bottom:8px">'
+                        f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+                        f'<span style="font-family:var(--mono);font-size:11px;color:var(--subtle)">{le["fish_date"]}</span>'
+                        f'<span style="font-size:11px;color:var(--muted)">· {author}</span>'
+                        f'</div>'
+                        f'<div style="margin-bottom:4px">{fish_pills}</div>'
+                        + (f'<div style="font-size:12px;color:var(--muted);line-height:1.5">{notes_preview}</div>' if notes_preview else '')
+                        + '</div>',
+                        unsafe_allow_html=True,
+                    )
+                if len(log_entries) > 8:
+                    st.caption(f"仅显示最近 8 条，共 {len(log_entries)} 条记录")
+            if st.button("去渔获日记发一帖 →", key=f"log_goto_{spot['name']}", use_container_width=True):
+                st.session_state["selected_page"] = "📖 渔获日记"
+                st.rerun()
 
 
 # ── 今日决策面板 ──────────────────────────────────────────────────────────
@@ -1983,6 +2031,7 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
                 forecast_days=forecast_by_spot[spot["name"]]["days"],
             )
         else:
+            _log_by_spot = _load_log_by_spot()
             render_spot_card(
                 spot,
                 safety,
@@ -1990,6 +2039,7 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
                 spot_day_w,
                 day_offset,
                 forecast_days=forecast_by_spot[spot["name"]]["days"],
+                log_entries=_log_by_spot.get(spot["name"], []),
             )
         visible += 1
     perf["list"] = time.perf_counter() - _tl
