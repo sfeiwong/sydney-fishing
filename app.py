@@ -897,18 +897,20 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
             f'下个{"满潮" if next_event["is_high"] else "干潮"} {next_event["time"].strftime("%H:%M")}'
             if next_event else "今日潮点已过"
         )
+        rising_col = "#2f70b7" if is_rising else "#8a9cb2"
+        rising_arrow = "↑ 涨潮" if is_rising else "↓ 退潮"
         st.markdown(
-            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 10px">'
-            f'<div style="border-top:1px solid var(--line);padding-top:8px">'
-            f'<div style="font-size:10.5px;color:var(--muted)">下个满潮</div>'
-            f'<div style="font-family:var(--mono);font-size:18px;color:var(--text)">{next_high_text}</div></div>'
-            f'<div style="border-top:1px solid var(--line);padding-top:8px;text-align:center">'
-            f'<div style="font-size:10.5px;color:var(--muted)">当前潮位</div>'
-            f'<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text)">{now_height:.2f} m</div>'
-            f'<div style="font-size:11px;color:#2f70b7">{"上涨" if is_rising else "下落"}</div></div>'
-            f'<div style="border-top:1px solid var(--line);padding-top:8px;text-align:right">'
-            f'<div style="font-size:10.5px;color:var(--muted)">下个潮点</div>'
-            f'<div style="font-family:var(--mono);font-size:13px;color:var(--text)">{next_event_text}</div></div>'
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:4px 0 10px">'
+            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px">'
+            f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">下个满潮</div>'
+            f'<div style="font-family:var(--serif-en);font-size:22px;font-weight:400;color:var(--text);line-height:1">{next_high_text}</div></div>'
+            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:center">'
+            f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">当前潮位</div>'
+            f'<div style="font-family:var(--serif-en);font-size:22px;font-weight:700;color:var(--text);line-height:1">{now_height:.2f}<span style="font-size:13px;font-weight:400"> m</span></div>'
+            f'<div style="font-size:11px;font-weight:600;color:{rising_col};margin-top:3px">{rising_arrow}</div></div>'
+            f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;text-align:right">'
+            f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px">下个潮点</div>'
+            f'<div style="font-family:var(--mono);font-size:12px;color:var(--text);line-height:1.4">{next_event_text}</div></div>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -928,10 +930,13 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
         )
 
     st.markdown(
-        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;border-top:1px solid var(--line);'
-        f'padding-top:10px">'
-        f'<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">干潮 Low tide</div>{_rows_html(low_rows)}</div>'
-        f'<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-align:right">满潮 High tide</div>{_rows_html(high_rows)}</div>'
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">'
+        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px">'
+        f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">DRY · 干潮</div>'
+        f'{_rows_html(low_rows)}</div>'
+        f'<div style="background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px">'
+        f'<div style="font-family:var(--mono);font-size:9.5px;color:var(--subtle);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">HIGH · 满潮</div>'
+        f'{_rows_html(high_rows)}</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -1858,15 +1863,15 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     with left_col:
         render_weather_panel(day_w, overview_weather["success"], next_day=next_day_w)
     with right_col:
-        with st.container(border=True):
-            st.markdown(
-                '<div style="margin-bottom:10px">'
-                '<div style="font-family:var(--serif-en);font-size:30px;font-weight:700;'
-                'line-height:1;color:var(--text)">Tides</div>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
-            render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
+        st.markdown(
+            '<div style="background:var(--surface);border:1px solid var(--line);'
+            'border-radius:14px;padding:18px 20px;box-shadow:0 2px 6px rgba(15,30,50,0.025)">'
+            '<div style="font-family:var(--mono);font-size:10.5px;color:var(--subtle);'
+            'letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px">'
+            'TIDES · FORT DENISON</div></div>',
+            unsafe_allow_html=True,
+        )
+        render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
     perf["overview"] = time.perf_counter() - _t0
 
     st.markdown('<div style="height:24px"></div>', unsafe_allow_html=True)
