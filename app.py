@@ -114,7 +114,7 @@ with st.sidebar:
         family_only      = st.checkbox("仅看家庭友好 👨‍👩‍👧 (⭐⭐⭐⭐+)", value=False)
         sort_by          = st.selectbox(
             "钓点排序",
-            ["推荐优先", "家庭友好优先", "涌浪最小", "风速最小"],
+            ["推荐优先", "家庭友好优先"],
             key="sel_sort",
         )
         if st.button("↺ 重置所有筛选", use_container_width=True):
@@ -1914,10 +1914,6 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     _safety_order = {"sage": 0, "amber": 1, "coral": 2}
     if sort_by == "家庭友好优先":
         all_spot_data.sort(key=lambda x: (-x[0]["family_friendly"].count("⭐"), _safety_order.get(x[1]["color"], 3)))
-    elif sort_by == "涌浪最小":
-        all_spot_data.sort(key=lambda x: (x[3].get("swell_height") or 0))
-    elif sort_by == "风速最小":
-        all_spot_data.sort(key=lambda x: (x[3].get("wind") or 0))
 
     if not all_spot_data:
         section_head(f"{label.upper()} · GO / NO-GO", f"{label}出钓决策", "根据实时海况自动生成")
@@ -2006,8 +2002,7 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
     st.markdown('<div style="height:16px"></div>', unsafe_allow_html=True)
     visible_list = [(s, sa, ti, sw) for s, sa, ti, sw in all_spot_data
                     if not (safe_only and not sa["safe"])]
-    sort_label = {"家庭友好优先": "按家庭友好度排序", "涌浪最小": "按涌浪从小到大排序",
-                  "风速最小": "按风速从小到大排序"}.get(sort_by, "按当日海况评分排序")
+    sort_label = {"家庭友好优先": "按家庭友好度排序"}.get(sort_by, "按当日海况评分排序")
     section_head(
         f"MATCHED SPOTS · {len(visible_list)} / {len(spots)}",
         "匹配钓点", sort_label
@@ -2170,31 +2165,9 @@ def render_fishing_log_page() -> None:
             for f in fish_caught
         ) if fish_caught else '<span style="color:#aaa;font-size:12px">未记录鱼种</span>'
 
-        hero_photo_html = ""
-        extra_photos = photos
-        if photos:
-            hero_b64 = base64.b64encode(photos[0]).decode()
-            hero_photo_html = (
-                f'<div style="width:100%;aspect-ratio:4/3;background:#eef4fa;border-radius:10px;'
-                f'overflow:hidden;border:1px solid #edf3f8">'
-                f'<img src="data:image/jpeg;base64,{hero_b64}" '
-                f'style="width:100%;height:100%;object-fit:cover;display:block"/>'
-                f'</div>'
-            )
-            extra_photos = photos[1:]
-        else:
-            hero_photo_html = (
-                '<div style="width:100%;aspect-ratio:4/3;background:#f6f9fc;border-radius:10px;'
-                'border:1px solid #edf3f8;display:flex;align-items:center;justify-content:center;'
-                'font-size:13px;color:var(--muted)">无照片</div>'
-            )
-
         st.markdown(
             f'<div style="background:#fff;border:1px solid #edf3f8;border-radius:14px;'
-            f'padding:14px;margin-bottom:14px;box-shadow:0 1px 5px rgba(0,0,0,0.04)">'
-            f'<div style="display:grid;grid-template-columns:minmax(160px,240px) 1fr;gap:16px;align-items:start">'
-            f'{hero_photo_html}'
-            f'<div>'
+            f'padding:16px 18px;margin-bottom:6px;box-shadow:0 1px 5px rgba(0,0,0,0.04)">'
             f'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;'
             f'flex-wrap:wrap;margin-bottom:7px">'
             f'<div>'
@@ -2205,21 +2178,24 @@ def render_fishing_log_page() -> None:
             f'</div>'
             f'<div style="margin-bottom:9px">{fish_pills}</div>'
             + (f'<div style="font-size:13.5px;color:#3a4a5c;white-space:pre-wrap;line-height:1.65">{notes_html}</div>' if notes else '')
-            + '</div></div></div>',
+            + '</div>',
             unsafe_allow_html=True,
         )
 
-        if extra_photos:
-            n = len(extra_photos)
-            cols = st.columns(min(n, 3))
-            for idx, photo_bytes in enumerate(extra_photos):
+        if photos:
+            n = len(photos)
+            cols_n = min(n, 3)
+            # 单张照片用两列布局避免撑满全宽
+            grid_cols = st.columns(cols_n if cols_n > 1 else 2)
+            for idx, photo_bytes in enumerate(photos):
                 b64 = base64.b64encode(photo_bytes).decode()
-                cols[idx % 3].markdown(
+                grid_cols[idx % cols_n].markdown(
                     f'<img src="data:image/jpeg;base64,{b64}" '
                     f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
-                    f'border-radius:8px;margin-bottom:6px;border:1px solid #edf3f8"/>',
+                    f'border-radius:8px;border:1px solid #edf3f8;display:block;margin-bottom:8px"/>',
                     unsafe_allow_html=True,
                 )
+        st.markdown('<div style="margin-bottom:8px"></div>', unsafe_allow_html=True)
 
         with st.expander("管理", expanded=False):
             if st.button(f"确认删除（{fish_date} · {spot_name}）", key=f"del_{entry_id}", type="secondary"):
