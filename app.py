@@ -758,69 +758,73 @@ def _best_window_times(best_window: str, tides: list) -> str:
 # ── 潮汐面板（Plotly） ────────────────────────────────────────────────────
 
 def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: datetime = None) -> None:
-    now          = _now_sydney()
-    sorted_tides = sorted(base_tides, key=lambda x: x["time"])
-    is_today     = target_date is None or target_date.date() == now.date()
-    HIGH_M, LOW_M = 1.85, 0.15
+    def _height_for_event(td: dict) -> float:
+        height_m = td.get("height_m")
+        if isinstance(height_m, (int, float)):
+            return float(height_m)
+        return 1.7 if td["is_high"] else 0.4
 
-    ref_day  = target_date if target_date is not None else now
-    midnight = ref_day.replace(hour=0, minute=0, second=0, microsecond=0)
-
-    # Extend with adjacent days so interpolation works across the full 24h window
-    prev_tides = get_tides_for_date(ref_day - timedelta(days=1))
-    next_tides = get_tides_for_date(ref_day + timedelta(days=1))
-    all_tides  = sorted(prev_tides + base_tides + next_tides, key=lambda x: x["time"])
-
-    x_hours  = np.linspace(0, 24, 300)
-    y_m      = []
-
-    for xh in x_hours:
-        t = midnight + timedelta(hours=float(xh))
+    def _interpolated_height(t: datetime, events: list[dict]) -> tuple[float, bool]:
         prev_td = next_td = None
-        for td in all_tides:
+        for td in events:
             if td["time"] <= t:
                 prev_td = td
             elif next_td is None:
                 next_td = td
                 break
         if prev_td is None:
-            h = all_tides[0].get("height_m")
-            if h is None:
-                h = HIGH_M if all_tides[0]["is_high"] else LOW_M
-        elif next_td is None:
-            h = all_tides[-1].get("height_m")
-            if h is None:
-                h = HIGH_M if all_tides[-1]["is_high"] else LOW_M
-        else:
-            ph = prev_td.get("height_m")
-            nh = next_td.get("height_m")
-            if ph is None:
-                ph = HIGH_M if prev_td["is_high"] else LOW_M
-            if nh is None:
-                nh = HIGH_M if next_td["is_high"] else LOW_M
-            period  = (next_td["time"] - prev_td["time"]).total_seconds()
-            elapsed = (t - prev_td["time"]).total_seconds()
-            frac    = elapsed / period if period > 0 else 0
-            h = ph + (nh - ph) * (1 - math.cos(math.pi * frac)) / 2
-        y_m.append(h)
+            h = _height_for_event(events[0])
+            return h, True
+        if next_td is None:
+            h = _height_for_event(events[-1])
+            return h, events[-1]["is_high"]
+
+        ph = _height_for_event(prev_td)
+        nh = _height_for_event(next_td)
+        period = (next_td["time"] - prev_td["time"]).total_seconds()
+        elapsed = (t - prev_td["time"]).total_seconds()
+        frac = elapsed / period if period > 0 else 0
+        h = ph + (nh - ph) * (1 - math.cos(math.pi * frac)) / 2
+        return h, nh > ph
+
+    now = _now_sydney()
+    sorted_tides = sorted(base_tides, key=lambda x: x["time"])
+    is_today     = target_date is None or target_date.date() == now.date()
+
+    ref_day  = target_date if target_date is not None else now
+    midnight = ref_day.replace(hour=0, minute=0, second=0, microsecond=0)
+
+    prev_tides = get_tides_for_date(ref_day - timedelta(days=1))
+    next_tides = get_tides_for_date(ref_day + timedelta(days=1))
+    all_tides  = sorted(prev_tides + base_tides + next_tides, key=lambda x: x["time"])
+
+    x_hours = np.linspace(0, 24, 360)
+    y_m = [_interpolated_height(midnight + timedelta(hours=float(xh)), all_tides)[0] for xh in x_hours]
 
     now_h = now.hour + now.minute / 60
+    now_height, is_rising = _interpolated_height(now, all_tides)
+    next_event = next((td for td in sorted_tides if td["time"] > now), None) if is_today else None
+    if next_event is None and is_today:
+        future = [td for td in next_tides if td["time"] > now]
+        next_event = future[0] if future else None
+    next_high = next((td for td in all_tides if td["time"] > now and td["is_high"]), None) if is_today else None
+
+    y_max = max(max(y_m), *[_height_for_event(td) for td in sorted_tides], 1.6)
+    y_range = [0, max(2.0, math.ceil((y_max + 0.15) * 10) / 10)]
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=x_hours, y=y_m, mode="lines",
-        line=dict(color="#2a5fb0", width=2),
-        fill="tozeroy", fillcolor="rgba(42,95,176,0.18)",
-        hovertemplate="%{x:.1f}h · %{y:.2f}m<extra></extra>",
+        line=dict(color="#2f70b7", width=3, shape="spline", smoothing=1.15),
+        fill="tozeroy", fillcolor="rgba(47,112,183,0.16)",
+        hovertemplate="%{x:.1f}:00 · %{y:.2f}m<extra></extra>",
     ))
     event_x, event_y, event_text, event_color = [], [], [], []
     for td in sorted_tides:
         xh = td["time"].hour + td["time"].minute / 60
         if not 0 <= xh <= 24:
             continue
-        height_m = td.get("height_m")
-        if not isinstance(height_m, (int, float)):
-            height_m = HIGH_M if td["is_high"] else LOW_M
+        height_m = _height_for_event(td)
         event_x.append(xh)
         event_y.append(height_m)
         event_text.append(
@@ -830,7 +834,7 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
     if event_x:
         fig.add_trace(go.Scatter(
             x=event_x, y=event_y, mode="markers",
-            marker=dict(size=9, color=event_color, line=dict(width=1.4, color="#fff")),
+            marker=dict(size=10, color=event_color, line=dict(width=2, color="#fff")),
             customdata=event_text,
             hovertemplate="%{customdata}<extra></extra>",
             showlegend=False,
@@ -848,12 +852,13 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
         margin=dict(l=32, r=8, t=8, b=28), showlegend=False,
         xaxis=dict(
             range=[0, 24],
-            tickvals=[0, 6, 12, 18, 24],
-            ticktext=["00:00", "06:00", "12:00", "18:00", "24:00"],
+            tickvals=[0, 4, 8, 12, 16, 20, 24],
+            ticktext=["00:00", "04:00", "08:00", "12:00", "16:00", "20:00", "24:00"],
             tickfont=dict(family="IBM Plex Mono", size=10, color="#8a9cb2"),
             gridcolor="rgba(15,30,50,0.06)",
         ),
         yaxis=dict(
+            range=y_range,
             title=dict(text="m", font=dict(family="IBM Plex Mono", size=10, color="#8a9cb2")),
             tickfont=dict(family="IBM Plex Mono", size=10, color="#8a9cb2"),
             gridcolor="rgba(15,30,50,0.06)",
@@ -861,26 +866,55 @@ def render_tide_panel(base_tides: list, chart_key: str = "tide", target_date: da
     )
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key=chart_key)
 
-    cols = st.columns(len(sorted_tides))
-    for col, td in zip(cols, sorted_tides):
-        is_high   = td["is_high"]
-        dot_color = "#c69230" if is_high else "#8a9cb2"
-        label     = "满潮" if is_high else "干潮"
-        time_str  = td["time"].strftime("%H:%M")
-        height_m  = td.get("height_m")
-        height_str = f"{height_m:.2f} m" if isinstance(height_m, (int, float)) else ""
-        opacity   = "1" if (not is_today or td["time"] > now) else "0.4"
-        col.markdown(
-            f'<div style="text-align:center;opacity:{opacity}">'
-            f'<div style="width:8px;height:8px;border-radius:50%;background:{dot_color};'
-            f'margin:0 auto 3px"></div>'
-            f'<div style="font-family:IBM Plex Mono;font-size:11px;color:{dot_color};font-weight:500">'
-            f'{time_str}</div>'
-            f'<div style="font-size:10.5px;color:#8a9cb2">{label}</div>'
-            f'<div style="font-family:IBM Plex Mono;font-size:10px;color:#8a9cb2">{height_str}</div>'
+    if is_today:
+        if next_high:
+            delta = next_high["time"] - now
+            total_min = max(0, int(delta.total_seconds() // 60))
+            next_high_text = f"{total_min // 60}h {total_min % 60}m"
+        else:
+            next_high_text = "—"
+        next_event_text = (
+            f'下个{"满潮" if next_event["is_high"] else "干潮"} {next_event["time"].strftime("%H:%M")}'
+            if next_event else "今日潮点已过"
+        )
+        st.markdown(
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 10px">'
+            f'<div style="border-top:1px solid var(--line);padding-top:8px">'
+            f'<div style="font-size:10.5px;color:var(--muted)">下个满潮</div>'
+            f'<div style="font-family:var(--mono);font-size:18px;color:var(--text)">{next_high_text}</div></div>'
+            f'<div style="border-top:1px solid var(--line);padding-top:8px;text-align:center">'
+            f'<div style="font-size:10.5px;color:var(--muted)">当前潮位</div>'
+            f'<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:var(--text)">{now_height:.2f} m</div>'
+            f'<div style="font-size:11px;color:#2f70b7">{"上涨" if is_rising else "下落"}</div></div>'
+            f'<div style="border-top:1px solid var(--line);padding-top:8px;text-align:right">'
+            f'<div style="font-size:10.5px;color:var(--muted)">下个潮点</div>'
+            f'<div style="font-family:var(--mono);font-size:13px;color:var(--text)">{next_event_text}</div></div>'
             f'</div>',
             unsafe_allow_html=True,
         )
+
+    low_rows = sorted([td for td in sorted_tides if not td["is_high"]], key=lambda td: td["time"])
+    high_rows = sorted([td for td in sorted_tides if td["is_high"]], key=lambda td: td["time"])
+
+    def _rows_html(rows: list[dict]) -> str:
+        if not rows:
+            return '<div style="font-size:12px;color:var(--muted)">—</div>'
+        return "".join(
+            f'<div style="display:flex;justify-content:space-between;gap:10px;align-items:baseline">'
+            f'<span style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text)">{td["time"].strftime("%H:%M")}</span>'
+            f'<span style="font-family:var(--mono);font-size:13px;color:var(--muted)">{_height_for_event(td):.2f} m</span>'
+            f'</div>'
+            for td in rows
+        )
+
+    st.markdown(
+        f'<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;border-top:1px solid var(--line);'
+        f'padding-top:10px">'
+        f'<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">干潮 Low tide</div>{_rows_html(low_rows)}</div>'
+        f'<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-align:right">满潮 High tide</div>{_rows_html(high_rows)}</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
     st.markdown(
         f'<div style="margin-top:8px;font-size:11px;color:#8a9cb2">{get_tide_accuracy_hint()}</div>',
         unsafe_allow_html=True,
@@ -1805,23 +1839,14 @@ def render_day_tab(day_offset: int, overview_weather: dict) -> None:
         render_weather_panel(day_w, overview_weather["success"], next_day=next_day_w)
     with right_col:
         with st.container(border=True):
-            moon_emoji, moon_name, moon_tip = _moon_phase(target_date)
             st.markdown(
-                '<div style="font-family:var(--mono);font-size:11px;letter-spacing:2px;'
-                'color:var(--subtle);text-transform:uppercase;margin-bottom:6px">'
-                '基准潮汐</div>'
-                '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">'
-                '<div style="font-family:var(--serif-zh);font-size:18px;font-weight:600">潮汐表 '
-                '<span style="font-family:var(--serif-en);font-style:italic;color:var(--muted);'
-                'font-size:15px;font-weight:400">Tide curve</span></div>'
-                f'<div style="display:flex;align-items:center;gap:5px;'
-                f'background:var(--surface2);border:1px solid var(--line);border-radius:999px;'
-                f'padding:2px 10px">'
-                f'<span style="font-size:16px">{moon_emoji}</span>'
-                f'<div><div style="font-size:11px;font-weight:600;color:var(--text)">{moon_name}</div>'
-                f'<div style="font-size:10px;color:var(--muted)">{moon_tip}</div>'
-                f'</div></div>'
-                '</div>',
+                '<div style="margin-bottom:10px">'
+                '<div style="font-family:var(--serif-en);font-size:30px;font-weight:700;'
+                'line-height:1;color:var(--text)">Tides</div>'
+                '<div style="display:flex;align-items:center;gap:6px;margin-top:6px;'
+                'font-size:13px;font-weight:600;color:#2f70b7">'
+                '<span>⌖</span><span>Circular Quay</span>'
+                '</div></div>',
                 unsafe_allow_html=True,
             )
             render_tide_panel(base_tides, chart_key=f"tide_{day_offset}", target_date=target_date)
