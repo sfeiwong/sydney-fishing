@@ -1718,16 +1718,16 @@ def render_map_section(day_offset: int, all_spot_data: list, is_mobile: bool = F
             emoji = _WT_EMOJI.get(spot.get("water_type", "harbour"), "•")
             map_lat, map_lon = _map_coords(spot)
             is_selected = spot["name"] == selected_name
-            size = 28 if is_selected else 24
-            font_size = 14 if is_selected else 12
+            size = 21 if is_selected else 18
+            font_size = 10 if is_selected else 9
             ring = (
-                f"0 0 0 3px rgba(255,224,130,0.7),0 0 0 5px {status_col}55,0 3px 8px rgba(0,0,0,0.30)"
+                f"0 0 0 2px rgba(255,224,130,0.8),0 0 0 4px {status_col}50,0 2px 5px rgba(0,0,0,0.28)"
                 if is_selected else
-                f"0 0 0 2.5px {status_col},0 2px 6px rgba(0,0,0,0.22)"
+                f"0 0 0 2px {status_col},0 1px 4px rgba(0,0,0,0.20)"
             )
             icon = folium.DivIcon(
                 html=(
-                    f'<div style="background:#ffffff;border:3px solid {status_col};border-radius:50%;'
+                    f'<div style="background:#ffffff;border:2px solid {status_col};border-radius:50%;'
                     f'width:{size}px;height:{size}px;box-sizing:border-box;'
                     f'display:flex;align-items:center;justify-content:center;'
                     f'font-size:{font_size}px;line-height:1;box-shadow:{ring};cursor:pointer;">'
