@@ -349,6 +349,24 @@ hr { border:none; border-top:1px solid var(--line); margin:1.2rem 0; }
   .hero-stats-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+  .hero-pick-card {
+    padding: 14px 12px 12px 18px !important;
+  }
+  .hero-pick-title,
+  .hero-pick-meta {
+    overflow-wrap: anywhere !important;
+  }
+  .hero-pick-card .mini-stat {
+    min-width: 0 !important;
+    padding: 7px 8px !important;
+  }
+  .hero-pick-card .mini-stat-value {
+    font-family: var(--ui-zh), var(--ui) !important;
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere !important;
+  }
 
   /* Expanded detail: tide+rules | methods → stack */
   .detail-main-grid {

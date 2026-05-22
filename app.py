@@ -196,7 +196,7 @@ def _pill(text: str, tone: str = "blue", sm: bool = True) -> str:
     bg, fg = colors.get(tone, colors["blue"])
     return (f'<span style="{bg};{fg};{size_css};border-radius:999px;'
             f'font-weight:500;margin:2px;display:inline-flex;align-items:center;gap:4px">'
-            f'{text}</span>')
+            f'{html.escape(str(text))}</span>')
 
 
 def _status_text(safety: dict) -> str:
@@ -249,11 +249,11 @@ def _mini_stat(label: str, value: str, tone: str = "text") -> str:
     }
     color = colors.get(tone, colors["text"])
     return (
-        '<div style="background:#f7fafc;border-radius:8px;padding:8px 10px;'
+        '<div class="mini-stat" style="background:#f7fafc;border-radius:8px;padding:8px 10px;'
         'border:1px solid #edf3f8;min-width:84px">'
-        f'<div style="color:#8fa3b1;font-size:0.68em;margin-bottom:3px">{label}</div>'
-        f'<div style="font-family:var(--serif-en);font-size:1.05em;font-weight:600;'
-        f'color:{color};line-height:1.05">{value}</div>'
+        f'<div style="color:#8fa3b1;font-size:0.68em;margin-bottom:3px">{html.escape(str(label))}</div>'
+        f'<div class="mini-stat-value" style="font-family:var(--ui-zh),var(--ui);font-size:1.05em;font-weight:600;'
+        f'color:{color};line-height:1.15">{html.escape(str(value))}</div>'
         '</div>'
     )
 
@@ -1024,22 +1024,26 @@ def render_hero_card(
         f'background:#f4f8fc;border-radius:7px;padding:3px 7px">{_hero_dots}</div>'
     )
 
-    col.markdown(f"""
-    <div style="background:white;border-radius:14px;padding:18px 20px 16px 24px;
+    spot_name = html.escape(str(spot["name"]))
+    spot_region = html.escape(str(spot["region"]))
+    spot_type = html.escape(str(spot["type"]))
+
+    card_html = f"""
+    <div class="hero-pick-card" style="background:white;border-radius:14px;padding:18px 20px 16px 24px;
                 box-shadow:0 2px 8px rgba(24,66,112,0.06);
                 position:relative;overflow:hidden;min-height:205px;
                 border:1px solid rgba(219,231,242,0.8)">
         <div style="position:absolute;left:0;top:0;bottom:0;width:5px;
                     background:{border};border-radius:14px 0 0 14px"></div>
-        <div style="font-family:var(--serif-zh);font-weight:600;font-size:1.05em;color:#102338;
-                    line-height:1.35;margin-bottom:8px">{spot['name']}</div>
+        <div class="hero-pick-title" style="font-family:var(--serif-zh);font-weight:600;font-size:1.05em;color:#102338;
+                    line-height:1.35;margin-bottom:8px">{spot_name}</div>
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px">
             {_status_badge(safety)}
             {_reputation_badge(safety)}
             {wt_html}{season_html}{hero_dots_html}
         </div>
-        <div style="color:#60758a;font-size:0.78em;margin:4px 0 10px">
-            {spot['region']} &nbsp;·&nbsp; {spot['type']}
+        <div class="hero-pick-meta" style="color:#60758a;font-size:0.78em;margin:4px 0 10px">
+            {spot_region} &nbsp;·&nbsp; {spot_type}
         </div>
         <div class="hero-stats-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px">
             {_mini_stat(swell_label, swell_val_html, "text" if is_fw else safety["color"])}
@@ -1049,7 +1053,8 @@ def render_hero_card(
         <div style="margin-bottom:5px">{fish_html}</div>
         <div>{method_html}</div>
     </div>
-    """, unsafe_allow_html=True)
+    """
+    col.html(card_html)
 
 
 # ── 钓点详情卡片 ──────────────────────────────────────────────────────────
