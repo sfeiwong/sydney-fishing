@@ -93,6 +93,9 @@ with st.sidebar:
         '</div></div></div>',
         unsafe_allow_html=True,
     )
+    # 处理跨控件导航请求（必须在 radio 实例化之前写入 session_state）
+    if "_nav_to" in st.session_state:
+        st.session_state["selected_page"] = st.session_state.pop("_nav_to")
     selected_page = st.radio(
         "页面",
         ["🎣 钓点推荐", "📖 渔获日记"],
@@ -1437,7 +1440,7 @@ def render_spot_card(
                 if len(log_entries) > 8:
                     st.caption(f"仅显示最近 8 条，共 {len(log_entries)} 条记录")
             if st.button("去渔获日记发一帖 →", key=f"log_goto_{spot['name']}", use_container_width=True):
-                st.session_state["selected_page"] = "📖 渔获日记"
+                st.session_state["_nav_to"] = "📖 渔获日记"
                 st.rerun()
 
 
