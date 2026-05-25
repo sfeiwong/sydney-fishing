@@ -87,6 +87,18 @@ def _init_db():
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    _execute('''
+        CREATE TABLE IF NOT EXISTS log_likes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entry_id INTEGER NOT NULL,
+            session_id TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(entry_id, session_id)
+        )
+    ''')
+    _execute(
+        "CREATE INDEX IF NOT EXISTS idx_log_likes_entry ON log_likes(entry_id)"
+    )
 
 
 _init_db()
@@ -150,3 +162,61 @@ def get_entries(limit: int = 100) -> list:
 def delete_entry(entry_id: int) -> None:
     """删除指定记录。"""
     _execute("DELETE FROM fishing_log WHERE id = ?", (entry_id,))
+
+
+# ── 日记点赞 ─────────────────────────────────────────────────────────────
+
+def get_log_like_count(entry_id: int) -> int:
+    """返回某条日记的点赞总数。"""
+    result = _query_one(
+        "SELECT COUNT(*) FROM log_likes WHERE entry_id = ?",
+        (entry_id,),
+    )
+    return result[0] if result else 0
+
+
+def has_user_liked_log(entry_id: int, session_id: str) -> bool:
+    """检查当前会话是否已对该日记点赞。"""
+    result = _query_one(
+        "SELECT 1 FROM log_likes WHERE entry_id = ? AND session_id = ?",
+        (entry_id, session_id),
+    )
+    return result is not None
+
+
+def toggle_log_like(entry_id: int, session_id: str) -> tuple[int, bool]:
+    """切换点赞状态，返回 (当前点赞数, 是否为点赞)。"""
+    if has_user_liked_log(entry_id, session_id):
+        _execute(
+            "DELETE FROM log_likes WHERE entry_id = ? AND session_id = ?",
+            (entry_id, session_id),
+        )
+        return get_log_like_count(entry_id), False
+    else:
+        try:
+            _execute(
+                "INSERT INTO log_likes (entry_id, session_id) VALUES (?, ?)",
+                (entry_id, session_id),
+            )
+        except Exception:
+            # 并发重复插入时 UNIQUE 约束冲突，视为已点赞
+            pass
+        return get_log_like_count(entry_id), True
+
+
+def get_like_stats_bulk(
+    entry_ids: list[int], session_id: str
+) -> dict[int, tuple[int, bool]]:
+    """批量返回 {entry_id: (like_count, has_liked)}，单次查询替代 N×2 次。"""
+    if not entry_ids:
+        return {}
+    placeholders = ",".join("?" * len(entry_ids))
+    rows = _query_all(
+        f"SELECT entry_id, COUNT(*), MAX(session_id = ?) "
+        f"FROM log_likes WHERE entry_id IN ({placeholders}) GROUP BY entry_id",
+        (session_id, *entry_ids),
+    )
+    result: dict[int, tuple[int, bool]] = {eid: (0, False) for eid in entry_ids}
+    for row in rows:
+        result[row[0]] = (int(row[1]), bool(row[2]))
+    return result
