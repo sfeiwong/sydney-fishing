@@ -21,7 +21,10 @@ import config as cfg
 from services.weather import get_marine_forecast
 from services.tides import get_tides_for_date
 from services.fuel import get_nearby_fuel
-from services.stats import record_visit_start, record_visit_end, render_stats_panel
+from services.stats import (
+    record_visit_start, record_visit_end, render_stats_panel,
+    get_or_create_session_id,
+)
 from services import log as fishing_log
 from data.loader import load_spots
 from domain.safety import assess_safety
@@ -2366,6 +2369,11 @@ def render_fishing_log_page() -> None:
         )
         return
 
+    session_id = get_or_create_session_id()
+    # 批量拉取所有条目的点赞数据，避免 N×2 次查询
+    like_stats = fishing_log.get_like_stats_bulk(
+        [e["id"] for e in entries], session_id
+    )
     for entry in entries:
         fish_date   = entry["fish_date"]
         spot_name   = entry["spot_name"]
@@ -2386,42 +2394,63 @@ def render_fishing_log_page() -> None:
             for f in fish_caught
         ) if fish_caught else '<span style="color:#aaa;font-size:12px">未记录鱼种</span>'
 
-        st.markdown(
-            f'<div style="background:#fff;border:1px solid #edf3f8;border-radius:14px;'
-            f'padding:16px 18px;margin-bottom:6px;box-shadow:0 1px 5px rgba(0,0,0,0.04)">'
-            f'<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;'
-            f'flex-wrap:wrap;margin-bottom:7px">'
-            f'<div>'
-            f'<div style="font-size:17px;font-weight:700;color:var(--text);line-height:1.25">📍 {spot_name_html}</div>'
-            f'<div style="font-family:var(--mono);font-size:11.5px;color:#8a9cb2;margin-top:4px">'
-            f'{fish_date_html} · {author_html}</div>'
-            f'</div>'
-            f'</div>'
-            f'<div style="margin-bottom:9px">{fish_pills}</div>'
-            + (f'<div style="font-size:13.5px;color:#3a4a5c;white-space:pre-wrap;line-height:1.65">{notes_html}</div>' if notes else '')
-            + '</div>',
-            unsafe_allow_html=True,
-        )
+        like_count, has_liked = like_stats.get(entry_id, (0, False))
 
-        if photos:
-            n = len(photos)
-            cols_n = min(n, 3)
-            # 单张照片用两列布局避免撑满全宽
-            grid_cols = st.columns(cols_n if cols_n > 1 else 2)
-            for idx, photo_bytes in enumerate(photos):
-                b64 = base64.b64encode(photo_bytes).decode()
-                grid_cols[idx % cols_n].markdown(
-                    f'<img src="data:image/jpeg;base64,{b64}" '
-                    f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
-                    f'border-radius:8px;border:1px solid #edf3f8;display:block;margin-bottom:8px"/>',
+        with st.container(border=True):
+            # ── 标题行：钓点/日期/作者 左，点赞按钮 右 ──────────────
+            hcol, lcol = st.columns([6, 1])
+            with hcol:
+                st.markdown(
+                    f'<div style="font-size:17px;font-weight:700;color:var(--text);line-height:1.25">📍 {spot_name_html}</div>'
+                    f'<div style="font-family:var(--mono);font-size:11.5px;color:#8a9cb2;margin-top:4px">'
+                    f'{fish_date_html} · {author_html}</div>',
                     unsafe_allow_html=True,
                 )
-        st.markdown('<div style="margin-bottom:8px"></div>', unsafe_allow_html=True)
+            with lcol:
+                _btn_label = f"❤️ {like_count}" if has_liked else f"🤍 {like_count}"
+                _btn_help  = "取消点赞" if has_liked else "点赞"
+                if st.button(_btn_label, key=f"log_like_{entry_id}",
+                             use_container_width=True, help=_btn_help):
+                    try:
+                        _new_count, _is_like = fishing_log.toggle_log_like(entry_id, session_id)
+                        st.toast("❤️ 已点赞！" if _is_like else "已取消点赞")
+                    except Exception:
+                        st.toast("⚠️ 操作失败，请重试")
+                    st.rerun()
 
-        with st.expander("管理", expanded=False):
-            if st.button(f"确认删除（{fish_date} · {spot_name}）", key=f"del_{entry_id}", type="secondary"):
-                fishing_log.delete_entry(entry_id)
-                st.rerun()
+            # ── 鱼种标签 ────────────────────────────────────────────
+            st.markdown(
+                f'<div style="margin:8px 0 6px">{fish_pills}</div>',
+                unsafe_allow_html=True,
+            )
+
+            # ── 文字记录 ────────────────────────────────────────────
+            if notes:
+                st.markdown(
+                    f'<div style="font-size:13.5px;color:#3a4a5c;white-space:pre-wrap;'
+                    f'line-height:1.65;margin-bottom:6px">{notes_html}</div>',
+                    unsafe_allow_html=True,
+                )
+
+            # ── 照片 ────────────────────────────────────────────────
+            if photos:
+                n = len(photos)
+                cols_n = min(n, 3)
+                grid_cols = st.columns(cols_n if cols_n > 1 else 2)
+                for idx, photo_bytes in enumerate(photos):
+                    b64 = base64.b64encode(photo_bytes).decode()
+                    grid_cols[idx % cols_n].markdown(
+                        f'<img src="data:image/jpeg;base64,{b64}" '
+                        f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
+                        f'border-radius:8px;border:1px solid #edf3f8;display:block;margin-bottom:8px"/>',
+                        unsafe_allow_html=True,
+                    )
+
+            # ── 管理 ────────────────────────────────────────────────
+            with st.expander("管理", expanded=False):
+                if st.button(f"确认删除（{fish_date} · {spot_name}）", key=f"del_{entry_id}", type="secondary"):
+                    fishing_log.delete_entry(entry_id)
+                    st.rerun()
 
 
 # ── 主页面 ────────────────────────────────────────────────────────────────
