@@ -1398,18 +1398,39 @@ def render_spot_card(
                     ) if le["fish_caught"] else '<span style="font-size:11px;color:#aaa">未记录鱼种</span>'
                     author = le["author"] or "匿名钓友"
                     notes_preview = le["notes"][:60] + "…" if len(le["notes"]) > 60 else le["notes"]
+                    _entry_photos = le.get("photos") or []
+                    _has_photos = bool(_entry_photos)
+                    _photo_badge = (
+                        f'<span style="font-size:10px;color:#5a82b4;background:#eaf1fb;'
+                        f'border-radius:999px;padding:1px 7px;margin-left:4px">📸 {len(_entry_photos)}</span>'
+                        if _has_photos else ""
+                    )
                     st.markdown(
                         f'<div style="background:var(--surface);border:1px solid var(--line);'
-                        f'border-radius:10px;padding:10px 14px;margin-bottom:8px">'
+                        f'border-radius:10px;padding:10px 14px;margin-bottom:{"3px" if _has_photos else "8px"}">'
                         f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
                         f'<span style="font-family:var(--mono);font-size:11px;color:var(--subtle)">{le["fish_date"]}</span>'
                         f'<span style="font-size:11px;color:var(--muted)">· {author}</span>'
+                        f'{_photo_badge}'
                         f'</div>'
                         f'<div style="margin-bottom:4px">{fish_pills}</div>'
                         + (f'<div style="font-size:12px;color:var(--muted);line-height:1.5">{notes_preview}</div>' if notes_preview else '')
                         + '</div>',
                         unsafe_allow_html=True,
                     )
+                    if _has_photos:
+                        with st.expander(f"📸 查看照片（{len(_entry_photos)} 张）", expanded=False):
+                            _cols_n = min(len(_entry_photos), 3)
+                            _grid = st.columns(_cols_n if _cols_n > 1 else 2)
+                            for _pi, _pb in enumerate(_entry_photos):
+                                _b64 = base64.b64encode(_pb).decode()
+                                _grid[_pi % _cols_n].markdown(
+                                    f'<img src="data:image/jpeg;base64,{_b64}" '
+                                    f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
+                                    f'border-radius:8px;border:1px solid #edf3f8;display:block"/>',
+                                    unsafe_allow_html=True,
+                                )
+                        st.markdown('<div style="margin-bottom:8px"></div>', unsafe_allow_html=True)
                 if len(log_entries) > 8:
                     st.caption(f"仅显示最近 8 条，共 {len(log_entries)} 条记录")
             if st.button("去渔获日记发一帖 →", key=f"log_goto_{spot['name']}", use_container_width=True):
