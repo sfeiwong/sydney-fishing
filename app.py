@@ -1432,7 +1432,7 @@ def render_spot_card(
                                 _b64 = base64.b64encode(_pb).decode()
                                 _grid[_pi % _cols_n].markdown(
                                     f'<img src="data:image/jpeg;base64,{_b64}" '
-                                    f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
+                                    f'style="width:100%;height:auto;'
                                     f'border-radius:8px;border:1px solid #edf3f8;display:block"/>',
                                     unsafe_allow_html=True,
                                 )
@@ -2444,7 +2444,7 @@ def render_fishing_log_page() -> None:
                     b64 = base64.b64encode(photo_bytes).decode()
                     grid_cols[idx % cols_n].markdown(
                         f'<img src="data:image/jpeg;base64,{b64}" '
-                        f'style="width:100%;aspect-ratio:4/3;object-fit:cover;'
+                        f'style="width:100%;height:auto;'
                         f'border-radius:8px;border:1px solid #edf3f8;display:block;margin-bottom:8px"/>',
                         unsafe_allow_html=True,
                     )
