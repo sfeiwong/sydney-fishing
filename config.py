@@ -75,7 +75,7 @@ FISH_LEGAL_SIZE = {
     "Mackerel (鲭鱼)":             {"size": None, "bag": None,"note": "无限制"},
     "Tuna (金枪鱼)":               {"size": None, "bag": None,"note": "无限制"},
     "Garfish (针鱼)":              {"size": None, "bag": 40,  "note": "无最小尺寸"},
-    "Eel (鳗鱼)":                  {"size": 30,   "bag": 10,  "note": "短鳍鳗 TL；长鳍鳗部分水域受保护"},
+    "Eel (鳗鱼)":                  {"size": 30,   "bag": 10,  "note": "短鳍鳗≥30cm；长鳍鳗≥58cm；各限10条"},
     "Tuskfish (青衣)":             {"size": None, "bag": None,"note": "无限制"},
     "Wrasse (彩衣)":               {"size": None, "bag": None,"note": "无限制"},
     "Scorpionfish (红蝎子)":       {"size": None, "bag": None,"note": "无限制；鳍刺有毒，小心处理"},
